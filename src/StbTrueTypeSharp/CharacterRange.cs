@@ -1,11 +1,11 @@
-namespace StbTrueTypeSharp
+namespace StbSharp
 {
 #if !STBSHARP_INTERNAL
 	public
 #else
 	internal
 #endif
-	struct CharacterRange
+	readonly struct CharacterRange
 	{
 		public static readonly CharacterRange BasicLatin = new CharacterRange(0x0020, 0x007F);
 		public static readonly CharacterRange Latin1Supplement = new CharacterRange(0x00A0, 0x00FF);
@@ -21,25 +21,12 @@ namespace StbTrueTypeSharp
 		public static readonly CharacterRange HangulCompatibilityJamo = new CharacterRange(0x3130, 0x318f);
 		public static readonly CharacterRange HangulSyllables = new CharacterRange(0xac00, 0xd7af);
 
-		public int Start
-		{
-			get;
-		}
+		public int Start { get; }
+		public int End { get; }
 
-		public int End
-		{
-			get;
-		}
+        public int Size => End - Start + 1;
 
-		public int Size
-		{
-			get
-			{
-				return End - Start + 1;
-			}
-		}
-
-		public CharacterRange(int start, int end)
+        public CharacterRange(int start, int end)
 		{
 			Start = start;
 			End = end;

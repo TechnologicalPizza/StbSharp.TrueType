@@ -2,15 +2,24 @@
   <PropertyGroup>
     <Authors>StbTrueTypeSharpTeam</Authors>
     <Product>StbTrueTypeSharp</Product>
-    <TargetFramework>netstandard1.1</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Description>C# port of stb_truetype.h</Description>
     <PackageLicense>https://github.com/rds1983/StbSharp#license</PackageLicense>
     <PackageProjectUrl>https://github.com/rds1983/StbSharp</PackageProjectUrl>
     <NoWarn>NU1701</NoWarn>
     <AssemblyName>StbTrueTypeSharp</AssemblyName>
-    <RootNamespace>StbTrueTypeSharp</RootNamespace>
+    <RootNamespace>StbSharp</RootNamespace>
     <Version>1.0.0.0</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="CRuntime.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\modules\StbSharp.Shared\src\StbSharp.Shared\StbSharp.Shared.csproj" />
+  </ItemGroup>
 </Project>
