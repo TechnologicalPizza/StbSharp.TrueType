@@ -10,56 +10,48 @@ namespace StbSharp
     unsafe partial class StbTrueType
     {
         public static byte* GetGlyphSDF(
-            TTFontInfo info, float scale, int glyph, int padding,
+            TTFontInfo info, TTPoint scale, int glyph, int padding,
             byte onedge_value, float pixel_dist_scale,
-            out int width, out int height, out int xoff, out int yoff)
+            out int width, out int height, out TTIntPoint offset)
         {
             width = 0;
             height = 0;
-            xoff = 0;
-            yoff = 0;
+            offset = TTIntPoint.Zero;
 
-            float scale_x = scale;
-            float scale_y = scale;
-
-            if (scale_x == 0)
-                scale_x = scale_y;
-            if (scale_y == 0)
+            if (scale.x == 0)
+                scale.x = scale.y;
+            if (scale.y == 0)
             {
-                if (scale_x == 0)
+                if (scale.x == 0)
                     return null;
-                scale_y = scale_x;
+                scale.y = scale.x;
             }
 
             GetGlyphBitmapBoxSubpixel(
-                info, glyph, scale, scale, 0f, 0f,
-                out int ix0, out int iy0, out int ix1, out int iy1);
+                info, glyph, scale, TTPoint.Zero, out var glyphBox);
 
-            if ((ix0 == ix1) || (iy0 == iy1))
+            if (glyphBox.w == 0 || glyphBox.y == 0)
                 return null;
 
-            ix0 -= padding;
-            iy0 -= padding;
-            ix1 += padding;
-            iy1 += padding;
-            int w = ix1 - ix0;
-            int h = iy1 - iy0;
-            width = w;
-            height = h;
-            xoff = ix0;
-            yoff = iy0;
-            scale_y = -scale_y;
-
-            int x = 0;
-            int y = 0;
+            glyphBox.x -= padding;
+            glyphBox.y -= padding;
+            glyphBox.w += padding;
+            glyphBox.h += padding;
+            width = glyphBox.w;
+            height = glyphBox.h;
+            offset = glyphBox.Position;
+            scale.y = -scale.y;
 
             int num_verts = GetGlyphShape(info, glyph, out TTVertex* verts);
-            byte* data = (byte*)CRuntime.malloc(w * h);
+            byte* data = (byte*)CRuntime.malloc(glyphBox.w * glyphBox.h);
 
             int precomputeSize = num_verts * sizeof(float);
             Span<float> precompute = precomputeSize > 2048 
                 ? new float[precomputeSize] 
                 : stackalloc float[precomputeSize];
+
+            int x = 0;
+            int y = 0;
 
             int i = 0;
             int j = 0;
@@ -68,21 +60,21 @@ namespace StbSharp
                 TTVertex vertex = verts[i];
                 if (vertex.type == STBTT_vline)
                 {
-                    float x0 = vertex.x * scale_x;
-                    float y0 = vertex.y * scale_y;
-                    float x1 = verts[j].x * scale_x;
-                    float y1 = verts[j].y * scale_y;
+                    float x0 = vertex.x * scale.x;
+                    float y0 = vertex.y * scale.y;
+                    float x1 = verts[j].x * scale.x;
+                    float y1 = verts[j].y * scale.y;
                     float dist = (float)Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
                     precompute[i] = (dist == 0) ? 0f : 1f / dist;
                 }
                 else if (vertex.type == STBTT_vcurve)
                 {
-                    float x2 = verts[j].x * scale_x;
-                    float y2 = verts[j].y * scale_y;
-                    float x1 = vertex.cx * scale_x;
-                    float y1 = vertex.cy * scale_y;
-                    float x0 = vertex.x * scale_x;
-                    float y0 = vertex.y * scale_y;
+                    float x2 = verts[j].x * scale.x;
+                    float y2 = verts[j].y * scale.y;
+                    float x1 = vertex.cx * scale.x;
+                    float y1 = vertex.cy * scale.y;
+                    float x0 = vertex.x * scale.x;
+                    float y0 = vertex.y * scale.y;
                     float bx = x0 - 2 * x1 + x2;
                     float by = y0 - 2 * y1 + y2;
                     float len2 = bx * bx + by * by;
@@ -98,31 +90,32 @@ namespace StbSharp
 
             float* res = stackalloc float[3];
 
-            for (y = iy0; y < iy1; ++y)
+            var glyphBr = glyphBox.BottomRight;
+            for (y = glyphBox.y; y < glyphBr.y; ++y)
             {
-                for (x = ix0; x < ix1; ++x)
+                for (x = glyphBox.x; x < glyphBr.x; ++x)
                 {
                     float val = 0;
                     float min_dist = 999999f;
                     float sx = x + 0.5f;
                     float sy = y + 0.5f;
-                    float x_gspace = sx / scale_x;
-                    float y_gspace = sy / scale_y;
+                    float x_gspace = sx / scale.x;
+                    float y_gspace = sy / scale.y;
                     int winding = ComputeCrossingsX(x_gspace, y_gspace, num_verts, verts);
                     for (i = 0; i < num_verts; ++i)
                     {
-                        float x0 = verts[i].x * scale_x;
-                        float y0 = verts[i].y * scale_y;
+                        float x0 = verts[i].x * scale.x;
+                        float y0 = verts[i].y * scale.y;
                         float dist2 = (x0 - sx) * (x0 - sx) + (y0 - sy) * (y0 - sy);
                         if (dist2 < (min_dist * min_dist))
                             min_dist = (float)Math.Sqrt(dist2);
 
                         if (verts[i].type == STBTT_vline)
                         {
-                            float x1 = verts[i - 1].x * scale_x;
-                            float y1 = verts[i - 1].y * scale_y;
-                            float dist = ((float)Math.Abs(
-                                (double)((x1 - x0) * (y0 - sy) - (y1 - y0) * (x0 - sx)))) * precompute[i];
+                            float x1 = verts[i - 1].x * scale.x;
+                            float y1 = verts[i - 1].y * scale.y;
+                            float dist = Math.Abs(
+                                (x1 - x0) * (y0 - sy) - (y1 - y0) * (x0 - sx)) * precompute[i];
 
                             if (dist < min_dist)
                             {
@@ -138,10 +131,10 @@ namespace StbSharp
                         }
                         else if (verts[i].type == STBTT_vcurve)
                         {
-                            float x2 = verts[i - 1].x * scale_x;
-                            float y2 = verts[i - 1].y * scale_y;
-                            float x1 = verts[i].cx * scale_x;
-                            float y1 = verts[i].cy * scale_y;
+                            float x2 = verts[i - 1].x * scale.x;
+                            float y2 = verts[i - 1].y * scale.y;
+                            float x1 = verts[i].cx *    scale.x;
+                            float y1 = verts[i].cy *    scale.y;
                             float box_x0 = (x0 < x1 ? x0 : x1) < x2
                                 ? (x0 < x1 ? x0 : x1)
                                 : x2;
@@ -251,24 +244,23 @@ namespace StbSharp
                         val = 0f;
                     else if (val > 255)
                         val = 255;
-                    data[(y - iy0) * w + (x - ix0)] = (byte)val;
+                    data[(y - glyphBox.y) * glyphBox.w + (x - glyphBox.x)] = (byte)val;
                 }
             }
 
             FreeShape(verts);
-
             return data;
         }
 
         public static byte* GetCodepointSDF(
-            TTFontInfo info, float scale, int codepoint, int padding,
+            TTFontInfo info, TTPoint scale, int codepoint, int padding,
             byte onedge_value, float pixel_dist_scale,
-            out int width, out int height, out int xoff, out int yoff)
+            out int width, out int height, out TTIntPoint offset)
         {
+            int glyph = FindGlyphIndex(info, codepoint);
             return GetGlyphSDF(
-                info, scale, FindGlyphIndex(info, codepoint),
-                padding, onedge_value, pixel_dist_scale,
-                out width, out height, out xoff, out yoff);
+                info, scale, glyph, padding, onedge_value, pixel_dist_scale,
+                out width, out height, out offset);
         }
 
         public static void FreeSDF(byte* bitmap)

@@ -149,8 +149,9 @@ namespace StbSharp
                     int platform = ReadUInt16(fontData.Slice(loc + 0));
                     int encoding = ReadUInt16(fontData.Slice(loc + 2));
                     int language = ReadUInt16(fontData.Slice(loc + 4));
-                    if ((platform == 0) || ((platform == 3) && (encoding == 1)) ||
-                        ((platform == 3) && (encoding == 10)))
+                    if (platform == 0 || 
+                        (platform == 3 && encoding == 1) ||
+                        (platform == 3 && encoding == 10))
                     {
                         int slen = ReadUInt16(fontData.Slice(loc + 8));
                         int off = ReadUInt16(fontData.Slice(loc + 10));

@@ -14,8 +14,8 @@ namespace StbSharp
             if (points == null)
                 return;
 
-            points[n].X = x;
-            points[n].Y = y;
+            points[n].x = x;
+            points[n].y = y;
         }
 
         public static int TesselateCurve(TTPoint* points, int* num_points, float x0, float y0, float x1,

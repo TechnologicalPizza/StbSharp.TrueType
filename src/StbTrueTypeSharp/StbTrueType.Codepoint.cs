@@ -8,11 +8,26 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static int GetCodepointBox(
-            TTFontInfo info, int codepoint, out int x0, out int y0, out int x1, out int y1)
+        public static byte* GetCodepointBitmap(
+            TTFontInfo info, TTPoint scale, int codepoint,
+            out int width, out int height, out TTIntPoint offset)
         {
-            int index = FindGlyphIndex(info, codepoint);
-            return GetGlyphBox(info, index, out x0, out y0, out x1, out y1);
+            return GetCodepointBitmapSubpixel(
+                info, scale, TTPoint.Zero, codepoint, out width, out height, out offset);
+        }
+
+        public static byte* GetCodepointBitmapSubpixel(
+            TTFontInfo info, TTPoint scale, TTPoint shift, int codepoint,
+            out int width, out int height, out TTIntPoint offset)
+        {
+            int glyph = FindGlyphIndex(info, codepoint);
+            return GetGlyphBitmapSubpixel(info, scale, shift, glyph, out width, out height, out offset);
+        }
+
+        public static bool GetCodepointBox(TTFontInfo info, int codepoint, out TTIntRect glyphBox)
+        {
+            int glyph = FindGlyphIndex(info, codepoint);
+            return GetGlyphBox(info, glyph, out glyphBox);
         }
 
         public static int GetCodepointShape(TTFontInfo info, int unicode_codepoint, out TTVertex* vertices)
@@ -25,7 +40,9 @@ namespace StbSharp
             if ((info.kern == 0) && (info.gpos == 0))
                 return 0;
 
-            return GetGlyphKernAdvance(info, FindGlyphIndex(info, ch1), FindGlyphIndex(info, ch2));
+            int chIndex1 = FindGlyphIndex(info, ch1);
+            int chIndex2 = FindGlyphIndex(info, ch2);
+            return GetGlyphKernAdvance(info, chIndex1, chIndex2);
         }
 
         public static void GetCodepointHMetrics(

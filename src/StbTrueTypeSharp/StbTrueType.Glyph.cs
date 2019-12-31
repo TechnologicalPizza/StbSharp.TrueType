@@ -9,31 +9,30 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static int GetGlyphBox(
-            TTFontInfo info, int glyph_index, out int x0, out int y0, out int x1, out int y1)
+        public static bool GetGlyphBox(
+            TTFontInfo info, int glyph_index, out TTIntRect glyphBox)
         {
-            x0 = 0;
-            y0 = 0;
-            x1 = 0;
-            y1 = 0;
-
             if (info.cff.size != 0)
             {
-                GetGlyphInfoT2(info, glyph_index, out x0, out y0, out x1, out y1);
+                return GetGlyphInfoT2(info, glyph_index, out glyphBox) != 0;
             }
             else
             {
                 int g = GetGlyphOffset(info, glyph_index);
                 if (g < 0)
-                    return 0;
+                {
+                    glyphBox = TTIntRect.Zero;
+                    return false;
+                }
 
                 var data = info.data.Span;
-                x0 = ReadInt16(data.Slice(g + 2));
-                y0 = ReadInt16(data.Slice(g + 4));
-                x1 = ReadInt16(data.Slice(g + 6));
-                y1 = ReadInt16(data.Slice(g + 8));
+                glyphBox = TTIntRect.FromEdgePoints(
+                    tlX: ReadInt16(data.Slice(g + 2)),
+                    tlY: ReadInt16(data.Slice(g + 4)),
+                    brX: ReadInt16(data.Slice(g + 6)),
+                    brY: ReadInt16(data.Slice(g + 8)));
+                return true;
             }
-            return 1;
         }
 
         public static int GetGlyphOffset(TTFontInfo info, int glyph_index)
@@ -67,31 +66,34 @@ namespace StbSharp
                 return GetGlyphShapeT2(info, glyph_index, out pvertices);
         }
 
-        public static int IsGlyphEmpty(TTFontInfo info, int glyph_index)
+        public static bool IsGlyphEmpty(TTFontInfo info, int glyph_index)
         {
             if (info.cff.size != 0)
-                return GetGlyphInfoT2(info, glyph_index, out _, out _, out _, out _) == 0 ? 1 : 0;
+                return GetGlyphInfoT2(info, glyph_index, out _) == 0 ? true : false;
 
             int g = GetGlyphOffset(info, glyph_index);
             if (g < 0)
-                return 1;
+                return true;
 
             short numberOfContours = ReadInt16(info.data.Span.Slice(g));
-            return numberOfContours == 0 ? 1 : 0;
+            return numberOfContours == 0 ? true : false;
         }
 
         public static int GetGlyphInfoT2(
-            TTFontInfo info, int glyph_index, out int x0, out int y0, out int x1, out int y1)
+            TTFontInfo info, int glyph_index, out TTIntRect glyphBox)
         {
             var c = new TTCharStringContext();
             c.bounds = 1;
 
             int r = RunCharString(info, glyph_index, &c);
-            x0 = r != 0 ? c.min_x : 0;
-            y0 = r != 0 ? c.min_y : 0;
-            x1 = r != 0 ? c.max_x : 0;
-            y1 = r != 0 ? c.max_y : 0;
-            return r != 0 ? c.num_vertices : 0;
+            if(r != 0)
+            {
+                glyphBox = TTIntRect.FromEdgePoints(c.min, c.max);
+                return c.num_vertices;
+            }
+
+            glyphBox = TTIntRect.Zero;
+            return 0;
         }
 
         public static void GetGlyphHMetrics(

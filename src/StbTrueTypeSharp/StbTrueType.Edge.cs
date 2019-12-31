@@ -11,16 +11,17 @@ namespace StbSharp
         public static TTActiveEdge* NewActive(TTHeap* hh, TTEdge* e, int off_x, float start_point)
         {
             var z = (TTActiveEdge*)HeapAlloc(hh, sizeof(TTActiveEdge));
-            float dxdy = (e->x1 - e->x0) / (e->y1 - e->y0);
+            float dxdy = (e->p1.x - e->p0.x) / (e->p1.y - e->p0.y);
             if (z == null)
                 return z;
+
             z->fdx = dxdy;
             z->fdy = dxdy != 0f ? (1f / dxdy) : 0f;
-            z->fx = e->x0 + dxdy * (start_point - e->y0);
+            z->fx = e->p0.x + dxdy * (start_point - e->p0.y);
             z->fx -= off_x;
-            z->direction = e->invert != 0 ? 1f : -1f;
-            z->sy = e->y0;
-            z->ey = e->y1;
+            z->direction = e->invert ? 1f : -1f;
+            z->sy = e->p0.y;
+            z->ey = e->p1.y;
             z->next = null;
             return z;
         }
@@ -34,6 +35,7 @@ namespace StbSharp
                 return;
             if (y1 < e->sy)
                 return;
+
             if (y0 < e->sy)
             {
                 x0 += (x1 - x0) * (e->sy - y0) / (y1 - y0);
@@ -46,21 +48,21 @@ namespace StbSharp
                 y1 = e->ey;
             }
 
-            if (x0 == x)
-            {
-            }
-            else if (x0 == (x + 1))
-            {
-            }
-            else if (x0 <= x)
-            {
-            }
-            else if (x0 >= (x + 1))
-            {
-            }
-            else
-            {
-            }
+            //if (x0 == x)
+            //{
+            //}
+            //else if (x0 == (x + 1))
+            //{
+            //}
+            //else if (x0 <= x)
+            //{
+            //}
+            //else if (x0 >= (x + 1))
+            //{
+            //}
+            //else
+            //{
+            //}
 
             if ((x0 <= x) && (x1 <= x))
             {
@@ -251,7 +253,7 @@ namespace StbSharp
                 while (j > 0)
                 {
                     TTEdge* b = &p[j - 1];
-                    int c = a->y0 < b->y0 ? 1 : 0;
+                    int c = a->p0.y < b->p0.y ? 1 : 0;
                     if (c == 0)
                         break;
                     p[j] = p[j - 1];
@@ -275,12 +277,12 @@ namespace StbSharp
                 int i = 0;
                 int j = 0;
                 m = n >> 1;
-                c01 = (&p[0])->y0 < (&p[m])->y0 ? 1 : 0;
-                c12 = (&p[m])->y0 < (&p[n - 1])->y0 ? 1 : 0;
+                c01 = (&p[0])->p0.y < (&p[m])    ->p0.y ? 1 : 0;
+                c12 = (&p[m])->p0.y < (&p[n - 1])->p0.y ? 1 : 0;
                 if (c01 != c12)
                 {
                     int z = 0;
-                    c = (&p[0])->y0 < (&p[n - 1])->y0 ? 1 : 0;
+                    c = (&p[0])->p0.y < (&p[n - 1])->p0.y ? 1 : 0;
                     z = (c == c12) ? 0 : n - 1;
                     t = p[z];
                     p[z] = p[m];
@@ -296,13 +298,13 @@ namespace StbSharp
                 {
                     for (; ; ++i)
                     {
-                        if (!((&p[i])->y0 < (&p[0])->y0))
+                        if (!((&p[i])->p0.y < (&p[0])->p0.y))
                             break;
                     }
 
                     for (; ; --j)
                     {
-                        if (!((&p[0])->y0 < (&p[j])->y0))
+                        if (!((&p[0])->p0.y < (&p[j])->p0.y))
                             break;
                     }
 

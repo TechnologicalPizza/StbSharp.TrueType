@@ -12,10 +12,10 @@ namespace StbSharp
         public static int RayIntersectBezier(
             in TTPoint ray, in TTPoint orig, in TTPoint q0, in TTPoint q1, in TTPoint q2, float* hits)
         {
-            float q0perp = q0.Y * ray.X - q0.X * ray.Y;
-            float q1perp = q1.Y * ray.X - q1.X * ray.Y;
-            float q2perp = q2.Y * ray.X - q2.X * ray.Y;
-            float roperp = orig.Y * ray.X - orig.X * ray.Y;
+            float q0perp = q0.y * ray.x - q0.x * ray.y;
+            float q1perp = q1.y * ray.x - q1.x * ray.y;
+            float q2perp = q2.y * ray.x - q2.x * ray.y;
+            float roperp = orig.y * ray.x - orig.x * ray.y;
             float a = q0perp - 2 * q1perp + q2perp;
             float b = q1perp - q0perp;
             float c = q0perp - roperp;
@@ -52,13 +52,13 @@ namespace StbSharp
                 return 0;
             else
             {
-                float rcp_len2 = 1 / (ray.X * ray.X + ray.Y * ray.Y);
-                float rayn_x = ray.X * rcp_len2;
-                float rayn_y = ray.Y * rcp_len2;
-                float q0d = q0.X * rayn_x + q0.Y * rayn_y;
-                float q1d = q1.X * rayn_x + q1.Y * rayn_y;
-                float q2d = q2.X * rayn_x + q2.Y * rayn_y;
-                float rod = orig.X * rayn_x + orig.Y * rayn_y;
+                float rcp_len2 = 1 / (ray.x * ray.x + ray.y * ray.y);
+                float rayn_x = ray.x * rcp_len2;
+                float rayn_y = ray.y * rcp_len2;
+                float q0d = q0.x * rayn_x + q0.y * rayn_y;
+                float q1d = q1.x * rayn_x + q1.y * rayn_y;
+                float q2d = q2.x * rayn_x + q2.y * rayn_y;
+                float rod = orig.x * rayn_x + orig.y * rayn_y;
                 float q10d = q1d - q0d;
                 float q20d = q2d - q0d;
                 float q0rd = q0d - rod;
@@ -78,8 +78,8 @@ namespace StbSharp
         public static int ComputeCrossingsX(float x, float y, int nverts, TTVertex* verts)
         {
             TTPoint ray;
-            ray.X = 1f;
-            ray.Y = 0f;
+            ray.x = 1f;
+            ray.y = 0f;
 
             int winding = 0;
             float y_frac = (float)(y % 1.0);
@@ -89,8 +89,8 @@ namespace StbSharp
                 y -= 0.01f;
 
             TTPoint orig;
-            orig.X = x;
-            orig.Y = y;
+            orig.x = x;
+            orig.y = y;
 
             TTPoint q0;
             TTPoint q1;
@@ -127,12 +127,12 @@ namespace StbSharp
                     int by = y0 < (y1 < y2 ? y2 : y1) ? (y1 < y2 ? y2 : y1) : y0;
                     if ((y > ay) && (y < by) && (x > ax))
                     {
-                        q0.X = x0;
-                        q0.Y = y0;
-                        q1.X = x1;
-                        q1.Y = y1;
-                        q2.X = x2;
-                        q2.Y = y2;
+                        q0.x = x0;
+                        q0.y = y0;
+                        q1.x = x1;
+                        q1.y = y1;
+                        q2.x = x2;
+                        q2.y = y2;
 
                         if (TTPoint.Equals(q0, q1) || TTPoint.Equals(q1, q2))
                         {

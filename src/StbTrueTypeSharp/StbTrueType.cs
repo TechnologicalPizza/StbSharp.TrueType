@@ -76,10 +76,10 @@ namespace StbSharp
             float iph = 1f / ph;
             int round_x = (int)Math.Floor(xpos + chardata.xoff + 0.5f);
             int round_y = (int)Math.Floor(ypos + chardata.yoff + 0.5f);
-            q.x0 = round_x + d3d_bias;
-            q.y0 = round_y + d3d_bias;
-            q.x1 = round_x + chardata.x1 - chardata.x0 + d3d_bias;
-            q.y1 = round_y + chardata.y1 - chardata.y0 + d3d_bias;
+            q.pos0.x = round_x + d3d_bias;
+            q.pos0.y = round_y + d3d_bias;
+            q.pos1.x = round_x + chardata.x1 - chardata.x0 + d3d_bias;
+            q.pos1.y = round_y + chardata.y1 - chardata.y0 + d3d_bias;
             q.s0 = chardata.x0 * ipw;
             q.t0 = chardata.y0 * iph;
             q.s1 = chardata.x1 * ipw;

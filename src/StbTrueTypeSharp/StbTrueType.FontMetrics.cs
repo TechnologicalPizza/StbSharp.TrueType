@@ -35,26 +35,25 @@ namespace StbSharp
             return true;
         }
 
-        public static void GetFontBoundingBox(
-            TTFontInfo info, out int x0, out int y0, out int x1, out int y1)
+        public static void GetFontBoundingBox(TTFontInfo info, out TTPoint p0, out TTPoint p1)
         {
             var data = info.data.Span;
-            x0 = ReadInt16(data.Slice(info.head + 36));
-            y0 = ReadInt16(data.Slice(info.head + 38));
-            x1 = ReadInt16(data.Slice(info.head + 40));
-            y1 = ReadInt16(data.Slice(info.head + 42));
+            p0.x = ReadInt16(data.Slice(info.head + 36));
+            p0.y = ReadInt16(data.Slice(info.head + 38));
+            p1.x = ReadInt16(data.Slice(info.head + 40));
+            p1.y = ReadInt16(data.Slice(info.head + 42));
         }
 
-        public static float ScaleForPixelHeight(TTFontInfo info, float height)
+        public static TTPoint ScaleForPixelHeight(TTFontInfo info, float height)
         {
             int fheight = ReadInt16(info.data.Span.Slice(info.hhea + 4)) - ReadInt16(info.data.Span.Slice(info.hhea + 6));
-            return height / fheight;
+            return new TTPoint(height / fheight);
         }
 
-        public static float ScaleForMappingEmToPixels(TTFontInfo info, float pixels)
+        public static TTPoint ScaleForMappingEmToPixels(TTFontInfo info, float pixels)
         {
             int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
-            return pixels / unitsPerEm;
+            return new TTPoint(pixels / unitsPerEm);
         }
     }
 }

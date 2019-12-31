@@ -4,27 +4,25 @@ using System.Collections.Generic;
 namespace StbSharp
 {
 #if !STBSHARP_INTERNAL
-	public
+    public
 #else
-	internal
+    internal
 #endif
-	class FontBaker
-	{
-		private byte[] _bitmap;
-		private StbTrueType.TTPackContext _context;
-		private Dictionary<int, GlyphInfo> _glyphs;
-		private int bitmapWidth, bitmapHeight;
+    class FontBaker
+    {
+        private byte[] _bitmap;
+        private StbTrueType.TTPackContext _context = new StbTrueType.TTPackContext();
+        private Dictionary<int, GlyphInfo> _glyphs = new Dictionary<int, GlyphInfo>();
+        private int bitmapWidth, bitmapHeight;
 
-        public void Begin(int width, int height)
+        public void Begin(int width, int height, bool skipMissing = true)
         {
             bitmapWidth = width;
             bitmapHeight = height;
             _bitmap = new byte[width * height];
-            _context = new StbTrueType.TTPackContext();
 
-            StbTrueType.PackBegin(_context, width, height, width, 1);
-
-            _glyphs = new Dictionary<int, GlyphInfo>();
+            StbTrueType.PackBegin(_context, skipMissing, width, height, width, 1);
+            _glyphs.Clear();
         }
 
         public void Add(
@@ -43,10 +41,8 @@ namespace StbSharp
             if (!StbTrueType.InitFont(fontInfo, ttf, 0))
                 throw new Exception("Failed to init font.");
 
-            var scaleFactor = StbTrueType.ScaleForPixelHeight(fontInfo, fontPixelHeight);
-
-            StbTrueType.GetFontVMetrics(
-                fontInfo, out int ascent, out int descent, out int lineGap);
+            var scale = StbTrueType.ScaleForPixelHeight(fontInfo, fontPixelHeight);
+            StbTrueType.GetFontVMetrics(fontInfo, out int ascent, out _, out _);
 
             foreach (var range in ranges)
             {
@@ -60,15 +56,15 @@ namespace StbSharp
 
                 for (int i = 0; i < charData.Length; ++i)
                 {
-                    var yOff = charData[i].yoff;
-                    yOff += ascent * scaleFactor;
+                    var yOff = charData[i].offset0.y;
+                    yOff += ascent * scale.x;
 
                     var glyphInfo = new GlyphInfo(
                         x: charData[i].x0,
                         y: charData[i].y0,
                         width: charData[i].x1 - charData[i].x0,
                         height: charData[i].y1 - charData[i].y0,
-                        xOffset: (int)charData[i].xoff,
+                        xOffset: (int)charData[i].offset0.x,
                         yOffset: (int)Math.Round(yOff),
                         xAdvance: (int)Math.Round(charData[i].xadvance));
 
@@ -77,10 +73,10 @@ namespace StbSharp
             }
         }
 
-		public FontBakerResult End()
-		{
+        public FontBakerResult End()
+        {
             StbTrueType.PackEnd(_context);
-			return new FontBakerResult(_glyphs, _bitmap, bitmapWidth, bitmapHeight);
-		}
-	}
+            return new FontBakerResult(_glyphs, _bitmap, bitmapWidth, bitmapHeight);
+        }
+    }
 }

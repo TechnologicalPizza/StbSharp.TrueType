@@ -41,14 +41,14 @@ namespace StbSharp
 
         public static void TrackVertex(TTCharStringContext* c, int x, int y)
         {
-            if ((x > c->max_x) || (c->started == 0))
-                c->max_x = x;
-            if ((y > c->max_y) || (c->started == 0))
-                c->max_y = y;
-            if ((x < c->min_x) || (c->started == 0))
-                c->min_x = x;
-            if ((y < c->min_y) || (c->started == 0))
-                c->min_y = y;
+            if ((x > c->max.x) || (c->started == 0))
+                c->max.x = x;
+            if ((y > c->max.y) || (c->started == 0))
+                c->max.y = y;
+            if ((x < c->min.x) || (c->started == 0))
+                c->min.x = x;
+            if ((y < c->min.y) || (c->started == 0))
+                c->min.y = y;
             c->started = 1;
         }
 
@@ -76,36 +76,38 @@ namespace StbSharp
 
         public static void CsContext_CloseShape(TTCharStringContext* ctx)
         {
-            if ((ctx->first_x != ctx->x) || (ctx->first_y != ctx->y))
-                CsContextV(ctx, STBTT_vline, (int)ctx->first_x, (int)ctx->first_y, 0, 0, 0, 0);
+            if ((ctx->firstPos.x != ctx->pos.x) || (ctx->firstPos.y != ctx->pos.y))
+                CsContextV(ctx, STBTT_vline, (int)ctx->firstPos.x, (int)ctx->firstPos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RMoveTo(TTCharStringContext* ctx, float dx, float dy)
         {
             CsContext_CloseShape(ctx);
-            ctx->first_x = ctx->x = ctx->x + dx;
-            ctx->first_y = ctx->y = ctx->y + dy;
-            CsContextV(ctx, STBTT_vmove, (int)ctx->x, (int)ctx->y, 0, 0, 0, 0);
+            ctx->firstPos.x = ctx->pos.x = ctx->pos.x + dx;
+            ctx->firstPos.y = ctx->pos.y = ctx->pos.y + dy;
+            CsContextV(ctx, STBTT_vmove, (int)ctx->pos.x, (int)ctx->pos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RLineTo(TTCharStringContext* ctx, float dx, float dy)
         {
-            ctx->x += dx;
-            ctx->y += dy;
-            CsContextV(ctx, STBTT_vline, (int)ctx->x, (int)ctx->y, 0, 0, 0, 0);
+            ctx->pos.x += dx;
+            ctx->pos.y += dy;
+            CsContextV(ctx, STBTT_vline, (int)ctx->pos.x, (int)ctx->pos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RCCurveTo(
             TTCharStringContext* ctx, float dx1, float dy1, float dx2, float dy2, float dx3, float dy3)
         {
-            float cx1 = ctx->x + dx1;
-            float cy1 = ctx->y + dy1;
+            float cx1 = ctx->pos.x + dx1;
+            float cy1 = ctx->pos.y + dy1;
             float cx2 = cx1 + dx2;
             float cy2 = cy1 + dy2;
-            ctx->x = cx2 + dx3;
-            ctx->y = cy2 + dy3;
-            CsContextV(ctx, STBTT_vcubic, (int)ctx->x, (int)ctx->y, (int)cx1, (int)cy1,
-                (int)cx2, (int)cy2);
+            ctx->pos.x = cx2 + dx3;
+            ctx->pos.y = cy2 + dy3;
+            
+            CsContextV(
+                ctx, STBTT_vcubic, (int)ctx->pos.x, (int)ctx->pos.y,
+                (int)cx1, (int)cy1, (int)cx2, (int)cy2);
         }
 
         public static void FreeShape(TTVertex* v)
