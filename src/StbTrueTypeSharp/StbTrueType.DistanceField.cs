@@ -43,7 +43,7 @@ namespace StbSharp
             scale.y = -scale.y;
 
             int num_verts = GetGlyphShape(info, glyph, out TTVertex* verts);
-            byte* data = (byte*)CRuntime.malloc(glyphBox.w * glyphBox.h);
+            byte* data = (byte*)CRuntime.MAlloc(glyphBox.w * glyphBox.h);
 
             int precomputeSize = num_verts * sizeof(float);
             Span<float> precompute = precomputeSize > 2048 
@@ -265,7 +265,7 @@ namespace StbSharp
 
         public static void FreeSDF(byte* bitmap)
         {
-            CRuntime.free(bitmap);
+            CRuntime.Free(bitmap);
         }
     }
 }

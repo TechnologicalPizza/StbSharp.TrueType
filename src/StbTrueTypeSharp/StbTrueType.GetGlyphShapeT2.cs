@@ -16,7 +16,7 @@ namespace StbSharp
             count_ctx.bounds = 1;
             if (RunCharString(info, glyph_index, &count_ctx) != 0)
             {
-                pvertices = (TTVertex*)CRuntime.malloc(count_ctx.num_vertices * sizeof(TTVertex));
+                pvertices = (TTVertex*)CRuntime.MAlloc(count_ctx.num_vertices * sizeof(TTVertex));
                 output_ctx.pvertices = pvertices;
 
                 if (RunCharString(info, glyph_index, &output_ctx) != 0)

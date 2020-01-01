@@ -112,7 +112,7 @@ namespace StbSharp
 
         public static void FreeShape(TTVertex* v)
         {
-            CRuntime.free(v);
+            CRuntime.Free(v);
         }
     }
 }
