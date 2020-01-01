@@ -48,7 +48,7 @@ namespace StbSharp
             if (gbm.w != 0 && gbm.h != 0)
             {
                 int pixelBytes = gbm.w * gbm.h;
-                byte* pixels = (byte*)CRuntime.malloc(pixelBytes);
+                byte* pixels = (byte*)CRuntime.MAlloc(pixelBytes);
                 gbm.pixels = new Span<byte>(pixels, pixelBytes);
                 gbm.stride = gbm.w;
 
@@ -101,7 +101,7 @@ namespace StbSharp
 
         public static void FreeBitmap(byte* bitmap)
         {
-            CRuntime.free(bitmap);
+            CRuntime.Free(bitmap);
         }
 
         public static void MakeGlyphBitmapSubpixel(

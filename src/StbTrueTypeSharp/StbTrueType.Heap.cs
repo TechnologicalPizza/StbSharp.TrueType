@@ -36,16 +36,17 @@ namespace StbSharp
                 if (hh->num_remaining_in_head_chunk == 0)
                 {
                     int count = size < 32 ? 2000 : size < 128 ? 800 : 100;
-                    var c = (TTHeapChunk*)CRuntime.malloc(sizeof(TTHeapChunk) + size * count);
+                    var c = (TTHeapChunk*)CRuntime.MAlloc(sizeof(TTHeapChunk) + size * count);
                     if (c == null)
                         return null;
+
                     c->next = hh->head;
                     hh->head = c;
                     hh->num_remaining_in_head_chunk = count;
                 }
 
                 --hh->num_remaining_in_head_chunk;
-                return (sbyte*)hh->head + sizeof(TTHeapChunk) + size * hh->num_remaining_in_head_chunk;
+                return (byte*)(hh->head + 1) + size * hh->num_remaining_in_head_chunk;
             }
         }
 
@@ -61,7 +62,7 @@ namespace StbSharp
             while (c != null)
             {
                 TTHeapChunk* n = c->next;
-                CRuntime.free(c);
+                CRuntime.Free(c);
                 c = n;
             }
         }

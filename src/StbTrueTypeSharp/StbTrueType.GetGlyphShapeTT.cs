@@ -49,7 +49,7 @@ namespace StbSharp
                 n = 1 + ReadUInt16(endPtsOfContours.Slice(numberOfContours * 2 - 2));
                 m = n + 2 * numberOfContours;
 
-                vertices = (TTVertex*)CRuntime.malloc(m * sizeof(TTVertex));
+                vertices = (TTVertex*)CRuntime.MAlloc(m * sizeof(TTVertex));
                 if (vertices == null)
                 {
                     pvertices = null;
@@ -278,7 +278,7 @@ namespace StbSharp
                             v->cy = (short)(n * (mtx[1] * x + mtx[3] * y + mtx[5]));
                         }
 
-                        var tmp = (TTVertex*)CRuntime.malloc(
+                        var tmp = (TTVertex*)CRuntime.MAlloc(
                             (num_vertices + comp_num_verts) * sizeof(TTVertex));
 
                         if (tmp == null)
@@ -292,8 +292,8 @@ namespace StbSharp
                         }
 
                         if (num_vertices > 0)
-                            CRuntime.memcpy(tmp, vertices, num_vertices * sizeof(TTVertex));
-                        CRuntime.memcpy(tmp + num_vertices, comp_verts, comp_num_verts * sizeof(TTVertex));
+                            CRuntime.MemCopy(tmp, vertices, num_vertices * sizeof(TTVertex));
+                        CRuntime.MemCopy(tmp + num_vertices, comp_verts, comp_num_verts * sizeof(TTVertex));
                         if (vertices != null)
                             FreeShape(vertices);
                         vertices = tmp;
