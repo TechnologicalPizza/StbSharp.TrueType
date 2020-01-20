@@ -221,6 +221,8 @@ namespace StbSharp
 
                 var rects = new Span<RPRect>(rectPtr, n);
                 n = PackFontRangesGatherRects(spc, info, ranges, rects);
+                rects = rects.Slice(0, n);
+
                 spc.pack_info.PackRects(rects);
                 return PackFontRangesRenderIntoRects(spc, info, pixels, ranges, rects);
             }
