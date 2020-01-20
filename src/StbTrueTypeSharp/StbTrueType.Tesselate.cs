@@ -5,7 +5,7 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -18,7 +18,8 @@ namespace StbSharp
             points[n].y = y;
         }
 
-        public static int TesselateCurve(TTPoint* points, int* num_points, float x0, float y0, float x1,
+        public static int TesselateCurve(
+            TTPoint* points, int* num_points, float x0, float y0, float x1,
             float y1, float x2, float y2, float objspace_flatness_squared, int n)
         {
             float mx = (x0 + 2 * x1 + x2) / 4;
@@ -59,9 +60,10 @@ namespace StbSharp
             float dy2 = y3 - y2;
             float dx = x3 - x0;
             float dy = y3 - y0;
-            float longlen = (float)(Math.Sqrt(dx0 * dx0 + dy0 * dy0) +
-                                    Math.Sqrt(dx1 * dx1 + dy1 * dy1) +
-                                    Math.Sqrt(dx2 * dx2 + dy2 * dy2));
+            float longlen = (float)(
+                Math.Sqrt(dx0 * dx0 + dy0 * dy0) +
+                Math.Sqrt(dx1 * dx1 + dy1 * dy1) +
+                Math.Sqrt(dx2 * dx2 + dy2 * dy2));
 
             float shortlen = (float)Math.Sqrt(dx * dx + dy * dy);
             float flatness_squared = longlen * longlen - shortlen * shortlen;
