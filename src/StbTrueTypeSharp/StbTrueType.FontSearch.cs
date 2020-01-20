@@ -243,7 +243,7 @@ namespace StbSharp
             if (nm == 0)
                 return false;
 
-            int nlen = CRuntime.strlen(name);
+            int nlen = CRuntime.StringLength(name);
             if (flags != 0)
             {
                 if (MatchPair(fontData, nm, name, nlen, 16, -1) != 0 ||

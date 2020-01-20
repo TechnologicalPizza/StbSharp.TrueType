@@ -14,7 +14,7 @@ namespace StbSharp
             TTPackContext spc, bool skipMissing, int pw, int ph, int stride_in_bytes, int padding)
         {
             int num_nodes = pw - padding;
-            var nodes = (byte*)CRuntime.malloc(num_nodes);
+            var nodes = (byte*)CRuntime.MAlloc(num_nodes);
             if (nodes == null)
                 return 0;
 
@@ -33,7 +33,7 @@ namespace StbSharp
 
         public static void PackEnd(TTPackContext spc)
         {
-            CRuntime.free(spc.nodes);
+            CRuntime.Free(spc.nodes);
         }
 
         public static void PackSetOversampling(TTPackContext spc, TTIntPoint oversample)
@@ -63,6 +63,8 @@ namespace StbSharp
             int k = 0;
             int j = 0;
             int i = 0;
+            int missing_glyph = -1;
+
             for (i = 0; i < ranges.Length; ++i)
             {
                 Span<TTPackedChar> charData = ranges[i].chardata_for_range.Span;
@@ -80,6 +82,7 @@ namespace StbSharp
                 recip_v = 1f / spc.oversample.y;
                 sub_x = OversampleShift(spc.oversample.x);
                 sub_y = OversampleShift(spc.oversample.y);
+
                 for (j = 0; j < charData.Length; ++j)
                 {
                     ref RPRect r = ref rects[k];
@@ -120,10 +123,21 @@ namespace StbSharp
                         charData[j].offset0.y = glyphBox.y * recip_v + sub_y;
                         charData[j].offset1.x = (glyphBox.x + r.w) * recip_h + sub_x;
                         charData[j].offset1.y = (glyphBox.y + r.h) * recip_v + sub_y;
+
+                        if (glyph == 0)
+                            missing_glyph = j;
+                    }
+                    else if (spc.skip_missing)
+                    {
+                        return_value = false;
+                    }
+                    else if (r.was_packed && r.w == 0 && r.h == 0 && missing_glyph >= 0)
+                    {
+                        charData[j] = charData[missing_glyph];
                     }
                     else
                     {
-                        return_value = false;
+                        return_value = false; // if any fail, report failure
                     }
                     k++;
                 }
@@ -139,6 +153,8 @@ namespace StbSharp
             Span<TTPackRange> ranges, Span<RPRect> rects)
         {
             int k = 0;
+            bool missing_glyph_added = false;
+
             for (int i = 0; i < ranges.Length; ++i)
             {
                 float fh = ranges[i].font_size;
@@ -156,7 +172,7 @@ namespace StbSharp
                         : ranges[i].array_of_unicode_codepoints[j];
 
                     int glyph = FindGlyphIndex(info, codepoint);
-                    if (glyph == 0 && spc.skip_missing)
+                    if (glyph == 0 && (spc.skip_missing || missing_glyph_added))
                     {
                         rects[k].w = rects[k].h = 0;
                     }
@@ -164,8 +180,12 @@ namespace StbSharp
                     {
                         GetGlyphBitmapBoxSubpixel(
                             info, glyph, scale * spc.oversample, TTPoint.Zero, out var glyphBox);
+
                         rects[k].w = glyphBox.w + spc.padding + spc.oversample.x - 1;
                         rects[k].h = glyphBox.h + spc.padding + spc.oversample.y - 1;
+
+                        if (glyph == 0)
+                            missing_glyph_added = true;
                     }
                     k++;
                 }
@@ -189,7 +209,7 @@ namespace StbSharp
                 n += charData.Length;
             }
 
-            var rectPtr = CRuntime.malloc(sizeof(RPRect) * n);
+            var rectPtr = CRuntime.MAlloc(sizeof(RPRect) * n);
             if (rectPtr == null)
                 return false;
 
@@ -208,7 +228,7 @@ namespace StbSharp
             }
             finally
             {
-                CRuntime.free(rectPtr);
+                CRuntime.Free(rectPtr);
             }
         }
 

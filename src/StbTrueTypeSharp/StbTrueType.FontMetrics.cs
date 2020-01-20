@@ -12,26 +12,28 @@ namespace StbSharp
         public static void GetFontVMetrics(
             TTFontInfo info, out int ascent, out int descent, out int lineGap)
         {
-            ascent = ReadInt16(info.data.Span.Slice(info.hhea + 4));
-            descent = ReadInt16(info.data.Span.Slice(info.hhea + 6));
-            lineGap = ReadInt16(info.data.Span.Slice(info.hhea + 8));
+            var data = info.data.Span;
+            ascent = ReadInt16(data.Slice(info.hhea + 4));
+            descent = ReadInt16(data.Slice(info.hhea + 6));
+            lineGap = ReadInt16(data.Slice(info.hhea + 8));
         }
 
         public static bool GetFontVMetricsOS2(
             TTFontInfo info, out int typoAscent, out int typoDescent, out int typoLineGap)
         {
             var data = info.data.Span;
-            int tab = (int)FindTable(data, info.fontstart, "OS/2");
-            if (tab == 0)
+            int table = (int)FindTable(data, info.fontstart, "OS/2");
+            if (table == 0)
             {
                 typoAscent = 0;
                 typoDescent = 0;
                 typoLineGap = 0;
                 return false;
             }
-            typoAscent = ReadInt16(data.Slice(tab + 68));
-            typoDescent = ReadInt16(data.Slice(tab + 70));
-            typoLineGap = ReadInt16(data.Slice(tab + 72));
+
+            typoAscent = ReadInt16(data.Slice(table + 68));
+            typoDescent = ReadInt16(data.Slice(table + 70));
+            typoLineGap = ReadInt16(data.Slice(table + 72));
             return true;
         }
 
@@ -46,7 +48,8 @@ namespace StbSharp
 
         public static TTPoint ScaleForPixelHeight(TTFontInfo info, float height)
         {
-            int fheight = ReadInt16(info.data.Span.Slice(info.hhea + 4)) - ReadInt16(info.data.Span.Slice(info.hhea + 6));
+            var data = info.data.Span;
+            int fheight = ReadInt16(data.Slice(info.hhea + 4)) - ReadInt16(data.Slice(info.hhea + 6));
             return new TTPoint(height / fheight);
         }
 

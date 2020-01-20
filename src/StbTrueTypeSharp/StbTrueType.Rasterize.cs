@@ -29,7 +29,7 @@ namespace StbSharp
                 return null;
             }
 
-            contour_lengths = (int*)CRuntime.malloc(sizeof(int) * n);
+            contour_lengths = (int*)CRuntime.MAlloc(sizeof(int) * n);
             if (contour_lengths == null)
             {
                 num_contours = 0;
@@ -48,7 +48,7 @@ namespace StbSharp
                 float y = 0f;
                 if (pass == 1)
                 {
-                    points = (TTPoint*)CRuntime.malloc(num_points * sizeof(TTPoint));
+                    points = (TTPoint*)CRuntime.MAlloc(num_points * sizeof(TTPoint));
                     if (points == null)
                         goto error;
                 }
@@ -99,9 +99,9 @@ namespace StbSharp
 
             return points;
 
-            error:
-            CRuntime.free(points);
-            CRuntime.free(contour_lengths);
+        error:
+            CRuntime.Free(points);
+            CRuntime.Free(contour_lengths);
             contour_lengths = null;
             num_contours = 0;
             return null;
@@ -114,15 +114,21 @@ namespace StbSharp
             float scaleValue = scale.x > scale.y ? scale.y : scale.x;
             float objspace_flatness = flatness_in_pixels / scaleValue;
             TTPoint* windings = FlattenCurves(
-                vertices, num_verts, objspace_flatness, out int* winding_lengths, out int winding_count);
+                vertices, num_verts, objspace_flatness,
+                out int* winding_lengths, out int winding_count);
 
             if (windings != null)
             {
-                Rasterize(
-                    result, windings, winding_lengths, winding_count, scale, shift, offset, pixelOffset, invert);
-                
-                CRuntime.free(winding_lengths);
-                CRuntime.free(windings);
+                try
+                {
+                    Rasterize(
+                        result, windings, winding_lengths, winding_count, scale, shift, offset, pixelOffset, invert);
+                }
+                finally
+                {
+                    CRuntime.Free(winding_lengths);
+                    CRuntime.Free(windings);
+                }
             }
         }
 
@@ -139,84 +145,88 @@ namespace StbSharp
             float* scanline_data = stackalloc float[129];
             float* scanline;
             if (result.w > 64)
-                scanline = (float*)CRuntime.malloc((result.w * 2 + 1) * sizeof(float));
+                scanline = (float*)CRuntime.MAlloc((result.w * 2 + 1) * sizeof(float));
             else
                 scanline = scanline_data;
-
-            float* scanline2 = scanline + result.w;
-            y = offset.y;
-            e[n].p0.y = (float)(offset.y + result.h) + 1;
-            while (j < result.h)
+            try
             {
-                float scan_y_top = y + 0f;
-                float scan_y_bottom = y + 1f;
-                TTActiveEdge** step = &active;
-                CRuntime.memset(scanline, 0, result.w * sizeof(float));
-                CRuntime.memset(scanline2, 0, (result.w + 1) * sizeof(float));
-                while ((*step) != null)
+                float* scanline2 = scanline + result.w;
+                y = offset.y;
+                e[n].p0.y = (float)(offset.y + result.h) + 1;
+                while (j < result.h)
                 {
-                    TTActiveEdge* z = *step;
-                    if (z->ey <= scan_y_top)
+                    float scan_y_top = y + 0f;
+                    float scan_y_bottom = y + 1f;
+                    TTActiveEdge** step = &active;
+                    CRuntime.MemSet(scanline, 0, result.w * sizeof(float));
+                    CRuntime.MemSet(scanline2, 0, (result.w + 1) * sizeof(float));
+                    while ((*step) != null)
                     {
-                        *step = z->next;
-                        z->direction = 0f;
-                        HeapFree(&hh, z);
-                    }
-                    else
-                    {
-                        step = &(*step)->next;
-                    }
-                }
-
-                while (e->p0.y <= scan_y_bottom)
-                {
-                    if (e->p0.y != e->p1.y)
-                    {
-                        TTActiveEdge* z = NewActive(&hh, e, offset.x, scan_y_top);
-                        if (z != null)
+                        TTActiveEdge* z = *step;
+                        if (z->ey <= scan_y_top)
                         {
-                            if (j == 0 && offset.y != 0)
-                                if (z->ey < scan_y_top)
-                                    z->ey = scan_y_top;
-
-                            z->next = active;
-                            active = z;
+                            *step = z->next;
+                            z->direction = 0f;
+                            HeapFree(&hh, z);
+                        }
+                        else
+                        {
+                            step = &(*step)->next;
                         }
                     }
-                    e++;
+
+                    while (e->p0.y <= scan_y_bottom)
+                    {
+                        if (e->p0.y != e->p1.y)
+                        {
+                            TTActiveEdge* z = NewActive(&hh, e, offset.x, scan_y_top);
+                            if (z != null)
+                            {
+                                if (j == 0 && offset.y != 0)
+                                    if (z->ey < scan_y_top)
+                                        z->ey = scan_y_top;
+
+                                z->next = active;
+                                active = z;
+                            }
+                        }
+                        e++;
+                    }
+
+                    if (active != null)
+                        FillActiveEdgesNew(scanline, scanline2 + 1, result.w, active, scan_y_top);
+
+                    float sum = 0f;
+                    for (i = 0; i < result.w; ++i)
+                    {
+                        sum += scanline2[i];
+                        float k = scanline[i] + sum;
+                        k = Math.Abs(k) * 255 + 0.5f;
+
+                        if (k > 255)
+                            k = 255;
+                        byte m = (byte)k;
+                        result.pixels[(j + pixelOffset.y) * result.stride + i + pixelOffset.x] = m;
+                    }
+
+                    step = &active;
+                    while ((*step) != null)
+                    {
+                        TTActiveEdge* z = *step;
+                        z->fx += z->fdx;
+                        step = &(*step)->next;
+                    }
+
+                    y++;
+                    j++;
                 }
-
-                if (active != null)
-                    FillActiveEdgesNew(scanline, scanline2 + 1, result.w, active, scan_y_top);
-
-                float sum = 0f;
-                for (i = 0; i < result.w; ++i)
-                {
-                    sum += scanline2[i];
-                    float k = scanline[i] + sum;
-                    k = Math.Abs(k) * 255 + 0.5f;
-
-                    if (k > 255)
-                        k = 255;
-                    byte m = (byte)k;
-                    result.pixels[(j + pixelOffset.y) * result.stride + i + pixelOffset.x] = m;
-                }
-
-                step = &active;
-                while ((*step) != null)
-                {
-                    TTActiveEdge* z = *step;
-                    z->fx += z->fdx;
-                    step = &(*step)->next;
-                }
-
-                y++;
-                j++;
             }
-
-            HeapCleanup(&hh);
-            if (scanline != scanline_data)
-                CRuntime.free(scanline);
+            finally
+            {
+                HeapCleanup(&hh);
+                if (scanline != scanline_data)
+                    CRuntime.Free(scanline);
+            }
         }
 
         public static void Rasterize(
@@ -228,49 +238,54 @@ namespace StbSharp
             for (i = 0; i < windings; ++i)
                 n += wcount[i];
 
-            var e = (TTEdge*)CRuntime.malloc(sizeof(TTEdge) * (n + 1));
+            var e = (TTEdge*)CRuntime.MAlloc(sizeof(TTEdge) * (n + 1));
             if (e == null)
                 return;
-
-            float y_scale_inv = invert ? -scale.y : scale.y;
-            int vsubsample = 1;
-            int j = 0;
-            int k = 0;
-            int m = 0;
-            n = 0;
-            for (i = 0; i < windings; ++i)
+            try
             {
-                TTPoint* p = pts + m;
-                m += wcount[i];
-                j = wcount[i] - 1;
-
-                for (k = 0; k < wcount[i]; j = k++)
+                float y_scale_inv = invert ? -scale.y : scale.y;
+                int vsubsample = 1;
+                int j = 0;
+                int k = 0;
+                int m = 0;
+                n = 0;
+                for (i = 0; i < windings; ++i)
                 {
-                    int a = k;
-                    int b = j;
-                    if (p[j].y == p[k].y)
-                        continue;
+                    TTPoint* p = pts + m;
+                    m += wcount[i];
+                    j = wcount[i] - 1;
 
-                    if ((invert && (p[j].y > p[k].y)) || (!invert && (p[j].y < p[k].y)))
+                    for (k = 0; k < wcount[i]; j = k++)
                     {
-                        e[n].invert = true;
-                        a = j;
-                        b = k;
+                        int a = k;
+                        int b = j;
+                        if (p[j].y == p[k].y)
+                            continue;
+
+                        if ((invert && (p[j].y > p[k].y)) || (!invert && (p[j].y < p[k].y)))
+                        {
+                            e[n].invert = true;
+                            a = j;
+                            b = k;
+                        }
+                        else
+                            e[n].invert = false;
+
+                        e[n].p0.x = p[a].x * scale.x + shift.x;
+                        e[n].p0.y = (p[a].y * y_scale_inv + shift.y) * vsubsample;
+                        e[n].p1.x = p[b].x * scale.x + shift.x;
+                        e[n].p1.y = (p[b].y * y_scale_inv + shift.y) * vsubsample;
+                        ++n;
                     }
-                    else
-                        e[n].invert = false;
-
-                    e[n].p0.x = p[a].x * scale.x + shift.x;
-                    e[n].p0.y = (p[a].y * y_scale_inv + shift.y) * vsubsample;
-                    e[n].p1.x = p[b].x * scale.x + shift.x;
-                    e[n].p1.y = (p[b].y * y_scale_inv + shift.y) * vsubsample;
-                    ++n;
                 }
-            }
 
-            SortEdges(e, n);
-            RasterizeSortedEdges(result, e, n, vsubsample, offset, pixelOffset);
-            CRuntime.free(e);
+                SortEdges(e, n);
+                RasterizeSortedEdges(result, e, n, vsubsample, offset, pixelOffset);
+            }
+            finally
+            {
+                CRuntime.Free(e);
+            }
         }
     }
 }
