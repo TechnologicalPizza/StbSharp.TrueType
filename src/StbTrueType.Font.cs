@@ -113,7 +113,7 @@ namespace StbSharp
             info.fontstart = fontstart;
             info.cff = TTBuffer.Empty;
             var data = fontData.Span;
-            var cmap = (int)FindTable(data, fontstart, "cmap");
+            int cmap = (int)FindTable(data, fontstart, "cmap");
             info.loca = (int)FindTable(data, fontstart, "loca");
             info.head = (int)FindTable(data, fontstart, "head");
             info.glyf = (int)FindTable(data, fontstart, "glyf");
@@ -178,6 +178,8 @@ namespace StbSharp
             else
                 info.numGlyphs = 0xffff;
 
+            info.svg = -1;
+
             int numTables = ReadUInt16(data.Slice(cmap + 2));
             info.index_map = 0;
             for (int i = 0; i < numTables; ++i)
@@ -238,6 +240,47 @@ namespace StbSharp
             }
 
             return GetSubRs(info.cff, CffIndexGet(info.fontdicts, fdselector));
+        }
+
+        public static int GetKerningTableLength(TTFontInfo info)
+        {
+            var data = info.data.Span.Slice(info.kern);
+
+            // we only look at the first table. it must be 'horizontal' and format 0.
+            if (info.kern == 0)
+                return 0;
+            if (ReadUInt16(data.Slice(2)) < 1) // number of tables, need at least 1
+                return 0;
+            if (ReadUInt16(data.Slice(8)) != 1) // horizontal flag must be set in format
+                return 0;
+
+            return ReadUInt16(data.Slice(10));
+        }
+
+        public static int GetKerningTable(TTFontInfo info, TTKerningEntry* table, int table_length)
+        {
+            var data = info.data.Span.Slice(info.kern);
+
+            // we only look at the first table. it must be 'horizontal' and format 0.
+            if (info.kern == 0)
+                return 0;
+            if (ReadUInt16(data.Slice(2)) < 1) // number of tables, need at least 1
+                return 0;
+            if (ReadUInt16(data.Slice(8)) != 1) // horizontal flag must be set in format
+                return 0;
+
+            int length = ReadUInt16(data.Slice(10));
+            if (table_length < length)
+                length = table_length;
+
+            for (int k = 0; k < length; k++)
+            {
+                table[k].glyph1 = ReadUInt16(data.Slice(18 + (k * 6)));
+                table[k].glyph2 = ReadUInt16(data.Slice(20 + (k * 6)));
+                table[k].advance = ReadInt16(data.Slice(22 + (k * 6)));
+            }
+
+            return length;
         }
     }
 }

@@ -180,7 +180,7 @@ namespace StbSharp
                 num_vertices = CloseShape(
                     vertices, num_vertices, was_off, start_off, sx, sy, scx, scy, cx, cy);
             }
-            else if (numberOfContours == (-1))
+            else if (numberOfContours < 0)
             {
                 int more = 1;
                 var comp = data.Slice(g + 10);
@@ -284,12 +284,6 @@ namespace StbSharp
                     more = flags & (1 << 5);
                 }
             }
-            //else if ((numberOfContours) < 0)
-            //{
-            //}
-            //else
-            //{
-            //}
 
             pvertices = vertices;
             return num_vertices;

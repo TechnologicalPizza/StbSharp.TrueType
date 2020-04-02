@@ -79,6 +79,7 @@ namespace StbSharp
             public int fontstart;
             public int glyf;
             public int gpos;
+            public int svg;
             public TTBuffer gsubrs;
             public int head;
             public int hhea;
@@ -89,6 +90,14 @@ namespace StbSharp
             public int loca;
             public int numGlyphs;
             public TTBuffer subrs;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct TTKerningEntry
+        {
+            public int glyph1;
+            public int glyph2;
+            public int advance;
         }
 
         [StructLayout(LayoutKind.Sequential)]

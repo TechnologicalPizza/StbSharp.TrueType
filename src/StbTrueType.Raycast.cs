@@ -12,7 +12,7 @@ namespace StbSharp
         public static int RayIntersectBezier(
             in TTPoint ray, in TTPoint orig,
             in TTPoint q0, in TTPoint q1, in TTPoint q2, 
-            Span<float> hits)
+            out TTPoint hit1, out TTPoint hit2)
         {
             float q0perp = q0.y * ray.x - q0.x * ray.y;
             float q1perp = q1.y * ray.x - q1.x * ray.y;
@@ -51,7 +51,11 @@ namespace StbSharp
             }
 
             if (num_s == 0)
+            {
+                hit1 = default;
+                hit2 = default;
                 return 0;
+            }
             else
             {
                 float rcp_len2 = 1 / (ray.x * ray.x + ray.y * ray.y);
@@ -64,16 +68,19 @@ namespace StbSharp
                 float q10d = q1d - q0d;
                 float q20d = q2d - q0d;
                 float q0rd = q0d - rod;
-                hits[0] = q0rd + s0 * (2f - 2f * s0) * q10d + s0 * s0 * q20d;
-                hits[1] = a * s0 + b;
+                hit1.x = q0rd + s0 * (2f - 2f * s0) * q10d + s0 * s0 * q20d;
+                hit1.y = a * s0 + b;
                 if (num_s > 1)
                 {
-                    hits[2] = q0rd + s1 * (2f - 2f * s1) * q10d + s1 * s1 * q20d;
-                    hits[3] = a * s1 + b;
+                    hit2.x = q0rd + s1 * (2f - 2f * s1) * q10d + s1 * s1 * q20d;
+                    hit2.y = a * s1 + b;
                     return 2;
                 }
                 else
+                {
+                    hit2 = default;
                     return 1;
+                }
             }
         }
 
@@ -156,15 +163,15 @@ namespace StbSharp
                         else
                         {
                             int num_hits = RayIntersectBezier(
-                                ray, orig, q0, q1, q2, hits);
+                                ray, orig, q0, q1, q2, out var hit1, out var hit2);
 
                             if (num_hits >= 1)
-                                if (hits[0] < 0)
-                                    winding += hits[1] < 0 ? -1 : 1;
+                                if (hit1.x < 0)
+                                    winding += hit1.y < 0 ? -1 : 1;
 
                             if (num_hits >= 2)
-                                if (hits[2] < 0)
-                                    winding += hits[3] < 0 ? -1 : 1;
+                                if (hit2.x < 0)
+                                    winding += hit2.y < 0 ? -1 : 1;
                         }
                     }
                 }

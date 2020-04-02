@@ -86,7 +86,7 @@ namespace StbSharp
             c.bounds = 1;
 
             int r = RunCharString(info, glyph_index, ref c);
-            if(r != 0)
+            if (r != 0)
             {
                 glyphBox = TTIntRect.FromEdgePoints(c.min, c.max);
                 return c.num_vertices;
@@ -354,12 +354,11 @@ namespace StbSharp
 
         public static int GetGlyphKernAdvance(TTFontInfo info, int g1, int g2)
         {
-            int xAdvance = 0;
             if (info.gpos != 0)
-                xAdvance += GetGlyphGPOSInfoAdvance(info, g1, g2);
+                return GetGlyphGPOSInfoAdvance(info, g1, g2);
             if (info.kern != 0)
-                xAdvance += GetGlyphKernInfoAdvance(info, g1, g2);
-            return xAdvance;
+                return GetGlyphKernInfoAdvance(info, g1, g2);
+            return 0;
         }
     }
 }

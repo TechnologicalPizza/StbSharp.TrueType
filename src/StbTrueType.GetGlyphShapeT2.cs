@@ -15,6 +15,7 @@ namespace StbSharp
             var output_ctx = new TTCharStringContext();
             var count_ctx = new TTCharStringContext();
             count_ctx.bounds = 1;
+
             if (RunCharString(info, glyph_index, ref count_ctx) != 0)
             {
                 pvertices = new TTVertex[count_ctx.num_vertices];
@@ -94,23 +95,24 @@ namespace StbSharp
                         for (; (i + 1) < sp; i += 2)
                             CsContext_RLineTo(ref c, s[i], s[i + 1]);
                         break;
-
+                    
                     case 0x07:
                     case 0x06:
                         if (sp < 1)
-                            return 0;
+                            return 0; 
+
                         int goto_vlineto = b0 == 0x07 ? 1 : 0;
                         for (; ; )
                         {
                             if (goto_vlineto == 0)
                             {
-                                if (i >= sp)
+                                if (i >= sp) 
                                     break;
-                                CsContext_RLineTo(ref c, s[i], 0f);
+                                CsContext_RLineTo(ref c, s[i], 0);
                                 i++;
                             }
-
                             goto_vlineto = 0;
+
                             if (i >= sp)
                                 break;
                             CsContext_RLineTo(ref c, 0f, s[i]);
