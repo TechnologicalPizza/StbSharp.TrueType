@@ -5,7 +5,7 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -20,9 +20,9 @@ namespace StbSharp
         public static float CubeRoot(float x)
         {
             if (x < 0)
-                return (float)-Math.Pow(-x, 1 / 3.0);
+                return -MathF.Pow(-x, 1 / 3f);
             else
-                return (float)Math.Pow(x, 1 / 3.0);
+                return MathF.Pow(x, 1 / 3f);
         }
 
         public static int SolveCubic(float a, float b, float c, float* r)
@@ -34,7 +34,7 @@ namespace StbSharp
             float s = -a / 3;
             if (d >= 0)
             {
-                float z = (float)Math.Sqrt(d);
+                float z = MathF.Sqrt(d);
                 float u = (-q + z) / 2;
                 float v = (-q - z) / 2;
                 u = CubeRoot(u);
@@ -45,10 +45,10 @@ namespace StbSharp
             }
             else
             {
-                float u = (float)Math.Sqrt(-p / 3);
-                float v = (float)Math.Acos(-Math.Sqrt(-27 / p3) * q / 2) / 3;
-                float m = (float)Math.Cos(v);
-                float n = (float)Math.Cos(v - Math.PI / 2) * 1.732050808f;
+                float u = MathF.Sqrt(-p / 3);
+                float v = MathF.Acos(-MathF.Sqrt(-27 / p3) * q / 2) / 3;
+                float m = MathF.Cos(v);
+                float n = MathF.Cos(v - MathF.PI / 2) * 1.732050808f;
 
                 r[0] = s + u * 2 * m;
                 r[1] = s - u * (m + n);

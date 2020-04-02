@@ -9,7 +9,7 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static byte* GetGlyphSDF(
+        public static byte[] GetGlyphSDF(
             TTFontInfo info, TTPoint scale, int glyph, int padding,
             byte onedge_value, float pixel_dist_scale,
             out int width, out int height, out TTIntPoint offset)
@@ -43,12 +43,12 @@ namespace StbSharp
             scale.y = -scale.y;
 
             int num_verts = GetGlyphShape(info, glyph, out TTVertex[] verts);
-            byte* data = (byte*)CRuntime.MAlloc(glyphBox.w * glyphBox.h);
-
             int precomputeSize = num_verts * sizeof(float);
             Span<float> precompute = precomputeSize > 2048 
                 ? new float[precomputeSize] 
                 : stackalloc float[precomputeSize];
+
+            var pixels = new byte[glyphBox.w * glyphBox.h];
 
             int x = 0;
             int y = 0;
@@ -64,7 +64,7 @@ namespace StbSharp
                     float y0 = vertex.y * scale.y;
                     float x1 = verts[j].x * scale.x;
                     float y1 = verts[j].y * scale.y;
-                    float dist = (float)Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+                    float dist = MathF.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
                     precompute[i] = (dist == 0) ? 0f : 1f / dist;
                 }
                 else if (vertex.type == STBTT_vcurve)
@@ -108,7 +108,7 @@ namespace StbSharp
                         float y0 = verts[i].y * scale.y;
                         float dist2 = (x0 - sx) * (x0 - sx) + (y0 - sy) * (y0 - sy);
                         if (dist2 < (min_dist * min_dist))
-                            min_dist = (float)Math.Sqrt(dist2);
+                            min_dist = MathF.Sqrt(dist2);
 
                         if (verts[i].type == STBTT_vline)
                         {
@@ -183,7 +183,7 @@ namespace StbSharp
                                             num = 0;
                                         else
                                         {
-                                            float root = (float)Math.Sqrt(discriminant);
+                                            float root = MathF.Sqrt(discriminant);
                                             res[0] = (-b - root) / (2 * a);
                                             res[1] = (-b + root) / (2 * a);
                                             num = 2;
@@ -197,7 +197,7 @@ namespace StbSharp
                                     float d = (mx * ax + my * ay) * a_inv;
                                     num = SolveCubic(b, c, d, res);
                                 }
-
+                                
                                 if ((num >= 1) && (res[0] >= 0f) && (res[0] <= 1f))
                                 {
                                     t = res[0];
@@ -207,7 +207,7 @@ namespace StbSharp
                                     dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
 
                                     if (dist2 < (min_dist * min_dist))
-                                        min_dist = (float)Math.Sqrt(dist2);
+                                        min_dist = MathF.Sqrt(dist2);
                                 }
 
                                 if ((num >= 2) && (res[1] >= 0f) && (res[1] <= 1f))
@@ -219,7 +219,7 @@ namespace StbSharp
                                     dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
 
                                     if (dist2 < (min_dist * min_dist))
-                                        min_dist = (float)Math.Sqrt(dist2);
+                                        min_dist = MathF.Sqrt(dist2);
                                 }
 
                                 if ((num >= 3) && (res[2] >= 0f) && (res[2] <= 1f))
@@ -231,7 +231,7 @@ namespace StbSharp
                                     dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
 
                                     if (dist2 < (min_dist * min_dist))
-                                        min_dist = (float)Math.Sqrt(dist2);
+                                        min_dist = MathF.Sqrt(dist2);
                                 }
                             }
                         }
@@ -244,15 +244,14 @@ namespace StbSharp
                         val = 0f;
                     else if (val > 255)
                         val = 255;
-                    data[(y - glyphBox.y) * glyphBox.w + (x - glyphBox.x)] = (byte)val;
+                    pixels[(y - glyphBox.y) * glyphBox.w + (x - glyphBox.x)] = (byte)val;
                 }
             }
 
-            //FreeShape(verts);
-            return data;
+            return pixels;
         }
 
-        public static byte* GetCodepointSDF(
+        public static byte[] GetCodepointSDF(
             TTFontInfo info, TTPoint scale, int codepoint, int padding,
             byte onedge_value, float pixel_dist_scale,
             out int width, out int height, out TTIntPoint offset)
@@ -261,11 +260,6 @@ namespace StbSharp
             return GetGlyphSDF(
                 info, scale, glyph, padding, onedge_value, pixel_dist_scale,
                 out width, out height, out offset);
-        }
-
-        public static void FreeSDF(byte* bitmap)
-        {
-            CRuntime.Free(bitmap);
         }
     }
 }

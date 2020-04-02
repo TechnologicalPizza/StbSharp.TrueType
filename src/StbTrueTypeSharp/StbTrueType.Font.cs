@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -77,11 +78,9 @@ namespace StbSharp
                 fontData[2] == "ttcf"[2] &&
                 fontData[3] == "ttcf"[3])
             {
-                var x = ReadUInt32(fontData.Slice(4));
+                uint x = ReadUInt32(fontData.Slice(4));
                 if (x == 0x00010000 || x == 0x00020000)
-                {
                     return ReadInt32(fontData.Slice(8));
-                }
             }
 
             return 0;
@@ -89,22 +88,22 @@ namespace StbSharp
 
         public static TTBuffer GetSubRs(TTBuffer cff, TTBuffer fontdict)
         {
-            uint subrsoff = 0;
-            uint* private_loc = stackalloc uint[2];
-            private_loc[0] = 0;
-            private_loc[1] = 0;
+            Span<uint> tmp = stackalloc uint[2];
+            tmp.Fill(0);
 
             var pdict = new TTBuffer();
-            DictGetInts(ref fontdict, 18, 2, private_loc);
-            if ((private_loc[1] == 0) || (private_loc[0] == 0))
+            DictGetInts(ref fontdict, 18, tmp);
+            if ((tmp[1] == 0) || (tmp[0] == 0))
                 return TTBuffer.EmptyWithLength(9);
 
-            pdict = cff.Slice((int)private_loc[1], (int)private_loc[0]);
-            DictGetInts(ref pdict, 19, 1, &subrsoff);
-            if (subrsoff == 0)
+            pdict = cff.Slice((int)tmp[1], (int)tmp[0]);
+
+            uint subsroff = 0;
+            DictGetInts(ref pdict, 19, MemoryMarshal.CreateSpan(ref subsroff, 1));
+            if (subsroff == 0)
                 return TTBuffer.Empty;
 
-            cff.Seek((int)(private_loc[1] + subrsoff));
+            cff.Seek((int)(tmp[1] + subsroff));
             return CffGetIndex(ref cff);
         }
 
@@ -151,10 +150,10 @@ namespace StbSharp
                 var topdict = CffIndexGet(topdictIndex, 0);
                 CffGetIndex(ref b);
                 info.gsubrs = CffGetIndex(ref b);
-                DictGetInts(ref topdict, 17, 1, &charstrings);
-                DictGetInts(ref topdict, 0x100 | 6, 1, &cstype);
-                DictGetInts(ref topdict, 0x100 | 36, 1, &fdarrayoff);
-                DictGetInts(ref topdict, 0x100 | 37, 1, &fdselectoff);
+                DictGetInts(ref topdict, 17, MemoryMarshal.CreateSpan(ref charstrings, 1));
+                DictGetInts(ref topdict, 0x100 | 6, MemoryMarshal.CreateSpan(ref cstype, 1));
+                DictGetInts(ref topdict, 0x100 | 36, MemoryMarshal.CreateSpan(ref fdarrayoff, 1));
+                DictGetInts(ref topdict, 0x100 | 37, MemoryMarshal.CreateSpan(ref fdselectoff, 1));
                 info.subrs = GetSubRs(b, topdict);
                 if (cstype != 2 || charstrings == 0)
                     return false;

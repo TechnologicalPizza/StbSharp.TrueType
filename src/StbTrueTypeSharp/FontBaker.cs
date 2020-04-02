@@ -15,13 +15,13 @@ namespace StbSharp
         private Dictionary<int, GlyphInfo> _glyphs = new Dictionary<int, GlyphInfo>();
         private int bitmapWidth, bitmapHeight;
 
-        public void Begin(int width, int height, bool skipMissing = true)
+        public void Start(int width, int height, bool skipMissing = true)
         {
             bitmapWidth = width;
             bitmapHeight = height;
             _bitmap = new byte[width * height];
 
-            StbTrueType.PackBegin(_context, skipMissing, width, height, width, 1);
+            StbTrueType.PackPrepare(_context, skipMissing, width, height, width, 1);
             _glyphs.Clear();
         }
 
@@ -73,9 +73,8 @@ namespace StbSharp
             }
         }
 
-        public FontBakerResult End()
+        public FontBakerResult GetResult()
         {
-            StbTrueType.PackEnd(_context);
             return new FontBakerResult(_glyphs, _bitmap, bitmapWidth, bitmapHeight);
         }
     }

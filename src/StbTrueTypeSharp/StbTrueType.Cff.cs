@@ -1,10 +1,12 @@
 ﻿
+using System;
+
 namespace StbSharp
 {
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -18,7 +20,6 @@ namespace StbSharp
                 b.Skip(offsize * count);
                 b.Skip((int)(b.Get(offsize) - 1));
             }
-
             return b.Slice(start, b.cursor - start);
         }
 
@@ -93,12 +94,12 @@ namespace StbSharp
             return b.Slice(0, 0);
         }
 
-        public static void DictGetInts(ref TTBuffer b, int key, int outcount, uint* _out_)
+        public static void DictGetInts(
+            ref TTBuffer b, int key, Span<uint> dst)
         {
-            int i = 0;
             var operands = DictGet(ref b, key);
-            for (i = 0; (i < outcount) && (operands.cursor < operands.size); i++)
-                _out_[i] = CffInt(ref operands);
+            for (int i = 0; (i < dst.Length) && (operands.cursor < operands.size); i++)
+                dst[i] = CffInt(ref operands);
         }
     }
 }

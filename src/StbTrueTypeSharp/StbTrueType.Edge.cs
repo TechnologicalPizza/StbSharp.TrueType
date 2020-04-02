@@ -13,10 +13,10 @@ namespace StbSharp
         public static TTActiveEdge* NewActive(ref TTHeap hh, in TTEdge e, int off_x, float start_point)
         {
             var z = (TTActiveEdge*)HeapAlloc(ref hh, sizeof(TTActiveEdge));
-            float dxdy = (e.p1.x - e.p0.x) / (e.p1.y - e.p0.y);
             if (z == null)
                 return z;
 
+            float dxdy = (e.p1.x - e.p0.x) / (e.p1.y - e.p0.y);
             z->fdx = dxdy;
             z->fdy = dxdy != 0f ? (1f / dxdy) : 0f;
             z->fx = e.p0.x + dxdy * (start_point - e.p0.y);
@@ -29,7 +29,8 @@ namespace StbSharp
         }
 
         public static void HandleClippedEdge(
-            float* scanline, int x, TTActiveEdge* e, float x0, float y0, float x1, float y1)
+            Span<float> scanline, int x, TTActiveEdge* e, 
+            float x0, float y0, float x1, float y1)
         {
             if (y0 == y1)
                 return;
@@ -80,7 +81,7 @@ namespace StbSharp
         }
 
         public static void FillActiveEdgesNew(
-            float* scanline, float* scanline_fill, int len, TTActiveEdge* e, float y_top)
+            Span<float> scanline, Span<float> scanline_fill, TTActiveEdge* e, float y_top)
         {
             float y_bottom = y_top + 1;
             while (e != null)
@@ -88,16 +89,16 @@ namespace StbSharp
                 if (e->fdx == 0)
                 {
                     float x0 = e->fx;
-                    if (x0 < len)
+                    if (x0 < scanline.Length)
                     {
                         if (x0 >= 0)
                         {
                             HandleClippedEdge(scanline, (int)x0, e, x0, y_top, x0, y_bottom);
-                            HandleClippedEdge(scanline_fill - 1, (int)(x0 + 1), e, x0, y_top, x0, y_bottom);
+                            HandleClippedEdge(scanline_fill, (int)(x0 + 1), e, x0, y_top, x0, y_bottom);
                         }
                         else
                         {
-                            HandleClippedEdge(scanline_fill - 1, 0, e, x0, y_top, x0, y_bottom);
+                            HandleClippedEdge(scanline_fill, 0, e, x0, y_top, x0, y_bottom);
                         }
                     }
                 }
@@ -134,7 +135,10 @@ namespace StbSharp
                         sy1 = y_bottom;
                     }
 
-                    if ((x_top >= 0) && (x_bottom >= 0) && (x_top < len) && (x_bottom < len))
+                    if ((x_top >= 0) &&
+                        (x_bottom >= 0) &&
+                        (x_top < scanline.Length) && 
+                        (x_bottom < scanline.Length))
                     {
                         if (((int)x_top) == ((int)x_bottom))
                         {
@@ -142,11 +146,10 @@ namespace StbSharp
                             int x = (int)x_top;
                             height = sy1 - sy0;
                             scanline[x] += e->direction * (1 - (x_top - x + (x_bottom - x)) / 2) * height;
-                            scanline_fill[x] += e->direction * height;
+                            scanline_fill[x + 1] += e->direction * height;
                         }
                         else
                         {
-                            int x = 0;
                             int x1 = 0;
                             int x2 = 0;
                             float y_crossing = 0;
@@ -178,7 +181,7 @@ namespace StbSharp
                             area = sign * (y_crossing - sy0);
                             scanline[x1] += area * (1 - (x_top - x1 + (x1 + 1 - x1)) / 2);
                             step = sign * dy;
-                            for (x = x1 + 1; x < x2; ++x)
+                            for (int x = x1 + 1; x < x2; ++x)
                             {
                                 scanline[x] += area + step / 2;
                                 area += step;
@@ -186,13 +189,12 @@ namespace StbSharp
 
                             y_crossing += dy * (x2 - (x1 + 1));
                             scanline[x2] += area + sign * (1 - (x2 - x2 + (x_bottom - x2)) / 2) * (sy1 - y_crossing);
-                            scanline_fill[x2] += sign * (sy1 - sy0);
+                            scanline_fill[x2 + 1] += sign * (sy1 - sy0);
                         }
                     }
                     else
                     {
-                        int x = 0;
-                        for (x = 0; x < len; ++x)
+                        for (int x = 0; x < scanline.Length; ++x)
                         {
                             float y0 = y_top;
                             float x1 = x;
@@ -201,6 +203,7 @@ namespace StbSharp
                             float y3 = y_bottom;
                             float y1 = (x - x0) / dx + y_top;
                             float y2 = (x + 1 - x0) / dx + y_top;
+
                             if ((x0 < x1) && (x3 > x2))
                             {
                                 HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
@@ -270,11 +273,10 @@ namespace StbSharp
         {
             while (n > 12)
             {
+                TTEdge t;
                 int m = n >> 1;
                 int c01 = p[0].p0.y < p[m].p0.y ? 1 : 0;
                 int c12 = p[m].p0.y < p[n - 1].p0.y ? 1 : 0;
-
-                TTEdge t;
                 if (c01 != c12)
                 {
                     int c = p[0].p0.y < p[n - 1].p0.y ? 1 : 0;
@@ -328,7 +330,7 @@ namespace StbSharp
 
         public static void SortEdges(Span<TTEdge> p, int n)
         {
-            SortEdgesQuickSort(p, n);
+            SortEdgesQuickSort(p, n);       
             SortEdgesInsertSort(p, n);
         }
     }

@@ -10,18 +10,12 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static int PackBegin(
+        public static int PackPrepare(
             TTPackContext spc, bool skipMissing, int pw, int ph, int stride_in_bytes, int padding)
         {
-            int num_nodes = pw - padding;
-            var nodes = (byte*)CRuntime.MAlloc(num_nodes);
-            if (nodes == null)
-                return 0;
-
             spc.width = pw;
             spc.height = ph;
             spc.pack_info = new RPContext();
-            spc.nodes = nodes;
             spc.padding = padding;
             spc.stride_in_bytes = stride_in_bytes != 0 ? stride_in_bytes : pw;
             spc.oversample.x = 1;
@@ -29,11 +23,6 @@ namespace StbSharp
             spc.skip_missing = skipMissing;
             spc.pack_info.Init(pw - padding, ph - padding);
             return 1;
-        }
-
-        public static void PackEnd(TTPackContext spc)
-        {
-            CRuntime.Free(spc.nodes);
         }
 
         public static void PackSetOversampling(TTPackContext spc, TTIntPoint oversample)
@@ -48,7 +37,6 @@ namespace StbSharp
         {
             spc.skip_missing = skip;
         }
-
 
         public static bool PackFontRangesRenderIntoRects(
             TTPackContext spc,
@@ -69,7 +57,7 @@ namespace StbSharp
             {
                 Span<TTPackedChar> charData = ranges[i].chardata_for_range.Span;
                 float fh = ranges[i].font_size;
-                var scale = fh > 0
+                TTPoint scale = fh > 0
                     ? ScaleForPixelHeight(info, fh)
                     : ScaleForMappingEmToPixels(info, -fh);
                 float recip_h = 0;
@@ -108,7 +96,7 @@ namespace StbSharp
                             HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.x);
                         if (spc.oversample.y > 1)
                             VerticalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.y);
-
+                        
                         charData[j].x0 = (ushort)(short)r.x;
                         charData[j].y0 = (ushort)(short)r.y;
                         charData[j].x1 = (ushort)(short)(r.x + r.w);

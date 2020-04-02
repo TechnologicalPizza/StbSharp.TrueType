@@ -9,7 +9,7 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static byte* GetGlyphBitmap(
+        public static byte[] GetGlyphBitmap(
             TTFontInfo info, TTPoint scale, int glyph,
             out int width, out int height, out TTIntPoint offset)
         {
@@ -17,9 +17,9 @@ namespace StbSharp
                 info, scale, TTPoint.Zero, glyph, out width, out height, out offset);
         }
 
-        public static byte* GetGlyphBitmapSubpixel(
-            TTFontInfo info, TTPoint scale, TTPoint shift,
-            int glyph, out int width, out int height, out TTIntPoint offset)
+        public static byte[] GetGlyphBitmapSubpixel(
+            TTFontInfo info, TTPoint scale, TTPoint shift, int glyph, 
+            out int width, out int height, out TTIntPoint offset)
         {
             if (scale.x == 0)
                 scale.x = scale.y;
@@ -48,8 +48,10 @@ namespace StbSharp
             if (gbm.w != 0 && gbm.h != 0)
             {
                 int pixelBytes = gbm.w * gbm.h;
-                byte* pixels = (byte*)CRuntime.MAlloc(pixelBytes);
-                gbm.pixels = new Span<byte>(pixels, pixelBytes);
+                var pixels = new byte[pixelBytes];
+
+                gbm.pixels = pixels;
+                gbm.pixels.Fill(0);
                 gbm.stride = gbm.w;
 
                 int num_verts = GetGlyphShape(info, glyph, out TTVertex[] vertices);
@@ -96,11 +98,6 @@ namespace StbSharp
             TTFontInfo font, int codepoint, TTPoint scale, out TTIntRect glyphBox)
         {
             return GetCodepointBitmapBoxSubpixel(font, codepoint, scale, TTPoint.Zero, out glyphBox);
-        }
-
-        public static void FreeBitmap(byte* bitmap)
-        {
-            CRuntime.Free(bitmap);
         }
 
         public static void MakeGlyphBitmapSubpixel(

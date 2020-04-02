@@ -13,7 +13,6 @@ namespace StbSharp
         public unsafe class TTPackContext
         {
             public TTIntPoint oversample;
-            public void* nodes;
             public StbRectPack.RPContext pack_info;
             public bool skip_missing;
             public int padding;

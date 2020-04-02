@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
@@ -9,6 +10,8 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
+        // TODO: replace this with some managed impl
+
         [StructLayout(LayoutKind.Sequential)]
         public struct TTHeapChunk
         {
@@ -25,6 +28,11 @@ namespace StbSharp
 
         public static void* HeapAlloc(ref TTHeap hh, int size)
         {
+            const int maxAlloc = 64000;
+
+            if (size > maxAlloc)
+                throw new ArgumentOutOfRangeException(nameof(size));
+                
             if (hh.first_free != null)
             {
                 void* p = hh.first_free;
@@ -35,7 +43,7 @@ namespace StbSharp
             {
                 if (hh.num_remaining_in_head_chunk == 0)
                 {
-                    int count = size < 32 ? 2000 : size < 128 ? 800 : 100;
+                    int count = maxAlloc / size;
                     var c = (TTHeapChunk*)CRuntime.MAlloc(sizeof(TTHeapChunk) + size * count);
                     if (c == null)
                         return null;

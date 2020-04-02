@@ -30,7 +30,7 @@ namespace StbSharp
                 if (discr > 0)
                 {
                     float rcpna = -1 / a;
-                    float d = (float)Math.Sqrt(discr);
+                    float d = MathF.Sqrt(discr);
                     s0 = (b + d) * rcpna;
                     s1 = (b - d) * rcpna;
                     if ((s0 >= 0) && (s0 <= 1))
@@ -80,16 +80,16 @@ namespace StbSharp
         public static int ComputeCrossingsX(
             float x, float y, int nverts, ReadOnlySpan<TTVertex> verts)
         {
-            TTPoint ray;
-            ray.x = 1f;
-            ray.y = 0f;
-
             int winding = 0;
-            float y_frac = (float)(y % 1.0);
+            float y_frac = y % 1f;
             if (y_frac < 0.01f)
                 y += 0.01f;
             else if (y_frac > 0.99f)
                 y -= 0.01f;
+
+            TTPoint ray;
+            ray.x = 1f;
+            ray.y = 0f;
 
             TTPoint orig;
             orig.x = x;
@@ -129,6 +129,7 @@ namespace StbSharp
                     int ax = x0 < (x1 < x2 ? x1 : x2) ? x0 : (x1 < x2 ? x1 : x2);
                     int ay = y0 < (y1 < y2 ? y1 : y2) ? y0 : (y1 < y2 ? y1 : y2);
                     int by = y0 < (y1 < y2 ? y2 : y1) ? (y1 < y2 ? y2 : y1) : y0;
+
                     if ((y > ay) && (y < by) && (x > ax))
                     {
                         q0.x = x0;
@@ -160,6 +161,7 @@ namespace StbSharp
                             if (num_hits >= 1)
                                 if (hits[0] < 0)
                                     winding += hits[1] < 0 ? -1 : 1;
+
                             if (num_hits >= 2)
                                 if (hits[2] < 0)
                                     winding += hits[3] < 0 ? -1 : 1;

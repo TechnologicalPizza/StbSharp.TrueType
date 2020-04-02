@@ -10,17 +10,14 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static TTPoint* FlattenCurves(
+        public static TTPoint[] FlattenCurves(
             ReadOnlySpan<TTVertex> vertices, float objspace_flatness,
-            out int* contour_lengths, out int num_contours)
+            out int[] contour_lengths, out int num_contours)
         {
             int n = 0;
-            int i = 0;
-            for (i = 0; i < vertices.Length; ++i)
-            {
+            for (int i = 0; i < vertices.Length; ++i)
                 if (vertices[i].type == STBTT_vmove)
                     n++;
-            }
 
             num_contours = n;
             if (n == 0)
@@ -29,33 +26,23 @@ namespace StbSharp
                 return null;
             }
 
-            contour_lengths = (int*)CRuntime.MAlloc(sizeof(int) * n);
-            if (contour_lengths == null)
-            {
-                num_contours = 0;
-                return null;
-            }
+            contour_lengths = new int[n];
 
-            TTPoint* points = null;
+            TTPoint[] points = null;
             float objspace_flatness_squared = objspace_flatness * objspace_flatness;
 
             int num_points = 0;
             int start = 0;
-            int pass = 0;
-            for (pass = 0; pass < 2; pass++)
+            for (int pass = 0; pass < 2; pass++)
             {
                 float x = 0f;
                 float y = 0f;
                 if (pass == 1)
-                {
-                    points = (TTPoint*)CRuntime.MAlloc(num_points * sizeof(TTPoint));
-                    if (points == null)
-                        goto error;
-                }
+                    points = new TTPoint[num_points];
 
                 num_points = 0;
                 n = -1;
-                for (i = 0; i < vertices.Length; ++i)
+                for (int i = 0; i < vertices.Length; ++i)
                 {
                     ref readonly TTVertex vert = ref vertices[i];
                     switch (vert.type)
@@ -87,7 +74,7 @@ namespace StbSharp
 
                         case STBTT_vcubic:
                             TesselateCubic(
-                                points, &num_points, x, y,
+                                points, ref num_points, x, y,
                                 vert.cx, vert.cy, vert.cx1, vert.cy1, vert.x, vert.y,
                                 objspace_flatness_squared, 0);
                             x = vert.x;
@@ -100,13 +87,6 @@ namespace StbSharp
             }
 
             return points;
-
-            error:
-            CRuntime.Free(points);
-            CRuntime.Free(contour_lengths);
-            contour_lengths = null;
-            num_contours = 0;
-            return null;
         }
 
         public static void Rasterize(
@@ -116,23 +96,16 @@ namespace StbSharp
             float scaleValue = scale.x > scale.y ? scale.y : scale.x;
             float objspace_flatness = flatness_in_pixels / scaleValue;
 
-            TTPoint* windings = FlattenCurves(
+            TTPoint[] windings = FlattenCurves(
                 vertices, objspace_flatness,
-                out int* winding_lengths, out int winding_count);
+                out int[] winding_lengths, out int winding_count);
 
             if (windings == null)
                 return;
 
-            try
-            {
-                Rasterize(
-                    result, windings, winding_lengths, winding_count, scale, shift, offset, pixelOffset, invert);
-            }
-            finally
-            {
-                CRuntime.Free(winding_lengths);
-                CRuntime.Free(windings);
-            }
+            Rasterize(
+                result, windings, winding_lengths.AsSpan(0, winding_count),
+                scale, shift, offset, pixelOffset, invert);
         }
 
         public static void RasterizeSortedEdges(
@@ -143,26 +116,27 @@ namespace StbSharp
             TTActiveEdge* active = null;
             int y = 0;
             int j = 0;
-            int i = 0;
 
-            float* scanline_data = stackalloc float[129];
-            float* scanline;
-            if (result.w > 64)
-                scanline = (float*)CRuntime.MAlloc((result.w * 2 + 1) * sizeof(float));
-            else
-                scanline = scanline_data;
+            const int maxScanlineStackHalf = 256;
+
+            Span<float> scanline_full = result.w <= maxScanlineStackHalf
+                ? stackalloc float[result.w * 2 + 1]
+                : new float[result.w * 2 + 1];
+
             try
             {
-                float* scanline2 = scanline + result.w;
+                var scanline = scanline_full.Slice(0, result.w);
+                var scanline_fill = scanline_full.Slice(result.w);
+
                 y = offset.y;
                 e[n].p0.y = (float)(offset.y + result.h) + 1;
                 while (j < result.h)
                 {
-                    float scan_y_top = y + 0f;
+                    scanline_full.Fill(0);
+
+                    float scan_y_top = y;
                     float scan_y_bottom = y + 1f;
                     TTActiveEdge** step = &active;
-                    CRuntime.MemSet(scanline, 0, result.w * sizeof(float));
-                    CRuntime.MemSet(scanline2, 0, (result.w + 1) * sizeof(float));
                     while ((*step) != null)
                     {
                         TTActiveEdge* z = *step;
@@ -178,6 +152,7 @@ namespace StbSharp
                         }
                     }
 
+                    int oof = 0;
                     int ie = 0;
                     while (e[ie].p0.y <= scan_y_bottom)
                     {
@@ -192,6 +167,8 @@ namespace StbSharp
 
                                 z->next = active;
                                 active = z;
+
+                                oof++;
                             }
                         }
                         ie++;
@@ -199,17 +176,19 @@ namespace StbSharp
                     e = e.Slice(ie);
 
                     if (active != null)
-                        FillActiveEdgesNew(scanline, scanline2 + 1, result.w, active, scan_y_top);
+                        FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
 
                     float sum = 0f;
-                    for (i = 0; i < result.w; ++i)
+                    var row = result.pixels.Slice((j + pixelOffset.y) * result.stride + pixelOffset.x);
+                    for (int i = 0; i < scanline.Length; ++i)
                     {
-                        sum += scanline2[i];
+                        sum += scanline_fill[i];
                         float k = scanline[i] + sum;
                         k = Math.Abs(k) * 255 + 0.5f;
 
-                        byte m = (byte)Math.Min(k, 255);
-                        result.pixels[(j + pixelOffset.y) * result.stride + i + pixelOffset.x] = m;
+                        if (k > 255)
+                            k = 255;
+                        row[i] = (byte)k;
                     }
 
                     step = &active;
@@ -227,42 +206,38 @@ namespace StbSharp
             finally
             {
                 HeapCleanup(&hh);
-                if (scanline != scanline_data)
-                    CRuntime.Free(scanline);
             }
         }
 
         public static void Rasterize(
-            TTBitmap result, TTPoint* pts, int* wcount, int windings,
+            TTBitmap result, ReadOnlySpan<TTPoint> pts, ReadOnlySpan<int> windings,
             TTPoint scale, TTPoint shift, TTIntPoint offset, TTIntPoint pixelOffset, bool invert)
         {
             int n = 0;
-            int i = 0;
-            for (i = 0; i < windings; ++i)
-                n += wcount[i];
+            for (int i = 0; i < windings.Length; ++i)
+                n += windings[i];
 
             var e = new TTEdge[n + 1];
+            n = 0;
 
             float y_scale_inv = invert ? -scale.y : scale.y;
             int vsubsample = 1;
-            int j = 0;
-            int k = 0;
             int m = 0;
-            n = 0;
-            for (i = 0; i < windings; ++i)
+            for (int i = 0; i < windings.Length; ++i)
             {
-                TTPoint* p = pts + m;
-                m += wcount[i];
-                j = wcount[i] - 1;
+                var p = pts.Slice(m);
+                m += windings[i];
+                int j = windings[i] - 1;
 
-                for (k = 0; k < wcount[i]; j = k++)
+                for (int k = 0; k < windings[i]; j = k++)
                 {
                     if (p[j].y == p[k].y)
                         continue;
 
                     int a;
                     int b;
-                    if ((invert && (p[j].y > p[k].y)) || (!invert && (p[j].y < p[k].y)))
+                    if ((invert && (p[j].y > p[k].y)) ||
+                        (!invert && (p[j].y < p[k].y)))
                     {
                         e[n].invert = true;
                         a = j;
