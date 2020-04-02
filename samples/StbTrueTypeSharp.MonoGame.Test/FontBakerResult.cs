@@ -1,14 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace StbSharp
+namespace StbSharp.MonoGame.Test
 {
-#if !STBSHARP_INTERNAL
-	public
-#else
-	internal
-#endif
-	readonly struct FontBakerResult
+	public class FontBakerResult
 	{
 		public FontBakerResult(Dictionary<int, GlyphInfo> glyphs, byte[] bitmap, int width, int height)
 		{

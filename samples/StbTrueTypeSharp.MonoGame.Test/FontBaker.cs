@@ -1,19 +1,15 @@
-﻿using System;
+﻿using StbTrueTypeSharp;
+using System;
 using System.Collections.Generic;
 
-namespace StbSharp
+namespace StbSharp.MonoGame.Test
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    class FontBaker
-    {
-        private byte[] _bitmap;
-        private StbTrueType.TTPackContext _context = new StbTrueType.TTPackContext();
-        private Dictionary<int, GlyphInfo> _glyphs = new Dictionary<int, GlyphInfo>();
-        private int bitmapWidth, bitmapHeight;
+	public unsafe class FontBaker
+	{
+		private byte[] _bitmap;
+		private StbTrueType.stbtt_pack_context _context;
+		private Dictionary<int, GlyphInfo> _glyphs;
+		private int bitmapWidth, bitmapHeight;
 
         public void Start(int width, int height, bool skipMissing = true)
         {
