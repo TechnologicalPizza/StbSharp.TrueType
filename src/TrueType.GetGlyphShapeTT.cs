@@ -7,9 +7,9 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static int GetGlyphShapeTT(TTFontInfo info, int glyph_index, out TTVertex[] pvertices)
+        public static int GetGlyphShapeTT(FontInfo info, int glyph_index, out Vertex[] pvertices)
         {
             int g = GetGlyphOffset(info, glyph_index);
             if (g < 0)
@@ -18,7 +18,7 @@ namespace StbSharp
                 return 0;
             }
 
-            TTVertex[] vertices = null;
+            Vertex[] vertices = null;
             int num_vertices = 0;
             var data = info.data.Span;
             short numberOfContours = ReadInt16(data.Slice(g));
@@ -28,7 +28,7 @@ namespace StbSharp
                 int ins = ReadUInt16(data.Slice(g + 10 + numberOfContours * 2));
                 int n = 1 + ReadUInt16(endPtsOfContours.Slice(numberOfContours * 2 - 2));
                 int m = n + 2 * numberOfContours;
-                vertices = new TTVertex[m];
+                vertices = new Vertex[m];
                 
                 byte flags = 0;
                 int i = 0;
@@ -251,7 +251,7 @@ namespace StbSharp
 
                     m = MathF.Sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
                     n = MathF.Sqrt(matrix[2] * matrix[2] + matrix[3] * matrix[3]);
-                    int comp_num_verts = GetGlyphShape(info, gidx, out TTVertex[] comp_verts);
+                    int comp_num_verts = GetGlyphShape(info, gidx, out Vertex[] comp_verts);
                     var compVerts = comp_verts.AsSpan(0, comp_num_verts);
                     
                     if (compVerts.Length > 0)
@@ -259,7 +259,7 @@ namespace StbSharp
                         // TODO: optimize this?
                         for (i = 0; i < compVerts.Length; ++i)
                         {
-                            ref TTVertex v = ref compVerts[i];
+                            ref Vertex v = ref compVerts[i];
                             
                             short x = v.x;
                             short y = v.y;
@@ -272,7 +272,7 @@ namespace StbSharp
                             v.cy = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
                         }
 
-                        var tmp = new TTVertex[num_vertices + compVerts.Length];
+                        var tmp = new Vertex[num_vertices + compVerts.Length];
 
                         vertices.AsSpan(0, num_vertices).CopyTo(tmp);
                         compVerts.CopyTo(tmp.AsSpan(num_vertices));

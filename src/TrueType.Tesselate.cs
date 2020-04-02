@@ -7,9 +7,9 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static void AddPoint(Span<TTPoint> points, int n, float x, float y)
+        public static void AddPoint(Span<Point> points, int n, float x, float y)
         {
             if (points.IsEmpty)
                 return;
@@ -19,7 +19,7 @@ namespace StbSharp
         }
 
         public static int TesselateCurve(
-            Span<TTPoint> points, int* num_points, float x0, float y0, float x1,
+            Span<Point> points, int* num_points, float x0, float y0, float x1,
             float y1, float x2, float y2, float objspace_flatness_squared, int n)
         {
             if (n > 16)
@@ -50,7 +50,7 @@ namespace StbSharp
         }
 
         public static void TesselateCubic(
-            Span<TTPoint> points, ref int num_points,
+            Span<Point> points, ref int num_points,
             float x0, float y0,
             float x1, float y1,
             float x2, float y2,

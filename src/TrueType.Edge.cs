@@ -8,11 +8,11 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static TTActiveEdge* NewActive(ref TTHeap hh, in TTEdge e, int off_x, float start_point)
+        public static ActiveEdge* NewActive(ref Heap hh, in Edge e, int off_x, float start_point)
         {
-            var z = (TTActiveEdge*)HeapAlloc(ref hh, sizeof(TTActiveEdge));
+            var z = (ActiveEdge*)HeapAlloc(ref hh, sizeof(ActiveEdge));
             if (z == null)
                 return z;
 
@@ -29,7 +29,7 @@ namespace StbSharp
         }
 
         public static void HandleClippedEdge(
-            Span<float> scanline, int x, TTActiveEdge* e, 
+            Span<float> scanline, int x, ActiveEdge* e, 
             float x0, float y0, float x1, float y1)
         {
             if (y0 == y1)
@@ -81,7 +81,7 @@ namespace StbSharp
         }
 
         public static void FillActiveEdgesNew(
-            Span<float> scanline, Span<float> scanline_fill, TTActiveEdge* e, float y_top)
+            Span<float> scanline, Span<float> scanline_fill, ActiveEdge* e, float y_top)
         {
             float y_bottom = y_top + 1;
             while (e != null)
@@ -247,16 +247,16 @@ namespace StbSharp
             }
         }
 
-        public static void SortEdgesInsertSort(Span<TTEdge> p, int n)
+        public static void SortEdgesInsertSort(Span<Edge> p, int n)
         {
             for (int i = 1; i < n; ++i)
             {
-                TTEdge a = p[i];
+                Edge a = p[i];
                 
                 int j = i;
                 while (j > 0)
                 {
-                    ref TTEdge b = ref p[j - 1];
+                    ref Edge b = ref p[j - 1];
                     if (!(a.p0.y < b.p0.y))
                         break;
 
@@ -269,11 +269,11 @@ namespace StbSharp
             }
         }
 
-        public static void SortEdgesQuickSort(Span<TTEdge> p, int n)
+        public static void SortEdgesQuickSort(Span<Edge> p, int n)
         {
             while (n > 12)
             {
-                TTEdge t;
+                Edge t;
                 int m = n >> 1;
                 int c01 = p[0].p0.y < p[m].p0.y ? 1 : 0;
                 int c12 = p[m].p0.y < p[n - 1].p0.y ? 1 : 0;
@@ -328,7 +328,7 @@ namespace StbSharp
             }
         }
 
-        public static void SortEdges(Span<TTEdge> p, int n)
+        public static void SortEdges(Span<Edge> p, int n)
         {
             SortEdgesQuickSort(p, n);       
             SortEdgesInsertSort(p, n);

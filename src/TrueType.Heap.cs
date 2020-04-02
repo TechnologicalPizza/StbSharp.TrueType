@@ -8,25 +8,25 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         // TODO: replace this with some managed impl
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTHeapChunk
+        public struct HeapChunk
         {
-            public TTHeapChunk* next;
+            public HeapChunk* next;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTHeap
+        public struct Heap
         {
-            public TTHeapChunk* head;
+            public HeapChunk* head;
             public void* first_free;
             public int num_remaining_in_head_chunk;
         }
 
-        public static void* HeapAlloc(ref TTHeap hh, int size)
+        public static void* HeapAlloc(ref Heap hh, int size)
         {
             const int maxAlloc = 64000;
 
@@ -44,7 +44,7 @@ namespace StbSharp
                 if (hh.num_remaining_in_head_chunk == 0)
                 {
                     int count = maxAlloc / size;
-                    var c = (TTHeapChunk*)CRuntime.MAlloc(sizeof(TTHeapChunk) + size * count);
+                    var c = (HeapChunk*)CRuntime.MAlloc(sizeof(HeapChunk) + size * count);
                     if (c == null)
                         return null;
 
@@ -58,18 +58,18 @@ namespace StbSharp
             }
         }
 
-        public static void HeapFree(TTHeap* hh, void* p)
+        public static void HeapFree(Heap* hh, void* p)
         {
             *(void**)p = hh->first_free;
             hh->first_free = p;
         }
 
-        public static void HeapCleanup(TTHeap* hh)
+        public static void HeapCleanup(Heap* hh)
         {
-            TTHeapChunk* c = hh->head;
+            HeapChunk* c = hh->head;
             while (c != null)
             {
-                TTHeapChunk* n = c->next;
+                HeapChunk* n = c->next;
                 CRuntime.Free(c);
                 c = n;
             }

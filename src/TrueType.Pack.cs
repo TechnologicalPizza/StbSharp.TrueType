@@ -8,10 +8,10 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static int PackPrepare(
-            TTPackContext spc, bool skipMissing, int pw, int ph, int stride_in_bytes, int padding)
+            PackContext spc, bool skipMissing, int pw, int ph, int stride_in_bytes, int padding)
         {
             spc.width = pw;
             spc.height = ph;
@@ -25,7 +25,7 @@ namespace StbSharp
             return 1;
         }
 
-        public static void PackSetOversampling(TTPackContext spc, TTIntPoint oversample)
+        public static void PackSetOversampling(PackContext spc, IntPoint oversample)
         {
             if (oversample.x <= 8)
                 spc.oversample.x = oversample.x;
@@ -33,16 +33,16 @@ namespace StbSharp
                 spc.oversample.y = oversample.y;
         }
 
-        public static void PackSetSkipMissingCodepoints(TTPackContext spc, bool skip)
+        public static void PackSetSkipMissingCodepoints(PackContext spc, bool skip)
         {
             spc.skip_missing = skip;
         }
 
         public static bool PackFontRangesRenderIntoRects(
-            TTPackContext spc,
-            TTFontInfo info,
+            PackContext spc,
+            FontInfo info,
             Span<byte> pixels,
-            ReadOnlySpan<TTPackRange> ranges,
+            ReadOnlySpan<PackRange> ranges,
             Span<RPRect> rects)
         {
             bool return_value = true;
@@ -55,9 +55,9 @@ namespace StbSharp
 
             for (i = 0; i < ranges.Length; ++i)
             {
-                Span<TTPackedChar> charData = ranges[i].chardata_for_range.Span;
+                Span<PackedChar> charData = ranges[i].chardata_for_range.Span;
                 float fh = ranges[i].font_size;
-                TTPoint scale = fh > 0
+                Point scale = fh > 0
                     ? ScaleForPixelHeight(info, fh)
                     : ScaleForMappingEmToPixels(info, -fh);
                 float recip_h = 0;
@@ -90,7 +90,7 @@ namespace StbSharp
                         MakeGlyphBitmapSubpixel(
                             info, pixelSlice,
                             r.w - spc.oversample.x + 1, r.h - spc.oversample.y + 1, spc.stride_in_bytes,
-                            scale * spc.oversample, TTPoint.Zero, TTIntPoint.Zero, glyph);
+                            scale * spc.oversample, Point.Zero, IntPoint.Zero, glyph);
 
                         if (spc.oversample.x > 1)
                             HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.x);
@@ -137,8 +137,8 @@ namespace StbSharp
         }
 
         public static int PackFontRangesGatherRects(
-            TTPackContext spc, TTFontInfo info,
-            Span<TTPackRange> ranges, Span<RPRect> rects)
+            PackContext spc, FontInfo info,
+            Span<PackRange> ranges, Span<RPRect> rects)
         {
             int k = 0;
             bool missing_glyph_added = false;
@@ -167,7 +167,7 @@ namespace StbSharp
                     else
                     {
                         GetGlyphBitmapBoxSubpixel(
-                            info, glyph, scale * spc.oversample, TTPoint.Zero, out var glyphBox);
+                            info, glyph, scale * spc.oversample, Point.Zero, out var glyphBox);
 
                         rects[k].w = glyphBox.w + spc.padding + spc.oversample.x - 1;
                         rects[k].h = glyphBox.h + spc.padding + spc.oversample.y - 1;
@@ -182,15 +182,15 @@ namespace StbSharp
         }
 
         public static bool PackFontRanges(
-            TTPackContext spc,
+            PackContext spc,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontData,
-            Span<TTPackRange> ranges)
+            Span<PackRange> ranges)
         {
             int n = 0;
             for (int i = 0; i < ranges.Length; ++i)
             {
-                Span<TTPackedChar> charData = ranges[i].chardata_for_range.Span;
+                Span<PackedChar> charData = ranges[i].chardata_for_range.Span;
                 for (int j = 0; j < charData.Length; ++j)
                     charData[j].x0 = charData[j].y0 = charData[j].x1 = charData[j].y1 = 0;
 
@@ -203,7 +203,7 @@ namespace StbSharp
 
             try
             {
-                var info = new TTFontInfo();
+                var info = new FontInfo();
                 if (!InitFont(info, fontData, GetFontOffset(fontData.Span, 0)))
                     return false;
 
@@ -221,28 +221,28 @@ namespace StbSharp
         }
 
         public static bool PackFontRange(
-            TTPackContext spc,
+            PackContext spc,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontdata,
             float font_size,
             int first_unicode_codepoint_in_range,
-            Memory<TTPackedChar> chardata_for_range)
+            Memory<PackedChar> chardata_for_range)
         {
-            var range = new TTPackRange();
+            var range = new PackRange();
             range.first_unicode_codepoint_in_range = first_unicode_codepoint_in_range;
             range.array_of_unicode_codepoints = null;
             range.chardata_for_range = chardata_for_range;
             range.font_size = font_size;
 
             // todo: remove this array alloc
-            return PackFontRanges(spc, pixels, fontdata, new TTPackRange[] { range });
+            return PackFontRanges(spc, pixels, fontdata, new PackRange[] { range });
         }
 
         public static void GetScaledFontVMetrics(
             ReadOnlyMemory<byte> fontData, int index, float size,
             out float ascent, out float descent, out float lineGap)
         {
-            var info = new TTFontInfo();
+            var info = new FontInfo();
             InitFont(info, fontData, GetFontOffset(fontData.Span, index));
 
             var scale = size > 0
@@ -256,8 +256,8 @@ namespace StbSharp
         }
 
         public static void GetPackedQuad(
-            ReadOnlySpan<TTPackedChar> chardata, int pw, int ph, int char_index,
-            ref float xpos, float ypos, ref TTAlignedQuad q, bool align_to_integer)
+            ReadOnlySpan<PackedChar> chardata, int pw, int ph, int char_index,
+            ref float xpos, float ypos, ref AlignedQuad q, bool align_to_integer)
         {
             float ipw = 1f / pw;
             float iph = 1f / ph;

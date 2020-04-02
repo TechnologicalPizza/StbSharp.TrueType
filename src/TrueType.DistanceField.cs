@@ -7,16 +7,16 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static byte[] GetGlyphSDF(
-            TTFontInfo info, TTPoint scale, int glyph, int padding,
+            FontInfo info, Point scale, int glyph, int padding,
             byte onedge_value, float pixel_dist_scale,
-            out int width, out int height, out TTIntPoint offset)
+            out int width, out int height, out IntPoint offset)
         {
             width = 0;
             height = 0;
-            offset = TTIntPoint.Zero;
+            offset = IntPoint.Zero;
 
             if (scale.x == 0)
                 scale.x = scale.y;
@@ -28,7 +28,7 @@ namespace StbSharp
             }
 
             GetGlyphBitmapBoxSubpixel(
-                info, glyph, scale, TTPoint.Zero, out var glyphBox);
+                info, glyph, scale, Point.Zero, out var glyphBox);
 
             if (glyphBox.w == 0 || glyphBox.y == 0)
                 return null;
@@ -42,7 +42,7 @@ namespace StbSharp
             offset = glyphBox.Position;
             scale.y = -scale.y;
 
-            int num_verts = GetGlyphShape(info, glyph, out TTVertex[] verts);
+            int num_verts = GetGlyphShape(info, glyph, out Vertex[] verts);
             int precomputeSize = num_verts * sizeof(float);
             Span<float> precompute = precomputeSize > 2048 
                 ? new float[precomputeSize] 
@@ -57,7 +57,7 @@ namespace StbSharp
             int j = 0;
             for (i = 0, j = num_verts - 1; i < num_verts; j = i++)
             {
-                ref TTVertex vertex = ref verts[i];
+                ref Vertex vertex = ref verts[i];
                 if (vertex.type == STBTT_vline)
                 {
                     float x0 = vertex.x * scale.x;
@@ -252,9 +252,9 @@ namespace StbSharp
         }
 
         public static byte[] GetCodepointSDF(
-            TTFontInfo info, TTPoint scale, int codepoint, int padding,
+            FontInfo info, Point scale, int codepoint, int padding,
             byte onedge_value, float pixel_dist_scale,
-            out int width, out int height, out TTIntPoint offset)
+            out int width, out int height, out IntPoint offset)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             return GetGlyphSDF(

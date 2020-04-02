@@ -8,9 +8,9 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static int GetSvgIndex(TTFontInfo info)
+        public static int GetSvgIndex(FontInfo info)
         {
             if (info.svg < 0)
             {
@@ -29,7 +29,7 @@ namespace StbSharp
             return info.svg;
         }
 
-        ReadOnlyMemory<byte> FindSVGDoc(TTFontInfo info, int glyph)
+        ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
         {
             var svg_doc_list = info.data.Slice(GetSvgIndex(info));
             int numEntries = ReadUInt16(svg_doc_list.Span);
@@ -46,7 +46,7 @@ namespace StbSharp
             return default;
         }
 
-        ReadOnlyMemory<byte> GetGlyphSVG(TTFontInfo info, int glyph)
+        ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
         {
             if (info.svg != 0)
             {
@@ -62,7 +62,7 @@ namespace StbSharp
             return default;
         }
 
-        ReadOnlyMemory<byte> GetCodepointSVG(TTFontInfo info, int unicode_codepoint)
+        ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)
         {
             int index = FindGlyphIndex(info, unicode_codepoint);
             return GetGlyphSVG(info, index);

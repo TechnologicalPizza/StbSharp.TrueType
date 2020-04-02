@@ -7,10 +7,10 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static void GetFontVMetrics(
-            TTFontInfo info, out int ascent, out int descent, out int lineGap)
+            FontInfo info, out int ascent, out int descent, out int lineGap)
         {
             var data = info.data.Span;
             ascent = ReadInt16(data.Slice(info.hhea + 4));
@@ -19,7 +19,7 @@ namespace StbSharp
         }
 
         public static bool GetFontVMetricsOS2(
-            TTFontInfo info, out int typoAscent, out int typoDescent, out int typoLineGap)
+            FontInfo info, out int typoAscent, out int typoDescent, out int typoLineGap)
         {
             var data = info.data.Span;
             int table = (int)FindTable(data, info.fontstart, "OS/2");
@@ -37,7 +37,7 @@ namespace StbSharp
             return true;
         }
 
-        public static void GetFontBoundingBox(TTFontInfo info, out TTPoint p0, out TTPoint p1)
+        public static void GetFontBoundingBox(FontInfo info, out Point p0, out Point p1)
         {
             var data = info.data.Span;
             p0.x = ReadInt16(data.Slice(info.head + 36));
@@ -46,17 +46,17 @@ namespace StbSharp
             p1.y = ReadInt16(data.Slice(info.head + 42));
         }
 
-        public static TTPoint ScaleForPixelHeight(TTFontInfo info, float height)
+        public static Point ScaleForPixelHeight(FontInfo info, float height)
         {
             var data = info.data.Span;
             int fheight = ReadInt16(data.Slice(info.hhea + 4)) - ReadInt16(data.Slice(info.hhea + 6));
-            return new TTPoint(height / fheight);
+            return new Point(height / fheight);
         }
 
-        public static TTPoint ScaleForMappingEmToPixels(TTFontInfo info, float pixels)
+        public static Point ScaleForMappingEmToPixels(FontInfo info, float pixels)
         {
             int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
-            return new TTPoint(pixels / unitsPerEm);
+            return new Point(pixels / unitsPerEm);
         }
     }
 }

@@ -8,10 +8,10 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static TTPoint[] FlattenCurves(
-            ReadOnlySpan<TTVertex> vertices, float objspace_flatness,
+        public static Point[] FlattenCurves(
+            ReadOnlySpan<Vertex> vertices, float objspace_flatness,
             out int[] contour_lengths, out int num_contours)
         {
             int n = 0;
@@ -28,7 +28,7 @@ namespace StbSharp
 
             contour_lengths = new int[n];
 
-            TTPoint[] points = null;
+            Point[] points = null;
             float objspace_flatness_squared = objspace_flatness * objspace_flatness;
 
             int num_points = 0;
@@ -38,13 +38,13 @@ namespace StbSharp
                 float x = 0f;
                 float y = 0f;
                 if (pass == 1)
-                    points = new TTPoint[num_points];
+                    points = new Point[num_points];
 
                 num_points = 0;
                 n = -1;
                 for (int i = 0; i < vertices.Length; ++i)
                 {
-                    ref readonly TTVertex vert = ref vertices[i];
+                    ref readonly Vertex vert = ref vertices[i];
                     switch (vert.type)
                     {
                         case STBTT_vmove:
@@ -90,13 +90,13 @@ namespace StbSharp
         }
 
         public static void Rasterize(
-            TTBitmap result, float flatness_in_pixels, ReadOnlySpan<TTVertex> vertices,
-            TTPoint scale, TTPoint shift, TTIntPoint offset, TTIntPoint pixelOffset, bool invert)
+            Bitmap result, float flatness_in_pixels, ReadOnlySpan<Vertex> vertices,
+            Point scale, Point shift, IntPoint offset, IntPoint pixelOffset, bool invert)
         {
             float scaleValue = scale.x > scale.y ? scale.y : scale.x;
             float objspace_flatness = flatness_in_pixels / scaleValue;
 
-            TTPoint[] windings = FlattenCurves(
+            Point[] windings = FlattenCurves(
                 vertices, objspace_flatness,
                 out int[] winding_lengths, out int winding_count);
 
@@ -109,11 +109,11 @@ namespace StbSharp
         }
 
         public static void RasterizeSortedEdges(
-            TTBitmap result, Span<TTEdge> e, int n, int vsubsample,
-            TTIntPoint offset, TTIntPoint pixelOffset)
+            Bitmap result, Span<Edge> e, int n, int vsubsample,
+            IntPoint offset, IntPoint pixelOffset)
         {
-            var hh = new TTHeap();
-            TTActiveEdge* active = null;
+            var hh = new Heap();
+            ActiveEdge* active = null;
             int y = 0;
             int j = 0;
 
@@ -136,10 +136,10 @@ namespace StbSharp
 
                     float scan_y_top = y;
                     float scan_y_bottom = y + 1f;
-                    TTActiveEdge** step = &active;
+                    ActiveEdge** step = &active;
                     while ((*step) != null)
                     {
-                        TTActiveEdge* z = *step;
+                        ActiveEdge* z = *step;
                         if (z->ey <= scan_y_top)
                         {
                             *step = z->next;
@@ -158,7 +158,7 @@ namespace StbSharp
                     {
                         if (e[ie].p0.y != e[ie].p1.y)
                         {
-                            TTActiveEdge* z = NewActive(ref hh, e[ie], offset.x, scan_y_top);
+                            ActiveEdge* z = NewActive(ref hh, e[ie], offset.x, scan_y_top);
                             if (z != null)
                             {
                                 if (j == 0 && offset.y != 0)
@@ -194,7 +194,7 @@ namespace StbSharp
                     step = &active;
                     while ((*step) != null)
                     {
-                        TTActiveEdge* z = *step;
+                        ActiveEdge* z = *step;
                         z->fx += z->fdx;
                         step = &(*step)->next;
                     }
@@ -210,14 +210,14 @@ namespace StbSharp
         }
 
         public static void Rasterize(
-            TTBitmap result, ReadOnlySpan<TTPoint> pts, ReadOnlySpan<int> windings,
-            TTPoint scale, TTPoint shift, TTIntPoint offset, TTIntPoint pixelOffset, bool invert)
+            Bitmap result, ReadOnlySpan<Point> pts, ReadOnlySpan<int> windings,
+            Point scale, Point shift, IntPoint offset, IntPoint pixelOffset, bool invert)
         {
             int n = 0;
             for (int i = 0; i < windings.Length; ++i)
                 n += windings[i];
 
-            var e = new TTEdge[n + 1];
+            var e = new Edge[n + 1];
             n = 0;
 
             float y_scale_inv = invert ? -scale.y : scale.y;

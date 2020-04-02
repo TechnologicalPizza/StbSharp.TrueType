@@ -7,18 +7,18 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static int GetGlyphShapeT2(
-            TTFontInfo info, int glyph_index, out TTVertex[] pvertices)
+            FontInfo info, int glyph_index, out Vertex[] pvertices)
         {
-            var output_ctx = new TTCharStringContext();
-            var count_ctx = new TTCharStringContext();
+            var output_ctx = new CharStringContext();
+            var count_ctx = new CharStringContext();
             count_ctx.bounds = 1;
 
             if (RunCharString(info, glyph_index, ref count_ctx) != 0)
             {
-                pvertices = new TTVertex[count_ctx.num_vertices];
+                pvertices = new Vertex[count_ctx.num_vertices];
                 output_ctx.pvertices = pvertices;
 
                 if (RunCharString(info, glyph_index, ref output_ctx) != 0)
@@ -30,7 +30,7 @@ namespace StbSharp
         }
 
         public static int RunCharString(
-            TTFontInfo info, int glyph_index, ref TTCharStringContext c)
+            FontInfo info, int glyph_index, ref CharStringContext c)
         {
             int in_header = 1;
             int maskbits = 0;
@@ -42,7 +42,7 @@ namespace StbSharp
             int has_subrs = 0;
             int clear_stack = 0;
             Span<float> s = stackalloc float[48];
-            var subr_stack = new TTBuffer[10];
+            var subr_stack = new Buffer[10];
             var subrs = info.subrs;
             float f = 0;
             var b = CffIndexGet(info.charstrings, glyph_index);
@@ -376,7 +376,7 @@ namespace StbSharp
             return 0;
         }
 
-        public static TTBuffer GetSubr(TTBuffer idx, int n)
+        public static Buffer GetSubr(Buffer idx, int n)
         {
             int count = CffIndexCount(ref idx);
             int bias = 107;
@@ -386,7 +386,7 @@ namespace StbSharp
                 bias = 1131;
             n += bias;
             if ((n < 0) || (n >= count))
-                return TTBuffer.Empty;
+                return Buffer.Empty;
             return CffIndexGet(idx, n);
         }
     }

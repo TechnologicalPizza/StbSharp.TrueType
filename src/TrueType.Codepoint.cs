@@ -6,19 +6,19 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static byte[] GetCodepointBitmap(
-            TTFontInfo info, TTPoint scale, int codepoint,
-            out int width, out int height, out TTIntPoint offset)
+            FontInfo info, Point scale, int codepoint,
+            out int width, out int height, out IntPoint offset)
         {
             return GetCodepointBitmapSubpixel(
-                info, scale, TTPoint.Zero, codepoint, out width, out height, out offset);
+                info, scale, Point.Zero, codepoint, out width, out height, out offset);
         }
 
         public static byte[] GetCodepointBitmapSubpixel(
-            TTFontInfo info, TTPoint scale, TTPoint shift, int codepoint,
-            out int width, out int height, out TTIntPoint offset)
+            FontInfo info, Point scale, Point shift, int codepoint,
+            out int width, out int height, out IntPoint offset)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             return GetGlyphBitmapSubpixel(
@@ -26,20 +26,20 @@ namespace StbSharp
         }
 
         public static bool GetCodepointBox(
-            TTFontInfo info, int codepoint, out TTIntRect glyphBox)
+            FontInfo info, int codepoint, out IntRect glyphBox)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             return GetGlyphBox(info, glyph, out glyphBox);
         }
 
         public static int GetCodepointShape(
-            TTFontInfo info, int unicode_codepoint, out TTVertex[] vertices)
+            FontInfo info, int unicode_codepoint, out Vertex[] vertices)
         {
             return GetGlyphShape(info, FindGlyphIndex(info, unicode_codepoint), out vertices);
         }
 
         public static int GetCodepointKernAdvance(
-            TTFontInfo info, int ch1, int ch2)
+            FontInfo info, int ch1, int ch2)
         {
             if ((info.kern == 0) && (info.gpos == 0))
                 return 0;
@@ -50,7 +50,7 @@ namespace StbSharp
         }
 
         public static void GetCodepointHMetrics(
-            TTFontInfo info, int codepoint, 
+            FontInfo info, int codepoint, 
             out int advanceWidth, out int leftSideBearing)
         {
             GetGlyphHMetrics(

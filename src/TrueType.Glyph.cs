@@ -7,10 +7,10 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static bool GetGlyphBox(
-            TTFontInfo info, int glyph_index, out TTIntRect glyphBox)
+            FontInfo info, int glyph_index, out IntRect glyphBox)
         {
             if (info.cff.size != 0)
             {
@@ -21,12 +21,12 @@ namespace StbSharp
                 int g = GetGlyphOffset(info, glyph_index);
                 if (g < 0)
                 {
-                    glyphBox = TTIntRect.Zero;
+                    glyphBox = IntRect.Zero;
                     return false;
                 }
 
                 var data = info.data.Span;
-                glyphBox = TTIntRect.FromEdgePoints(
+                glyphBox = IntRect.FromEdgePoints(
                     tlX: ReadInt16(data.Slice(g + 2)),
                     tlY: ReadInt16(data.Slice(g + 4)),
                     brX: ReadInt16(data.Slice(g + 6)),
@@ -35,7 +35,7 @@ namespace StbSharp
             }
         }
 
-        public static int GetGlyphOffset(TTFontInfo info, int glyph_index)
+        public static int GetGlyphOffset(FontInfo info, int glyph_index)
         {
             if (glyph_index >= info.numGlyphs)
                 return -1;
@@ -58,7 +58,7 @@ namespace StbSharp
             return g1 == g2 ? -1 : g1;
         }
 
-        public static int GetGlyphShape(TTFontInfo info, int glyph_index, out TTVertex[] pvertices)
+        public static int GetGlyphShape(FontInfo info, int glyph_index, out Vertex[] pvertices)
         {
             if (info.cff.size == 0)
                 return GetGlyphShapeTT(info, glyph_index, out pvertices);
@@ -66,7 +66,7 @@ namespace StbSharp
                 return GetGlyphShapeT2(info, glyph_index, out pvertices);
         }
 
-        public static bool IsGlyphEmpty(TTFontInfo info, int glyph_index)
+        public static bool IsGlyphEmpty(FontInfo info, int glyph_index)
         {
             if (info.cff.size != 0)
                 return GetGlyphInfoT2(info, glyph_index, out _) == 0 ? true : false;
@@ -80,24 +80,24 @@ namespace StbSharp
         }
 
         public static int GetGlyphInfoT2(
-            TTFontInfo info, int glyph_index, out TTIntRect glyphBox)
+            FontInfo info, int glyph_index, out IntRect glyphBox)
         {
-            var c = new TTCharStringContext();
+            var c = new CharStringContext();
             c.bounds = 1;
 
             int r = RunCharString(info, glyph_index, ref c);
             if (r != 0)
             {
-                glyphBox = TTIntRect.FromEdgePoints(c.min, c.max);
+                glyphBox = IntRect.FromEdgePoints(c.min, c.max);
                 return c.num_vertices;
             }
 
-            glyphBox = TTIntRect.Zero;
+            glyphBox = IntRect.Zero;
             return 0;
         }
 
         public static void GetGlyphHMetrics(
-            TTFontInfo info, int glyph_index, out int advanceWidth, out int leftSideBearing)
+            FontInfo info, int glyph_index, out int advanceWidth, out int leftSideBearing)
         {
             ushort numOfLongHorMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
             if (glyph_index < numOfLongHorMetrics)
@@ -113,7 +113,7 @@ namespace StbSharp
             }
         }
 
-        public static int GetGlyphKernInfoAdvance(TTFontInfo info, int glyph1, int glyph2)
+        public static int GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
             var data = info.data.Span.Slice(info.kern);
             if (info.kern == 0)
@@ -246,7 +246,7 @@ namespace StbSharp
             return -1;
         }
 
-        public static int GetGlyphGPOSInfoAdvance(TTFontInfo info, int glyph1, int glyph2)
+        public static int GetGlyphGPOSInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
             if (info.gpos == 0)
                 return 0;
@@ -352,7 +352,7 @@ namespace StbSharp
             return 0;
         }
 
-        public static int GetGlyphKernAdvance(TTFontInfo info, int g1, int g2)
+        public static int GetGlyphKernAdvance(FontInfo info, int g1, int g2)
         {
             if (info.gpos != 0)
                 return GetGlyphGPOSInfoAdvance(info, g1, g2);

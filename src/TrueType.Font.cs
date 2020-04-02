@@ -8,7 +8,7 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static bool IsFont(ReadOnlySpan<byte> fontData)
         {
@@ -86,32 +86,32 @@ namespace StbSharp
             return 0;
         }
 
-        public static TTBuffer GetSubRs(TTBuffer cff, TTBuffer fontdict)
+        public static Buffer GetSubRs(Buffer cff, Buffer fontdict)
         {
             Span<uint> tmp = stackalloc uint[2];
             tmp.Fill(0);
 
-            var pdict = new TTBuffer();
+            var pdict = new Buffer();
             DictGetInts(ref fontdict, 18, tmp);
             if ((tmp[1] == 0) || (tmp[0] == 0))
-                return TTBuffer.EmptyWithLength(9);
+                return Buffer.EmptyWithLength(9);
 
             pdict = cff.Slice((int)tmp[1], (int)tmp[0]);
 
             uint subsroff = 0;
             DictGetInts(ref pdict, 19, MemoryMarshal.CreateSpan(ref subsroff, 1));
             if (subsroff == 0)
-                return TTBuffer.Empty;
+                return Buffer.Empty;
 
             cff.Seek((int)(tmp[1] + subsroff));
             return CffGetIndex(ref cff);
         }
 
-        public static bool InitFont(TTFontInfo info, ReadOnlyMemory<byte> fontData, int fontstart)
+        public static bool InitFont(FontInfo info, ReadOnlyMemory<byte> fontData, int fontstart)
         {
             info.data = fontData;
             info.fontstart = fontstart;
-            info.cff = TTBuffer.Empty;
+            info.cff = Buffer.Empty;
             var data = fontData.Span;
             int cmap = (int)FindTable(data, fontstart, "cmap");
             info.loca = (int)FindTable(data, fontstart, "loca");
@@ -139,9 +139,9 @@ namespace StbSharp
                 if (cff == 0)
                     return false;
 
-                info.fontdicts = TTBuffer.Empty;
-                info.fdselect = TTBuffer.Empty;
-                info.cff = new TTBuffer(fontData.Slice(cff), 512 * 1024 * 1024);
+                info.fontdicts = Buffer.Empty;
+                info.fdselect = Buffer.Empty;
+                info.cff = new Buffer(fontData.Slice(cff), 512 * 1024 * 1024);
                 var b = info.cff;
                 b.Skip(2);
                 b.Seek(b.GetByte());
@@ -210,7 +210,7 @@ namespace StbSharp
             return true;
         }
 
-        public static TTBuffer CidGetGlyphSubRs(TTFontInfo info, int glyph_index)
+        public static Buffer CidGetGlyphSubRs(FontInfo info, int glyph_index)
         {
             var fdselect = info.fdselect;
             int fdselector = -1;
@@ -242,7 +242,7 @@ namespace StbSharp
             return GetSubRs(info.cff, CffIndexGet(info.fontdicts, fdselector));
         }
 
-        public static int GetKerningTableLength(TTFontInfo info)
+        public static int GetKerningTableLength(FontInfo info)
         {
             var data = info.data.Span.Slice(info.kern);
 
@@ -257,7 +257,7 @@ namespace StbSharp
             return ReadUInt16(data.Slice(10));
         }
 
-        public static int GetKerningTable(TTFontInfo info, TTKerningEntry* table, int table_length)
+        public static int GetKerningTable(FontInfo info, KerningEntry* table, int table_length)
         {
             var data = info.data.Span.Slice(info.kern);
 

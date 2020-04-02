@@ -8,11 +8,11 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public unsafe class TTPackContext
+        public unsafe class PackContext
         {
-            public TTIntPoint oversample;
+            public IntPoint oversample;
             public StbRectPack.RPContext pack_info;
             public bool skip_missing;
             public int padding;
@@ -22,7 +22,7 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTBakedChar
+        public struct BakedChar
         {
             public ushort x0;
             public ushort y0;
@@ -34,53 +34,53 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTAlignedQuad
+        public struct AlignedQuad
         {
-            public TTPoint pos0;
+            public Point pos0;
             public float s0;
             public float t0;
 
-            public TTPoint pos1;
+            public Point pos1;
             public float s1;
             public float t1;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTPackedChar
+        public struct PackedChar
         {
             public ushort x0;
             public ushort y0;
             public ushort x1;
             public ushort y1;
 
-            public TTPoint offset0;
+            public Point offset0;
             public float xadvance;
-            public TTPoint offset1;
+            public Point offset1;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTPackRange
+        public struct PackRange
         {
             public float font_size;
             public int first_unicode_codepoint_in_range;
             public int* array_of_unicode_codepoints;
-            public Memory<TTPackedChar> chardata_for_range;
+            public Memory<PackedChar> chardata_for_range;
             public byte oversample_x;
             public byte oversample_y;
         }
 
-        public class TTFontInfo
+        public class FontInfo
         {
-            public TTBuffer cff;
-            public TTBuffer charstrings;
+            public Buffer cff;
+            public Buffer charstrings;
             public ReadOnlyMemory<byte> data;
-            public TTBuffer fdselect;
-            public TTBuffer fontdicts;
+            public Buffer fdselect;
+            public Buffer fontdicts;
             public int fontstart;
             public int glyf;
             public int gpos;
             public int svg;
-            public TTBuffer gsubrs;
+            public Buffer gsubrs;
             public int head;
             public int hhea;
             public int hmtx;
@@ -89,11 +89,11 @@ namespace StbSharp
             public int kern;
             public int loca;
             public int numGlyphs;
-            public TTBuffer subrs;
+            public Buffer subrs;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTKerningEntry
+        public struct KerningEntry
         {
             public int glyph1;
             public int glyph2;
@@ -101,7 +101,7 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTVertex
+        public struct Vertex
         {
             public short x;
             public short y;
@@ -123,7 +123,7 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public ref struct TTBitmap
+        public ref struct Bitmap
         {
             public int w;
             public int h;
@@ -132,30 +132,30 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTCharStringContext
+        public struct CharStringContext
         {
             public int bounds;
             public int started;
-            public TTPoint firstPos;
-            public TTPoint pos;
-            public TTIntPoint min;
-            public TTIntPoint max;
-            public TTVertex[] pvertices;
+            public Point firstPos;
+            public Point pos;
+            public IntPoint min;
+            public IntPoint max;
+            public Vertex[] pvertices;
             public int num_vertices;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTEdge
+        public struct Edge
         {
-            public TTPoint p0;
-            public TTPoint p1;
+            public Point p0;
+            public Point p1;
             public bool invert;
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTActiveEdge
+        public struct ActiveEdge
         {
-            public TTActiveEdge* next;
+            public ActiveEdge* next;
 
             public float fx;
             public float fdx;
@@ -166,18 +166,18 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTIntRect
+        public struct IntRect
         {
-            public static readonly TTIntRect Zero = new TTIntRect(0, 0, 0, 0);
+            public static readonly IntRect Zero = new IntRect(0, 0, 0, 0);
 
             public int x;
             public int y;
             public int w;
             public int h;
 
-            public TTIntPoint Position
+            public IntPoint Position
             {
-                get => new TTIntPoint(x, y);
+                get => new IntPoint(x, y);
                 set
                 {
                     x = value.x;
@@ -185,9 +185,9 @@ namespace StbSharp
                 }
             }
 
-            public TTIntPoint BottomRight => new TTIntPoint(x + w, y + h);
+            public IntPoint BottomRight => new IntPoint(x + w, y + h);
 
-            public TTIntRect(int x, int y, int w, int h)
+            public IntRect(int x, int y, int w, int h)
             {
                 this.x = x;
                 this.y = y;
@@ -195,68 +195,68 @@ namespace StbSharp
                 this.h = h;
             }
 
-            public static TTIntRect FromEdgePoints(int tlX, int tlY, int brX, int brY)
+            public static IntRect FromEdgePoints(int tlX, int tlY, int brX, int brY)
             {
-                return new TTIntRect(
+                return new IntRect(
                     x: tlX, 
                     y: tlY,
                     w: brX - tlX, 
                     h: brY - tlY);
             }
 
-            public static TTIntRect FromEdgePoints(
-                TTIntPoint topLeft, TTIntPoint bottomRight)
+            public static IntRect FromEdgePoints(
+                IntPoint topLeft, IntPoint bottomRight)
             {
                 return FromEdgePoints(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
             }
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTPoint
+        public struct Point
         {
-            public static readonly TTPoint Zero = new TTPoint(0, 0);
-            public static readonly TTPoint One = new TTPoint(1, 1);
+            public static readonly Point Zero = new Point(0, 0);
+            public static readonly Point One = new Point(1, 1);
 
             public float x;
             public float y;
 
-            public TTPoint(float x, float y)
+            public Point(float x, float y)
             {
                 this.x = x;
                 this.y = y;
             }
 
-            public TTPoint(float value) : this(value, value)
+            public Point(float value) : this(value, value)
             {
             }
 
-            public static bool Equals(in TTPoint a, in TTPoint b) => a.x == b.x && a.y == b.y;
+            public static bool Equals(in Point a, in Point b) => a.x == b.x && a.y == b.y;
 
-            public static TTPoint operator *(TTPoint a, TTPoint b) => new TTPoint(a.x * b.x, a.y * b.y);
+            public static Point operator *(Point a, Point b) => new Point(a.x * b.x, a.y * b.y);
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTIntPoint
+        public struct IntPoint
         {
-            public static readonly TTIntPoint Zero = new TTIntPoint(0, 0);
-            public static readonly TTIntPoint One = new TTIntPoint(1, 1);
+            public static readonly IntPoint Zero = new IntPoint(0, 0);
+            public static readonly IntPoint One = new IntPoint(1, 1);
 
             public int x;
             public int y;
 
-            public TTIntPoint(int x, int y)
+            public IntPoint(int x, int y)
             {
                 this.x = x;
                 this.y = y;
             }
 
-            public TTIntPoint(int value) : this(value, value)
+            public IntPoint(int value) : this(value, value)
             {
             }
 
-            public static bool Equals(in TTPoint a, in TTPoint b) => a.x == b.x && a.y == b.y;
+            public static bool Equals(in Point a, in Point b) => a.x == b.x && a.y == b.y;
 
-            public static implicit operator TTPoint(TTIntPoint value) => new TTPoint(value.x, value.y);
+            public static implicit operator Point(IntPoint value) => new Point(value.x, value.y);
         }
     }
 }

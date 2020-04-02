@@ -9,10 +9,10 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static int CloseShape(
-            Span<TTVertex> vertices, int num_vertices, int was_off, int start_off,
+            Span<Vertex> vertices, int num_vertices, int was_off, int start_off,
             int sx, int sy, int scx, int scy, int cx, int cy)
         {
             if (start_off != 0)
@@ -33,7 +33,7 @@ namespace StbSharp
             return num_vertices;
         }
 
-        public static void TrackVertex(ref TTCharStringContext c, int x, int y)
+        public static void TrackVertex(ref CharStringContext c, int x, int y)
         {
             if ((x > c.max.x) || (c.started == 0))
                 c.max.x = x;
@@ -47,7 +47,7 @@ namespace StbSharp
         }
 
         public static void CsContextV(
-            ref TTCharStringContext c, byte type, int x, int y, int cx, int cy, int cx1, int cy1)
+            ref CharStringContext c, byte type, int x, int y, int cx, int cy, int cx1, int cy1)
         {
             if (c.bounds != 0)
             {
@@ -68,13 +68,13 @@ namespace StbSharp
             c.num_vertices++;
         }
 
-        public static void CsContext_CloseShape(ref TTCharStringContext ctx)
+        public static void CsContext_CloseShape(ref CharStringContext ctx)
         {
             if ((ctx.firstPos.x != ctx.pos.x) || (ctx.firstPos.y != ctx.pos.y))
                 CsContextV(ref ctx, STBTT_vline, (int)ctx.firstPos.x, (int)ctx.firstPos.y, 0, 0, 0, 0);
         }
 
-        public static void CsContext_RMoveTo(ref TTCharStringContext ctx, float dx, float dy)
+        public static void CsContext_RMoveTo(ref CharStringContext ctx, float dx, float dy)
         {
             CsContext_CloseShape(ref ctx);
             ctx.firstPos.x = ctx.pos.x += dx;
@@ -82,7 +82,7 @@ namespace StbSharp
             CsContextV(ref ctx, STBTT_vmove, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
         }
 
-        public static void CsContext_RLineTo(ref TTCharStringContext ctx, float dx, float dy)
+        public static void CsContext_RLineTo(ref CharStringContext ctx, float dx, float dy)
         {
             ctx.pos.x += dx;
             ctx.pos.y += dy;
@@ -90,7 +90,7 @@ namespace StbSharp
         }
 
         public static void CsContext_RCCurveTo(
-            ref TTCharStringContext ctx, 
+            ref CharStringContext ctx, 
             float dx1, float dy1, float dx2, float dy2, float dx3, float dy3)
         {
             float cx1 = ctx.pos.x + dx1;
@@ -105,7 +105,7 @@ namespace StbSharp
                 (int)cx1, (int)cy1, (int)cx2, (int)cy2);
         }
 
-        public static void FreeShape(TTVertex* v)
+        public static void FreeShape(Vertex* v)
         {
             CRuntime.Free(v);
         }

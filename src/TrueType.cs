@@ -7,7 +7,7 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public const int STBTT_vmove = 1;
         public const int STBTT_vline = 2;
@@ -68,8 +68,8 @@ namespace StbSharp
         public const int STBTT_MAC_LANG_CHINESE_TRAD = 19;
 
         public static void GetBakedQuad(
-            in TTBakedChar chardata, int pw, int ph,
-            ref float xpos, float ypos, bool opengl_fillrule, out TTAlignedQuad q)
+            in BakedChar chardata, int pw, int ph,
+            ref float xpos, float ypos, bool opengl_fillrule, out AlignedQuad q)
         {
             float d3d_bias = opengl_fillrule ? 0 : -0.5f;
             float ipw = 1f / pw;

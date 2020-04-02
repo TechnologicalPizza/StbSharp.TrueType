@@ -8,27 +8,27 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         [StructLayout(LayoutKind.Sequential)]
-        public struct TTBuffer
+        public struct Buffer
         {
-            public static readonly TTBuffer Empty = EmptyWithLength(0);
+            public static readonly Buffer Empty = EmptyWithLength(0);
 
             public ReadOnlyMemory<byte> data;
             public int size;
             public int cursor;
 
-            public TTBuffer(ReadOnlyMemory<byte> data, int size)
+            public Buffer(ReadOnlyMemory<byte> data, int size)
             {
                 this.data = data;
                 this.size = size;
                 cursor = 0;
             }
 
-            public static TTBuffer EmptyWithLength(int length)
+            public static Buffer EmptyWithLength(int length)
             {
-                return new TTBuffer(ReadOnlyMemory<byte>.Empty, length);
+                return new Buffer(ReadOnlyMemory<byte>.Empty, length);
             }
 
             public byte PeekByte()
@@ -63,9 +63,9 @@ namespace StbSharp
                 Seek(cursor + o);
             }
 
-            public TTBuffer Slice(int start, int length)
+            public Buffer Slice(int start, int length)
             {
-                TTBuffer r = Empty;
+                Buffer r = Empty;
                 if ((start < 0) || (length < 0) || (start > size) || (length > (size - start)))
                     return r;
 

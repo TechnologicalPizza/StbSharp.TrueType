@@ -7,9 +7,9 @@ namespace StbSharp
 #else
 	internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static int FindGlyphIndex(TTFontInfo info, int unicode_codepoint)
+        public static int FindGlyphIndex(FontInfo info, int unicode_codepoint)
         {
             var data = info.data.Span;
             int index_map = info.index_map;
@@ -196,7 +196,7 @@ namespace StbSharp
         }
 
         public static ReadOnlySpan<byte> GetFontName(
-            TTFontInfo font, out int length,
+            FontInfo font, out int length,
             int platformID, int encodingID, int languageID, int nameID)
         {
             var fc = font.data.Span;

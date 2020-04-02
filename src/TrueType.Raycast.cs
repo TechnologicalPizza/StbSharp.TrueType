@@ -7,12 +7,12 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static int RayIntersectBezier(
-            in TTPoint ray, in TTPoint orig,
-            in TTPoint q0, in TTPoint q1, in TTPoint q2, 
-            out TTPoint hit1, out TTPoint hit2)
+            in Point ray, in Point orig,
+            in Point q0, in Point q1, in Point q2, 
+            out Point hit1, out Point hit2)
         {
             float q0perp = q0.y * ray.x - q0.x * ray.y;
             float q1perp = q1.y * ray.x - q1.x * ray.y;
@@ -85,7 +85,7 @@ namespace StbSharp
         }
 
         public static int ComputeCrossingsX(
-            float x, float y, int nverts, ReadOnlySpan<TTVertex> verts)
+            float x, float y, int nverts, ReadOnlySpan<Vertex> verts)
         {
             int winding = 0;
             float y_frac = y % 1f;
@@ -94,22 +94,22 @@ namespace StbSharp
             else if (y_frac > 0.99f)
                 y -= 0.01f;
 
-            TTPoint ray;
+            Point ray;
             ray.x = 1f;
             ray.y = 0f;
 
-            TTPoint orig;
+            Point orig;
             orig.x = x;
             orig.y = y;
 
-            TTPoint q0;
-            TTPoint q1;
-            TTPoint q2;
+            Point q0;
+            Point q1;
+            Point q2;
             Span<float> hits = stackalloc float[4];
 
             for (int i = 0; i < nverts; ++i)
             {
-                ref readonly TTVertex vert = ref verts[i];
+                ref readonly Vertex vert = ref verts[i];
                 if (vert.type == STBTT_vline)
                 {
                     int x0 = verts[i - 1].x;
@@ -146,7 +146,7 @@ namespace StbSharp
                         q2.x = x2;
                         q2.y = y2;
 
-                        if (TTPoint.Equals(q0, q1) || TTPoint.Equals(q1, q2))
+                        if (Point.Equals(q0, q1) || Point.Equals(q1, q2))
                         {
                             x0 = verts[i - 1].x;
                             y0 = verts[i - 1].y;

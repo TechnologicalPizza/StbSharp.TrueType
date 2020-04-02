@@ -7,19 +7,19 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static byte[] GetGlyphBitmap(
-            TTFontInfo info, TTPoint scale, int glyph,
-            out int width, out int height, out TTIntPoint offset)
+            FontInfo info, Point scale, int glyph,
+            out int width, out int height, out IntPoint offset)
         {
             return GetGlyphBitmapSubpixel(
-                info, scale, TTPoint.Zero, glyph, out width, out height, out offset);
+                info, scale, Point.Zero, glyph, out width, out height, out offset);
         }
 
         public static byte[] GetGlyphBitmapSubpixel(
-            TTFontInfo info, TTPoint scale, TTPoint shift, int glyph, 
-            out int width, out int height, out TTIntPoint offset)
+            FontInfo info, Point scale, Point shift, int glyph, 
+            out int width, out int height, out IntPoint offset)
         {
             if (scale.x == 0)
                 scale.x = scale.y;
@@ -29,7 +29,7 @@ namespace StbSharp
                 {
                     width = 0;
                     height = 0;
-                    offset = TTIntPoint.Zero;
+                    offset = IntPoint.Zero;
                     return null;
                 }
                 scale.y = scale.x;
@@ -37,7 +37,7 @@ namespace StbSharp
 
             GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
 
-            var gbm = new TTBitmap();
+            var gbm = new Bitmap();
             gbm.w = glyphBox.w;
             gbm.h = glyphBox.h;
 
@@ -54,10 +54,10 @@ namespace StbSharp
                 gbm.pixels.Fill(0);
                 gbm.stride = gbm.w;
 
-                int num_verts = GetGlyphShape(info, glyph, out TTVertex[] vertices);
+                int num_verts = GetGlyphShape(info, glyph, out Vertex[] vertices);
                 Rasterize(
                     gbm, 0.35f, vertices.AsSpan(0, num_verts), scale, shift,
-                    glyphBox.Position, TTIntPoint.Zero, invert: true);
+                    glyphBox.Position, IntPoint.Zero, invert: true);
 
                 return pixels;
             }
@@ -65,49 +65,49 @@ namespace StbSharp
         }
 
         public static bool GetGlyphBitmapBoxSubpixel(
-            TTFontInfo font, int glyph, TTPoint scale, TTPoint shift, out TTIntRect glyphBox)
+            FontInfo font, int glyph, Point scale, Point shift, out IntRect glyphBox)
         {
             if (GetGlyphBox(font, glyph, out glyphBox))
             {
                 var br = glyphBox.BottomRight;
-                glyphBox = TTIntRect.FromEdgePoints(
+                glyphBox = IntRect.FromEdgePoints(
                     tlX: (int)Math.Floor(glyphBox.x * scale.x + shift.x),
                     tlY: (int)Math.Floor(-br.y * scale.y + shift.y),
                     brX: (int)Math.Ceiling(br.x * scale.x + shift.x),
                     brY: (int)Math.Ceiling(-glyphBox.y * scale.y + shift.y));
                 return true;
             }
-            glyphBox = TTIntRect.Zero;
+            glyphBox = IntRect.Zero;
             return false;
         }
 
         public static bool GetGlyphBitmapBox(
-            TTFontInfo font, int glyph, TTPoint scale, out TTIntRect glyphBox)
+            FontInfo font, int glyph, Point scale, out IntRect glyphBox)
         {
-            return GetGlyphBitmapBoxSubpixel(font, glyph, scale, TTPoint.Zero, out glyphBox);
+            return GetGlyphBitmapBoxSubpixel(font, glyph, scale, Point.Zero, out glyphBox);
         }
 
         public static bool GetCodepointBitmapBoxSubpixel(
-            TTFontInfo font, int codepoint, TTPoint scale, TTPoint shift, out TTIntRect glyphBox)
+            FontInfo font, int codepoint, Point scale, Point shift, out IntRect glyphBox)
         {
             int glyph = FindGlyphIndex(font, codepoint);
             return GetGlyphBitmapBoxSubpixel(font, glyph, scale, shift, out glyphBox);
         }
 
         public static bool GetCodepointBitmapBox(
-            TTFontInfo font, int codepoint, TTPoint scale, out TTIntRect glyphBox)
+            FontInfo font, int codepoint, Point scale, out IntRect glyphBox)
         {
-            return GetCodepointBitmapBoxSubpixel(font, codepoint, scale, TTPoint.Zero, out glyphBox);
+            return GetCodepointBitmapBoxSubpixel(font, codepoint, scale, Point.Zero, out glyphBox);
         }
 
         public static void MakeGlyphBitmapSubpixel(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTPoint shift, TTIntPoint pixelOffset, int glyph)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, Point shift, IntPoint pixelOffset, int glyph)
         {
-            int num_verts = GetGlyphShape(info, glyph, out TTVertex[] vertices);
+            int num_verts = GetGlyphShape(info, glyph, out Vertex[] vertices);
             GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
 
-            var gbm = new TTBitmap();
+            var gbm = new Bitmap();
             gbm.pixels = output;
             gbm.w = out_w;
             gbm.h = out_h;
@@ -120,17 +120,17 @@ namespace StbSharp
         }
 
         public static void MakeGlyphBitmap(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTIntPoint pixelOffset, int glyph)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, IntPoint pixelOffset, int glyph)
         {
             MakeGlyphBitmapSubpixel(
-                info, output, out_w, out_h, out_stride, scale, TTPoint.Zero, pixelOffset, glyph);
+                info, output, out_w, out_h, out_stride, scale, Point.Zero, pixelOffset, glyph);
         }
 
         public static void MakeCodepointBitmapSubpixelPrefilter(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTPoint shift, TTIntPoint pixelOffset,
-            TTIntPoint oversample, out TTPoint sub, int codepoint)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, Point shift, IntPoint pixelOffset,
+            IntPoint oversample, out Point sub, int codepoint)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             MakeGlyphBitmapSubpixelPrefilter(
@@ -140,8 +140,8 @@ namespace StbSharp
         }
 
         public static void MakeCodepointBitmapSubpixel(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTPoint shift, TTIntPoint pixelOffset, int codepoint)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, Point shift, IntPoint pixelOffset, int codepoint)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             MakeGlyphBitmapSubpixel(
@@ -149,18 +149,18 @@ namespace StbSharp
         }
 
         public static void MakeCodepointBitmap(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTIntPoint pixelOffset, int codepoint)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, IntPoint pixelOffset, int codepoint)
         {
             MakeCodepointBitmapSubpixel(
-                info, output, out_w, out_h, out_stride, scale, TTPoint.Zero, pixelOffset, codepoint);
+                info, output, out_w, out_h, out_stride, scale, Point.Zero, pixelOffset, codepoint);
         }
 
         public static int BakeFontBitmap(
             ReadOnlyMemory<byte> fontData, int offset, float pixel_height, Span<byte> pixels,
-            int pw, int ph, int first_char, Span<TTBakedChar> chardata)
+            int pw, int ph, int first_char, Span<BakedChar> chardata)
         {
-            var info = new TTFontInfo();
+            var info = new FontInfo();
             if (!InitFont(info, fontData, offset))
                 return -1;
 
@@ -186,7 +186,7 @@ namespace StbSharp
 
                 var pixelsSlice = pixels.Slice(x + y * pw);
                 MakeGlyphBitmap(
-                    info, pixelsSlice, glyphBox.w, glyphBox.h, pw, scale, TTIntPoint.Zero, g);
+                    info, pixelsSlice, glyphBox.w, glyphBox.h, pw, scale, IntPoint.Zero, g);
 
                 chardata[i].x0 = (ushort)(short)x;
                 chardata[i].y0 = (ushort)(short)y;
@@ -204,9 +204,9 @@ namespace StbSharp
         }
 
         public static void MakeGlyphBitmapSubpixelPrefilter(
-            TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
-            TTPoint scale, TTPoint shift, TTIntPoint pixelOffset,
-            TTIntPoint prefilter, out TTPoint sub, int glyph)
+            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            Point scale, Point shift, IntPoint pixelOffset,
+            IntPoint prefilter, out Point sub, int glyph)
         {
             int bw = out_w - (prefilter.x - 1);
             int bh = out_h - (prefilter.y - 1);

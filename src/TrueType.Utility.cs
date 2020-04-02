@@ -7,7 +7,7 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
         public static ushort ReadUInt16(ReadOnlySpan<byte> p) => (ushort)(p[0] * 256 + p[1]);
 

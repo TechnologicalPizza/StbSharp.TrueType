@@ -8,9 +8,9 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class StbTrueType
+    unsafe partial class TrueType
     {
-        public static TTBuffer CffGetIndex(ref TTBuffer b)
+        public static Buffer CffGetIndex(ref Buffer b)
         {
             int start = b.cursor;
             int count = (int)b.Get(2);
@@ -23,7 +23,7 @@ namespace StbSharp
             return b.Slice(start, b.cursor - start);
         }
 
-        public static uint CffInt(ref TTBuffer b)
+        public static uint CffInt(ref Buffer b)
         {
             int b0 = b.GetByte();
             if ((b0 >= 32) && (b0 <= 246))
@@ -39,7 +39,7 @@ namespace StbSharp
             return 0;
         }
 
-        public static void CffSkipOperand(ref TTBuffer b)
+        public static void CffSkipOperand(ref Buffer b)
         {
             int b0 = b.PeekByte();
             if (b0 == 30)
@@ -58,13 +58,13 @@ namespace StbSharp
             }
         }
 
-        public static int CffIndexCount(ref TTBuffer b)
+        public static int CffIndexCount(ref Buffer b)
         {
             b.Seek(0);
             return (int)b.Get(2);
         }
 
-        public static TTBuffer CffIndexGet(TTBuffer b, int i)
+        public static Buffer CffIndexGet(Buffer b, int i)
         {
             b.Seek(0);
             int count = (int)b.Get(2);
@@ -75,7 +75,7 @@ namespace StbSharp
             return b.Slice(2 + (count + 1) * offsize + start, end - start);
         }
 
-        public static TTBuffer DictGet(ref TTBuffer b, int key)
+        public static Buffer DictGet(ref Buffer b, int key)
         {
             b.Seek(0);
             while (b.cursor < b.size)
@@ -95,7 +95,7 @@ namespace StbSharp
         }
 
         public static void DictGetInts(
-            ref TTBuffer b, int key, Span<uint> dst)
+            ref Buffer b, int key, Span<uint> dst)
         {
             var operands = DictGet(ref b, key);
             for (int i = 0; (i < dst.Length) && (operands.cursor < operands.size); i++)
