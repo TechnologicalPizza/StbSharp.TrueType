@@ -109,10 +109,10 @@ namespace StbSharp
             public short cy;
             public short cx1;
             public short cy1;
-            public byte type;
+            public VertexType type;
             public byte padding;
 
-            public void Set(byte type, int x, int y, int cx, int cy)
+            public void Set(VertexType type, int x, int y, int cx, int cy)
             {
                 this.x = (short)x;
                 this.y = (short)y;

@@ -1,6 +1,4 @@
-﻿
-using System;
-using System.Runtime.CompilerServices;
+﻿using System;
 
 namespace StbSharp
 {
@@ -18,16 +16,17 @@ namespace StbSharp
             if (start_off != 0)
             {
                 if (was_off != 0)
-                    vertices[num_vertices++].Set(STBTT_vcurve, (cx + scx) >> 1, (cy + scy) >> 1, cx, cy);
+                    vertices[num_vertices++].Set(
+                        VertexType.Curve, (cx + scx) >> 1, (cy + scy) >> 1, cx, cy);
 
-                vertices[num_vertices++].Set(STBTT_vcurve, sx, sy, scx, scy);
+                vertices[num_vertices++].Set(VertexType.Curve, sx, sy, scx, scy);
             }
             else
             {
                 if (was_off != 0)
-                    vertices[num_vertices++].Set(STBTT_vcurve, sx, sy, cx, cy);
+                    vertices[num_vertices++].Set(VertexType.Curve, sx, sy, cx, cy);
                 else
-                    vertices[num_vertices++].Set(STBTT_vline, sx, sy, 0, 0);
+                    vertices[num_vertices++].Set(VertexType.Line, sx, sy, 0, 0);
             }
 
             return num_vertices;
@@ -47,12 +46,13 @@ namespace StbSharp
         }
 
         public static void CsContextV(
-            ref CharStringContext c, byte type, int x, int y, int cx, int cy, int cx1, int cy1)
+            ref CharStringContext c, VertexType type,
+            int x, int y, int cx, int cy, int cx1, int cy1)
         {
             if (c.bounds != 0)
             {
                 TrackVertex(ref c, x, y);
-                if (type == STBTT_vcubic)
+                if (type == VertexType.Cubic)
                 {
                     TrackVertex(ref c, cx, cy);
                     TrackVertex(ref c, cx1, cy1);
@@ -71,7 +71,9 @@ namespace StbSharp
         public static void CsContext_CloseShape(ref CharStringContext ctx)
         {
             if ((ctx.firstPos.x != ctx.pos.x) || (ctx.firstPos.y != ctx.pos.y))
-                CsContextV(ref ctx, STBTT_vline, (int)ctx.firstPos.x, (int)ctx.firstPos.y, 0, 0, 0, 0);
+                CsContextV(
+                    ref ctx, VertexType.Line, 
+                    (int)ctx.firstPos.x, (int)ctx.firstPos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RMoveTo(ref CharStringContext ctx, float dx, float dy)
@@ -79,14 +81,16 @@ namespace StbSharp
             CsContext_CloseShape(ref ctx);
             ctx.firstPos.x = ctx.pos.x += dx;
             ctx.firstPos.y = ctx.pos.y += dy;
-            CsContextV(ref ctx, STBTT_vmove, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
+            CsContextV(
+                ref ctx, VertexType.Move, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RLineTo(ref CharStringContext ctx, float dx, float dy)
         {
             ctx.pos.x += dx;
             ctx.pos.y += dy;
-            CsContextV(ref ctx, STBTT_vline, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
+            CsContextV(
+                ref ctx, VertexType.Line, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RCCurveTo(
@@ -101,8 +105,8 @@ namespace StbSharp
             ctx.pos.y = cy2 + dy3;
             
             CsContextV(
-                ref ctx, STBTT_vcubic, (int)ctx.pos.x, (int)ctx.pos.y,
-                (int)cx1, (int)cy1, (int)cx2, (int)cy2);
+                ref ctx, VertexType.Cubic, 
+                (int)ctx.pos.x, (int)ctx.pos.y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
         }
 
         public static void FreeShape(Vertex* v)

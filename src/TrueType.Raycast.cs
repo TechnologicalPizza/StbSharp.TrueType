@@ -110,7 +110,7 @@ namespace StbSharp
             for (int i = 0; i < nverts; ++i)
             {
                 ref readonly Vertex vert = ref verts[i];
-                if (vert.type == STBTT_vline)
+                if (vert.type == VertexType.Line)
                 {
                     int x0 = verts[i - 1].x;
                     int y0 = verts[i - 1].y;
@@ -125,7 +125,7 @@ namespace StbSharp
                     }
                 }
 
-                if (verts[i].type == STBTT_vcurve)
+                if (verts[i].type == VertexType.Curve)
                 {
                     int x0 = verts[i - 1].x;
                     int y0 = verts[i - 1].y;

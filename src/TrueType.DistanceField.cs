@@ -58,7 +58,7 @@ namespace StbSharp
             for (i = 0, j = num_verts - 1; i < num_verts; j = i++)
             {
                 ref Vertex vertex = ref verts[i];
-                if (vertex.type == STBTT_vline)
+                if (vertex.type == VertexType.Line)
                 {
                     float x0 = vertex.x * scale.x;
                     float y0 = vertex.y * scale.y;
@@ -67,7 +67,7 @@ namespace StbSharp
                     float dist = MathF.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
                     precompute[i] = (dist == 0) ? 0f : 1f / dist;
                 }
-                else if (vertex.type == STBTT_vcurve)
+                else if (vertex.type == VertexType.Curve)
                 {
                     float x2 = verts[j].x * scale.x;
                     float y2 = verts[j].y * scale.y;
@@ -110,7 +110,7 @@ namespace StbSharp
                         if (dist2 < (min_dist * min_dist))
                             min_dist = MathF.Sqrt(dist2);
 
-                        if (verts[i].type == STBTT_vline)
+                        if (verts[i].type == VertexType.Line)
                         {
                             float x1 = verts[i - 1].x * scale.x;
                             float y1 = verts[i - 1].y * scale.y;
@@ -129,7 +129,7 @@ namespace StbSharp
                                     min_dist = dist;
                             }
                         }
-                        else if (verts[i].type == STBTT_vcurve)
+                        else if (verts[i].type == VertexType.Curve)
                         {
                             float x2 = verts[i - 1].x * scale.x;
                             float y2 = verts[i - 1].y * scale.y;

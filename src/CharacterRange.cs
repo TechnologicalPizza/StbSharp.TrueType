@@ -1,4 +1,4 @@
-namespace StbSharp.MonoGame.Test
+namespace StbSharp
 {
 	public struct CharacterRange
 	{

@@ -1,15 +1,14 @@
-﻿using StbTrueTypeSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace StbSharp.MonoGame.Test
 {
-	public unsafe class FontBaker
-	{
-		private byte[] _bitmap;
-		private StbTrueType.stbtt_pack_context _context;
-		private Dictionary<int, GlyphInfo> _glyphs;
-		private int bitmapWidth, bitmapHeight;
+    public unsafe class FontBaker
+    {
+        private byte[] _bitmap;
+        private TrueType.PackContext _context = new TrueType.PackContext();
+        private Dictionary<int, GlyphInfo> _glyphs = new Dictionary<int, GlyphInfo>();
+        private int bitmapWidth, bitmapHeight;
 
         public void Start(int width, int height, bool skipMissing = true)
         {
@@ -17,38 +16,41 @@ namespace StbSharp.MonoGame.Test
             bitmapHeight = height;
             _bitmap = new byte[width * height];
 
-            StbTrueType.PackPrepare(_context, skipMissing, width, height, width, 1);
+            TrueType.PackPrepare(_context, skipMissing, width, height, width, 1);
             _glyphs.Clear();
         }
 
         public void Add(
-            ReadOnlyMemory<byte> ttf, float fontPixelHeight, ReadOnlySpan<CharacterRange> ranges)
+            ReadOnlyMemory<byte> fontData,
+            int fontIndex,
+            float pixelHeight,
+            ReadOnlySpan<CharacterRange> ranges)
         {
-            if (ttf.IsEmpty)
-                throw new ArgumentException(nameof(ttf));
+            if (fontData.IsEmpty)
+                throw new ArgumentException(nameof(fontData));
 
-            if (fontPixelHeight <= 0)
-                throw new ArgumentOutOfRangeException(nameof(fontPixelHeight));
+            if (pixelHeight <= 0)
+                throw new ArgumentOutOfRangeException(nameof(pixelHeight));
 
             if (ranges.IsEmpty)
                 throw new ArgumentException();
 
-            var fontInfo = new StbTrueType.TTFontInfo();
-            if (!StbTrueType.InitFont(fontInfo, ttf, 0))
+            var fontInfo = new TrueType.FontInfo();
+            if (!TrueType.InitFont(fontInfo, fontData, fontIndex))
                 throw new Exception("Failed to init font.");
 
-            var scale = StbTrueType.ScaleForPixelHeight(fontInfo, fontPixelHeight);
-            StbTrueType.GetFontVMetrics(fontInfo, out int ascent, out _, out _);
+            var scale = TrueType.ScaleForPixelHeight(fontInfo, pixelHeight);
+            TrueType.GetFontVMetrics(fontInfo, out int ascent, out _, out _);
 
             foreach (var range in ranges)
             {
                 if (range.Start > range.End)
                     continue;
 
-                var charData = new StbTrueType.TTPackedChar[range.Size];
+                var charData = new TrueType.PackedChar[range.Size];
                 
-                StbTrueType.PackFontRange(
-                    _context, _bitmap, ttf, fontPixelHeight, range.Start, charData);
+                TrueType.PackFontRange(
+                    _context, _bitmap, fontData, pixelHeight, range.Start, charData);
 
                 for (int i = 0; i < charData.Length; ++i)
                 {

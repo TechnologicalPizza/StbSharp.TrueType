@@ -107,7 +107,8 @@ namespace StbSharp
             return CffGetIndex(ref cff);
         }
 
-        public static bool InitFont(FontInfo info, ReadOnlyMemory<byte> fontData, int fontstart)
+        public static bool InitFont(
+            FontInfo info, ReadOnlyMemory<byte> fontData, int fontstart)
         {
             info.data = fontData;
             info.fontstart = fontstart;
@@ -185,19 +186,21 @@ namespace StbSharp
             for (int i = 0; i < numTables; ++i)
             {
                 int encoding_record = cmap + 4 + 8 * i;
-                switch (ReadUInt16(data.Slice(encoding_record)))
+                var pId = (FontPlatformID)ReadUInt16(data.Slice(encoding_record));
+                switch (pId)
                 {
-                    case STBTT_PLATFORM_ID_MICROSOFT:
-                        switch (ReadUInt16(data.Slice(encoding_record + 2)))
+                    case FontPlatformID.Microsoft:
+                        var msEid = (FontMicrosoftEncodingID)ReadUInt16(data.Slice(encoding_record + 2));
+                        switch (msEid)
                         {
-                            case STBTT_MS_EID_UNICODE_BMP:
-                            case STBTT_MS_EID_UNICODE_FULL:
+                            case FontMicrosoftEncodingID.Unicode_BMP:
+                            case FontMicrosoftEncodingID.Unicode_Full:
                                 info.index_map = (int)(cmap + ReadUInt32(data.Slice(encoding_record + 4)));
                                 break;
                         }
                         break;
 
-                    case STBTT_PLATFORM_ID_UNICODE:
+                    case FontPlatformID.Unicode:
                         info.index_map = (int)(cmap + ReadUInt32(data.Slice(encoding_record + 4)));
                         break;
                 }

@@ -16,7 +16,7 @@ namespace StbSharp
         {
             int n = 0;
             for (int i = 0; i < vertices.Length; ++i)
-                if (vertices[i].type == STBTT_vmove)
+                if (vertices[i].type == VertexType.Move)
                     n++;
 
             num_contours = n;
@@ -47,7 +47,7 @@ namespace StbSharp
                     ref readonly Vertex vert = ref vertices[i];
                     switch (vert.type)
                     {
-                        case STBTT_vmove:
+                        case VertexType.Move:
                             if (n >= 0)
                                 contour_lengths[n] = num_points - start;
                             n++;
@@ -57,13 +57,13 @@ namespace StbSharp
                             AddPoint(points, num_points++, x, y);
                             break;
 
-                        case STBTT_vline:
+                        case VertexType.Line:
                             x = vert.x;
                             y = vert.y;
                             AddPoint(points, num_points++, x, y);
                             break;
 
-                        case STBTT_vcurve:
+                        case VertexType.Curve:
                             TesselateCurve(
                                 points, &num_points, x, y,
                                 vert.cx, vert.cy, vert.x, vert.y,
@@ -72,7 +72,7 @@ namespace StbSharp
                             y = vert.y;
                             break;
 
-                        case STBTT_vcubic:
+                        case VertexType.Cubic:
                             TesselateCubic(
                                 points, ref num_points, x, y,
                                 vert.cx, vert.cy, vert.cx1, vert.cy1, vert.x, vert.y,

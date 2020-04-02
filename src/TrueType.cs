@@ -9,64 +9,6 @@ namespace StbSharp
 #endif
     unsafe partial class TrueType
     {
-        public const int STBTT_vmove = 1;
-        public const int STBTT_vline = 2;
-        public const int STBTT_vcurve = 3;
-        public const int STBTT_vcubic = 4;
-
-        public const int STBTT_PLATFORM_ID_UNICODE = 0;
-        public const int STBTT_PLATFORM_ID_MAC = 1;
-        public const int STBTT_PLATFORM_ID_ISO = 2;
-        public const int STBTT_PLATFORM_ID_MICROSOFT = 3;
-
-        public const int STBTT_UNICODE_EID_UNICODE_1_0 = 0;
-        public const int STBTT_UNICODE_EID_UNICODE_1_1 = 1;
-        public const int STBTT_UNICODE_EID_ISO_10646 = 2;
-        public const int STBTT_UNICODE_EID_UNICODE_2_0_BMP = 3;
-        public const int STBTT_UNICODE_EID_UNICODE_2_0_FULL = 4;
-
-        public const int STBTT_MS_EID_SYMBOL = 0;
-        public const int STBTT_MS_EID_UNICODE_BMP = 1;
-        public const int STBTT_MS_EID_SHIFTJIS = 2;
-        public const int STBTT_MS_EID_UNICODE_FULL = 10;
-
-        public const int STBTT_MAC_EID_ROMAN = 0;
-        public const int STBTT_MAC_EID_ARABIC = 4;
-        public const int STBTT_MAC_EID_JAPANESE = 1;
-        public const int STBTT_MAC_EID_HEBREW = 5;
-        public const int STBTT_MAC_EID_CHINESE_TRAD = 2;
-        public const int STBTT_MAC_EID_GREEK = 6;
-        public const int STBTT_MAC_EID_KOREAN = 3;
-        public const int STBTT_MAC_EID_RUSSIAN = 7;
-
-        public const int STBTT_MS_LANG_ENGLISH = 0x0409;
-        public const int STBTT_MS_LANG_ITALIAN = 0x0410;
-        public const int STBTT_MS_LANG_CHINESE = 0x0804;
-        public const int STBTT_MS_LANG_JAPANESE = 0x0411;
-        public const int STBTT_MS_LANG_DUTCH = 0x0413;
-        public const int STBTT_MS_LANG_KOREAN = 0x0412;
-        public const int STBTT_MS_LANG_FRENCH = 0x040c;
-        public const int STBTT_MS_LANG_RUSSIAN = 0x0419;
-        public const int STBTT_MS_LANG_GERMAN = 0x0407;
-        public const int STBTT_MS_LANG_SPANISH = 0x0409;
-        public const int STBTT_MS_LANG_HEBREW = 0x040d;
-        public const int STBTT_MS_LANG_SWEDISH = 0x041D;
-
-        public const int STBTT_MAC_LANG_ENGLISH = 0;
-        public const int STBTT_MAC_LANG_JAPANESE = 11;
-        public const int STBTT_MAC_LANG_ARABIC = 12;
-        public const int STBTT_MAC_LANG_KOREAN = 23;
-        public const int STBTT_MAC_LANG_DUTCH = 4;
-        public const int STBTT_MAC_LANG_RUSSIAN = 32;
-        public const int STBTT_MAC_LANG_FRENCH = 1;
-        public const int STBTT_MAC_LANG_SPANISH = 6;
-        public const int STBTT_MAC_LANG_GERMAN = 2;
-        public const int STBTT_MAC_LANG_SWEDISH = 5;
-        public const int STBTT_MAC_LANG_HEBREW = 10;
-        public const int STBTT_MAC_LANG_CHINESE_SIMPLIFIED = 33;
-        public const int STBTT_MAC_LANG_ITALIAN = 3;
-        public const int STBTT_MAC_LANG_CHINESE_TRAD = 19;
-
         public static void GetBakedQuad(
             in BakedChar chardata, int pw, int ph,
             ref float xpos, float ypos, bool opengl_fillrule, out AlignedQuad q)
@@ -92,7 +34,7 @@ namespace StbSharp
         {
             Span<byte> buffer = stackalloc byte[8];
             int safe_w = w - kernel_width;
-            
+
             for (int j = 0; j < h; ++j)
             {
                 int i = 0;
@@ -162,7 +104,7 @@ namespace StbSharp
         {
             Span<byte> buffer = stackalloc byte[8];
             int safe_h = h - kernel_width;
-            
+
             for (int j = 0; j < w; ++j)
             {
                 int i = 0;

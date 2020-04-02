@@ -65,13 +65,13 @@ namespace StbSharp
                     else
                         --flagcount;
 
-                    offVertices[i].type = flags;
+                    offVertices[i].type = (VertexType)flags;
                 }
 
                 x = 0;
                 for (i = 0; i < n; ++i)
                 {
-                    flags = offVertices[i].type;
+                    flags = (byte)offVertices[i].type;
                     if ((flags & 2) != 0)
                     {
                         short dx = points[0];
@@ -93,7 +93,7 @@ namespace StbSharp
                 y = 0;
                 for (i = 0; i < n; ++i)
                 {
-                    flags = offVertices[i].type;
+                    flags = (byte)offVertices[i].type;
                     if ((flags & 4) != 0)
                     {
                         short dy = points[0];
@@ -116,7 +116,7 @@ namespace StbSharp
                 sx = sy = cx = cy = scx = scy = 0;
                 for (i = 0; i < n; ++i)
                 {
-                    flags = offVertices[i].type;
+                    flags = (byte)offVertices[i].type;
                     x = offVertices[i].x;
                     y = offVertices[i].y;
                     if (next_move == i)
@@ -131,7 +131,7 @@ namespace StbSharp
                         {
                             scx = x;
                             scy = y;
-                            if ((offVertices[i + 1].type & 1) == 0)
+                            if (((int)offVertices[i + 1].type & 1) == 0)
                             {
                                 sx = (x + offVertices[i + 1].x) >> 1;
                                 sy = (y + offVertices[i + 1].y) >> 1;
@@ -149,7 +149,7 @@ namespace StbSharp
                             sy = y;
                         }
 
-                        vertices[num_vertices++].Set(STBTT_vmove, sx, sy, 0, 0);
+                        vertices[num_vertices++].Set(VertexType.Move, sx, sy, 0, 0);
                         was_off = 0;
                         next_move = 1 + ReadUInt16(endPtsOfContours.Slice(j * 2));
                         ++j;
@@ -160,7 +160,7 @@ namespace StbSharp
                         {
                             if (was_off != 0)
                                 vertices[num_vertices++].Set(
-                                    STBTT_vcurve, (cx + x) >> 1, (cy + y) >> 1, cx, cy);
+                                    VertexType.Curve, (cx + x) >> 1, (cy + y) >> 1, cx, cy);
 
                             cx = x;
                             cy = y;
@@ -169,9 +169,9 @@ namespace StbSharp
                         else
                         {
                             if (was_off != 0)
-                                vertices[num_vertices++].Set(STBTT_vcurve, x, y, cx, cy);
+                                vertices[num_vertices++].Set(VertexType.Curve, x, y, cx, cy);
                             else
-                                vertices[num_vertices++].Set(STBTT_vline, x, y, 0, 0);
+                                vertices[num_vertices++].Set(VertexType.Line, x, y, 0, 0);
                             was_off = 0;
                         }
                     }
