@@ -36,7 +36,7 @@ namespace StbSharp
             }
 
             GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
-            
+
             var gbm = new TTBitmap();
             gbm.w = glyphBox.w;
             gbm.h = glyphBox.h;
@@ -52,12 +52,11 @@ namespace StbSharp
                 gbm.pixels = new Span<byte>(pixels, pixelBytes);
                 gbm.stride = gbm.w;
 
-                int num_verts = GetGlyphShape(info, glyph, out TTVertex* vertices);
+                int num_verts = GetGlyphShape(info, glyph, out TTVertex[] vertices);
                 Rasterize(
-                    gbm, 0.35f, vertices, num_verts, scale, shift,
-                    glyphBox.Position, TTIntPoint.Zero, true);
+                    gbm, 0.35f, vertices.AsSpan(0, num_verts), scale, shift,
+                    glyphBox.Position, TTIntPoint.Zero, invert: true);
 
-                FreeShape(vertices);
                 return pixels;
             }
             return null;
@@ -108,27 +107,19 @@ namespace StbSharp
             TTFontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
             TTPoint scale, TTPoint shift, TTIntPoint pixelOffset, int glyph)
         {
-            int num_verts = GetGlyphShape(info, glyph, out TTVertex* vertices);
-            try
-            {
-                GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
+            int num_verts = GetGlyphShape(info, glyph, out TTVertex[] vertices);
+            GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
 
-                var gbm = new TTBitmap();
-                gbm.pixels = output;
-                gbm.w = out_w;
-                gbm.h = out_h;
-                gbm.stride = out_stride;
+            var gbm = new TTBitmap();
+            gbm.pixels = output;
+            gbm.w = out_w;
+            gbm.h = out_h;
+            gbm.stride = out_stride;
 
-                if (gbm.w != 0 && gbm.h != 0)
-                    Rasterize(
-                        gbm, 0.35f, vertices, num_verts, scale, shift,
-                        glyphBox.Position, pixelOffset, true);
-            }
-            finally
-            {
-                if (vertices != null) 
-                    FreeShape(vertices);
-            }
+            if (gbm.w != 0 && gbm.h != 0)
+                Rasterize(
+                    gbm, 0.35f, vertices.AsSpan(0, num_verts), scale, shift,
+                    glyphBox.Position, pixelOffset, true);
         }
 
         public static void MakeGlyphBitmap(
@@ -181,7 +172,7 @@ namespace StbSharp
 
             int bottom_y = 1;
             var scale = ScaleForPixelHeight(info, pixel_height);
-            
+
             for (int i = 0; i < chardata.Length; ++i)
             {
                 int g = FindGlyphIndex(info, first_char + i);

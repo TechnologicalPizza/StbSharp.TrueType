@@ -9,17 +9,18 @@ namespace StbSharp
 #endif
     unsafe partial class StbTrueType
     {
-        public static int GetGlyphShapeT2(TTFontInfo info, int glyph_index, out TTVertex* pvertices)
+        public static int GetGlyphShapeT2(
+            TTFontInfo info, int glyph_index, out TTVertex[] pvertices)
         {
             var output_ctx = new TTCharStringContext();
             var count_ctx = new TTCharStringContext();
             count_ctx.bounds = 1;
-            if (RunCharString(info, glyph_index, &count_ctx) != 0)
+            if (RunCharString(info, glyph_index, ref count_ctx) != 0)
             {
-                pvertices = (TTVertex*)CRuntime.MAlloc(count_ctx.num_vertices * sizeof(TTVertex));
+                pvertices = new TTVertex[count_ctx.num_vertices];
                 output_ctx.pvertices = pvertices;
 
-                if (RunCharString(info, glyph_index, &output_ctx) != 0)
+                if (RunCharString(info, glyph_index, ref output_ctx) != 0)
                     return output_ctx.num_vertices;
             }
 
@@ -28,7 +29,7 @@ namespace StbSharp
         }
 
         public static int RunCharString(
-            TTFontInfo info, int glyph_index, TTCharStringContext* c)
+            TTFontInfo info, int glyph_index, ref TTCharStringContext c)
         {
             int in_header = 1;
             int maskbits = 0;
@@ -39,7 +40,7 @@ namespace StbSharp
             int b0 = 0;
             int has_subrs = 0;
             int clear_stack = 0;
-            float* s = stackalloc float[48];
+            Span<float> s = stackalloc float[48];
             var subr_stack = new TTBuffer[10];
             var subrs = info.subrs;
             float f = 0;
@@ -70,28 +71,28 @@ namespace StbSharp
                         in_header = 0;
                         if (sp < 2)
                             return 0;
-                        CsContext_RMoveTo(c, s[sp - 2], s[sp - 1]);
+                        CsContext_RMoveTo(ref c, s[sp - 2], s[sp - 1]);
                         break;
 
                     case 0x04:
                         in_header = 0;
                         if (sp < 1)
                             return 0;
-                        CsContext_RMoveTo(c, 0f, s[sp - 1]);
+                        CsContext_RMoveTo(ref c, 0f, s[sp - 1]);
                         break;
 
                     case 0x16:
                         in_header = 0;
                         if (sp < 1)
                             return 0;
-                        CsContext_RMoveTo(c, s[sp - 1], 0f);
+                        CsContext_RMoveTo(ref c, s[sp - 1], 0f);
                         break;
 
                     case 0x05:
                         if (sp < 2)
                             return 0;
                         for (; (i + 1) < sp; i += 2)
-                            CsContext_RLineTo(c, s[i], s[i + 1]);
+                            CsContext_RLineTo(ref c, s[i], s[i + 1]);
                         break;
 
                     case 0x07:
@@ -105,14 +106,14 @@ namespace StbSharp
                             {
                                 if (i >= sp)
                                     break;
-                                CsContext_RLineTo(c, s[i], 0f);
+                                CsContext_RLineTo(ref c, s[i], 0f);
                                 i++;
                             }
 
                             goto_vlineto = 0;
                             if (i >= sp)
                                 break;
-                            CsContext_RLineTo(c, 0f, s[i]);
+                            CsContext_RLineTo(ref c, 0f, s[i]);
                             i++;
                         }
                         break;
@@ -131,7 +132,7 @@ namespace StbSharp
                                     break;
 
                                 CsContext_RCCurveTo(
-                                    c, 0f, s[i], s[i + 1], s[i + 2], s[i + 3],
+                                    ref c, 0f, s[i], s[i + 1], s[i + 2], s[i + 3],
                                     ((sp - i) == 5) ? s[i + 4] : 0f);
                                 i += 4;
                             }
@@ -139,7 +140,8 @@ namespace StbSharp
                             goto_hvcurveto = 0;
                             if ((i + 3) >= sp)
                                 break;
-                            CsContext_RCCurveTo(c, s[i], 0f, s[i + 1],
+                            CsContext_RCCurveTo(
+                                ref c, s[i], 0f, s[i + 1],
                                 s[i + 2], ((sp - i) == 5) ? s[i + 4] : 0f, s[i + 3]);
                             i += 4;
                         }
@@ -150,7 +152,8 @@ namespace StbSharp
                             return 0;
 
                         for (; (i + 5) < sp; i += 6)
-                            CsContext_RCCurveTo(c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+                            CsContext_RCCurveTo(
+                                ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
                         break;
 
                     case 0x18:
@@ -158,11 +161,12 @@ namespace StbSharp
                             return 0;
 
                         for (; (i + 5) < (sp - 2); i += 6)
-                            CsContext_RCCurveTo(c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+                            CsContext_RCCurveTo(
+                                ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
 
                         if ((i + 1) >= sp)
                             return 0;
-                        CsContext_RLineTo(c, s[i], s[i + 1]);
+                        CsContext_RLineTo(ref c, s[i], s[i + 1]);
                         break;
 
                     case 0x19:
@@ -170,11 +174,13 @@ namespace StbSharp
                             return 0;
 
                         for (; (i + 1) < (sp - 6); i += 2)
-                            CsContext_RLineTo(c, s[i], s[i + 1]);
+                            CsContext_RLineTo(ref c, s[i], s[i + 1]);
 
                         if ((i + 5) >= sp)
                             return 0;
-                        CsContext_RCCurveTo(c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+
+                        CsContext_RCCurveTo(
+                            ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
                         break;
 
                     case 0x1A:
@@ -192,9 +198,12 @@ namespace StbSharp
                         for (; (i + 3) < sp; i += 4)
                         {
                             if (b0 == 0x1B)
-                                CsContext_RCCurveTo(c, s[i], f, s[i + 1], s[i + 2], s[i + 3], 0);
+                                CsContext_RCCurveTo(
+                                    ref c, s[i], f, s[i + 1], s[i + 2], s[i + 3], 0);
                             else
-                                CsContext_RCCurveTo(c, f, s[i], s[i + 1], s[i + 2], 0, s[i + 3]);
+                                CsContext_RCCurveTo(
+                                    ref c, f, s[i], s[i + 1], s[i + 2], 0, s[i + 3]);
+
                             f = 0;
                         }
                         break;
@@ -234,7 +243,7 @@ namespace StbSharp
                         break;
 
                     case 0x0E:
-                        CsContext_CloseShape(c);
+                        CsContext_CloseShape(ref c);
                         return 1;
 
                     case 0x0C:
@@ -267,8 +276,8 @@ namespace StbSharp
                                 dx4 = s[4];
                                 dx5 = s[5];
                                 dx6 = s[6];
-                                CsContext_RCCurveTo(c, dx1, 0f, dx2, dy2, dx3, 0f);
-                                CsContext_RCCurveTo(c, dx4, 0f, dx5, -dy2, dx6, 0f);
+                                CsContext_RCCurveTo(ref c, dx1, 0f, dx2, dy2, dx3, 0f);
+                                CsContext_RCCurveTo(ref c, dx4, 0f, dx5, -dy2, dx6, 0f);
                                 break;
 
                             case 0x23:
@@ -286,8 +295,8 @@ namespace StbSharp
                                 dy5 = s[9];
                                 dx6 = s[10];
                                 dy6 = s[11];
-                                CsContext_RCCurveTo(c, dx1, dy1, dx2, dy2, dx3, dy3);
-                                CsContext_RCCurveTo(c, dx4, dy4, dx5, dy5, dx6, dy6);
+                                CsContext_RCCurveTo(ref c, dx1, dy1, dx2, dy2, dx3, dy3);
+                                CsContext_RCCurveTo(ref c, dx4, dy4, dx5, dy5, dx6, dy6);
                                 break;
 
                             case 0x24:
@@ -302,8 +311,8 @@ namespace StbSharp
                                 dx5 = s[6];
                                 dy5 = s[7];
                                 dx6 = s[8];
-                                CsContext_RCCurveTo(c, dx1, dy1, dx2, dy2, dx3, 0f);
-                                CsContext_RCCurveTo(c, dx4, 0f, dx5, dy5, dx6, -(dy1 + dy2 + dy5));
+                                CsContext_RCCurveTo(ref c, dx1, dy1, dx2, dy2, dx3, 0f);
+                                CsContext_RCCurveTo(ref c, dx4, 0f, dx5, dy5, dx6, -(dy1 + dy2 + dy5));
                                 break;
 
                             case 0x25:
@@ -326,8 +335,8 @@ namespace StbSharp
                                     dy6 = -dy;
                                 else
                                     dx6 = -dx;
-                                CsContext_RCCurveTo(c, dx1, dy1, dx2, dy2, dx3, dy3);
-                                CsContext_RCCurveTo(c, dx4, dy4, dx5, dy5, dx6, dy6);
+                                CsContext_RCCurveTo(ref c, dx1, dy1, dx2, dy2, dx3, dy3);
+                                CsContext_RCCurveTo(ref c, dx4, dy4, dx5, dy5, dx6, dy6);
                                 break;
 
                             default:
@@ -352,6 +361,7 @@ namespace StbSharp
 
                         if (sp >= 48)
                             return 0;
+
                         s[sp++] = f;
                         clear_stack = 0;
                         break;

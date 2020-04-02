@@ -23,30 +23,30 @@ namespace StbSharp
             public int num_remaining_in_head_chunk;
         }
 
-        public static void* HeapAlloc(TTHeap* hh, int size)
+        public static void* HeapAlloc(ref TTHeap hh, int size)
         {
-            if (hh->first_free != null)
+            if (hh.first_free != null)
             {
-                void* p = hh->first_free;
-                hh->first_free = *(void**)p;
+                void* p = hh.first_free;
+                hh.first_free = *(void**)p;
                 return p;
             }
             else
             {
-                if (hh->num_remaining_in_head_chunk == 0)
+                if (hh.num_remaining_in_head_chunk == 0)
                 {
                     int count = size < 32 ? 2000 : size < 128 ? 800 : 100;
                     var c = (TTHeapChunk*)CRuntime.MAlloc(sizeof(TTHeapChunk) + size * count);
                     if (c == null)
                         return null;
 
-                    c->next = hh->head;
-                    hh->head = c;
-                    hh->num_remaining_in_head_chunk = count;
+                    c->next = hh.head;
+                    hh.head = c;
+                    hh.num_remaining_in_head_chunk = count;
                 }
 
-                --hh->num_remaining_in_head_chunk;
-                return (byte*)(hh->head + 1) + size * hh->num_remaining_in_head_chunk;
+                --hh.num_remaining_in_head_chunk;
+                return (byte*)(hh.head + 1) + size * hh.num_remaining_in_head_chunk;
             }
         }
 

@@ -5,12 +5,14 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
         public static int RayIntersectBezier(
-            in TTPoint ray, in TTPoint orig, in TTPoint q0, in TTPoint q1, in TTPoint q2, float* hits)
+            in TTPoint ray, in TTPoint orig,
+            in TTPoint q0, in TTPoint q1, in TTPoint q2, 
+            Span<float> hits)
         {
             float q0perp = q0.y * ray.x - q0.x * ray.y;
             float q1perp = q1.y * ray.x - q1.x * ray.y;
@@ -75,7 +77,8 @@ namespace StbSharp
             }
         }
 
-        public static int ComputeCrossingsX(float x, float y, int nverts, TTVertex* verts)
+        public static int ComputeCrossingsX(
+            float x, float y, int nverts, ReadOnlySpan<TTVertex> verts)
         {
             TTPoint ray;
             ray.x = 1f;
@@ -95,16 +98,17 @@ namespace StbSharp
             TTPoint q0;
             TTPoint q1;
             TTPoint q2;
-            float* hits = stackalloc float[4];
+            Span<float> hits = stackalloc float[4];
 
             for (int i = 0; i < nverts; ++i)
             {
-                if (verts[i].type == STBTT_vline)
+                ref readonly TTVertex vert = ref verts[i];
+                if (vert.type == STBTT_vline)
                 {
                     int x0 = verts[i - 1].x;
                     int y0 = verts[i - 1].y;
-                    int x1 = verts[i].x;
-                    int y1 = verts[i].y;
+                    int x1 = vert.x;
+                    int y1 = vert.y;
                     if ((y > (y0 < y1 ? y0 : y1)) && (y < (y0 < y1 ? y1 : y0)) &&
                         (x > (x0 < x1 ? x0 : x1)))
                     {
@@ -118,10 +122,10 @@ namespace StbSharp
                 {
                     int x0 = verts[i - 1].x;
                     int y0 = verts[i - 1].y;
-                    int x1 = verts[i].cx;
-                    int y1 = verts[i].cy;
-                    int x2 = verts[i].x;
-                    int y2 = verts[i].y;
+                    int x1 = vert.cx;
+                    int y1 = vert.cy;
+                    int x2 = vert.x;
+                    int y2 = vert.y;
                     int ax = x0 < (x1 < x2 ? x1 : x2) ? x0 : (x1 < x2 ? x1 : x2);
                     int ay = y0 < (y1 < y2 ? y1 : y2) ? y0 : (y1 < y2 ? y1 : y2);
                     int by = y0 < (y1 < y2 ? y2 : y1) ? (y1 < y2 ? y2 : y1) : y0;
@@ -138,8 +142,8 @@ namespace StbSharp
                         {
                             x0 = verts[i - 1].x;
                             y0 = verts[i - 1].y;
-                            x1 = verts[i].x;
-                            y1 = verts[i].y;
+                            x1 = vert.x;
+                            y1 = vert.y;
                             if ((y > (y0 < y1 ? y0 : y1)) && (y < (y0 < y1 ? y1 : y0)) &&
                                 (x > (x0 < x1 ? x0 : x1)))
                             {
@@ -150,7 +154,9 @@ namespace StbSharp
                         }
                         else
                         {
-                            int num_hits = RayIntersectBezier(ray, orig, q0, q1, q2, hits);
+                            int num_hits = RayIntersectBezier(
+                                ray, orig, q0, q1, q2, hits);
+
                             if (num_hits >= 1)
                                 if (hits[0] < 0)
                                     winding += hits[1] < 0 ? -1 : 1;

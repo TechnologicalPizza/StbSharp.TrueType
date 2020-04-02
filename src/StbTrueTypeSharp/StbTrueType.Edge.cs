@@ -1,27 +1,29 @@
 ﻿
+using System;
+
 namespace StbSharp
 {
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
-        public static TTActiveEdge* NewActive(TTHeap* hh, TTEdge* e, int off_x, float start_point)
+        public static TTActiveEdge* NewActive(ref TTHeap hh, in TTEdge e, int off_x, float start_point)
         {
-            var z = (TTActiveEdge*)HeapAlloc(hh, sizeof(TTActiveEdge));
-            float dxdy = (e->p1.x - e->p0.x) / (e->p1.y - e->p0.y);
+            var z = (TTActiveEdge*)HeapAlloc(ref hh, sizeof(TTActiveEdge));
+            float dxdy = (e.p1.x - e.p0.x) / (e.p1.y - e.p0.y);
             if (z == null)
                 return z;
 
             z->fdx = dxdy;
             z->fdy = dxdy != 0f ? (1f / dxdy) : 0f;
-            z->fx = e->p0.x + dxdy * (start_point - e->p0.y);
+            z->fx = e.p0.x + dxdy * (start_point - e.p0.y);
             z->fx -= off_x;
-            z->direction = e->invert ? 1f : -1f;
-            z->sy = e->p0.y;
-            z->ey = e->p1.y;
+            z->direction = e.invert ? 1f : -1f;
+            z->sy = e.p0.y;
+            z->ey = e.p1.y;
             z->next = null;
             return z;
         }
@@ -109,6 +111,7 @@ namespace StbSharp
                     float sy0 = 0;
                     float sy1 = 0;
                     float dy = e->fdy;
+
                     if (e->sy > y_top)
                     {
                         x_top = x0 + dx * (e->sy - y_top);
@@ -241,49 +244,41 @@ namespace StbSharp
             }
         }
 
-        public static void SortEdgesInsertSort(TTEdge* p, int n)
+        public static void SortEdgesInsertSort(Span<TTEdge> p, int n)
         {
-            int i = 0;
-            int j = 0;
-            for (i = 1; i < n; ++i)
+            for (int i = 1; i < n; ++i)
             {
-                TTEdge t = p[i];
-                TTEdge* a = &t;
-                j = i;
+                TTEdge a = p[i];
+                
+                int j = i;
                 while (j > 0)
                 {
-                    TTEdge* b = &p[j - 1];
-                    int c = a->p0.y < b->p0.y ? 1 : 0;
-                    if (c == 0)
+                    ref TTEdge b = ref p[j - 1];
+                    if (!(a.p0.y < b.p0.y))
                         break;
-                    p[j] = p[j - 1];
+
+                    p[j] = b;
                     --j;
                 }
 
                 if (i != j)
-                    p[j] = t;
+                    p[j] = a;
             }
         }
 
-        public static void SortEdgesQuickSort(TTEdge* p, int n)
+        public static void SortEdgesQuickSort(Span<TTEdge> p, int n)
         {
             while (n > 12)
             {
-                var t = new TTEdge();
-                int c01 = 0;
-                int c12 = 0;
-                int c = 0;
-                int m = 0;
-                int i = 0;
-                int j = 0;
-                m = n >> 1;
-                c01 = (&p[0])->p0.y < (&p[m])    ->p0.y ? 1 : 0;
-                c12 = (&p[m])->p0.y < (&p[n - 1])->p0.y ? 1 : 0;
+                int m = n >> 1;
+                int c01 = p[0].p0.y < p[m].p0.y ? 1 : 0;
+                int c12 = p[m].p0.y < p[n - 1].p0.y ? 1 : 0;
+
+                TTEdge t;
                 if (c01 != c12)
                 {
-                    int z = 0;
-                    c = (&p[0])->p0.y < (&p[n - 1])->p0.y ? 1 : 0;
-                    z = (c == c12) ? 0 : n - 1;
+                    int c = p[0].p0.y < p[n - 1].p0.y ? 1 : 0;
+                    int z = (c == c12) ? 0 : n - 1;
                     t = p[z];
                     p[z] = p[m];
                     p[m] = t;
@@ -292,19 +287,19 @@ namespace StbSharp
                 t = p[0];
                 p[0] = p[m];
                 p[m] = t;
-                i = 1;
-                j = n - 1;
+                int i = 1;
+                int j = n - 1;
                 for (; ; )
                 {
                     for (; ; ++i)
                     {
-                        if (!((&p[i])->p0.y < (&p[0])->p0.y))
+                        if (!(p[i].p0.y < p[0].p0.y))
                             break;
                     }
 
                     for (; ; --j)
                     {
-                        if (!((&p[0])->p0.y < (&p[j])->p0.y))
+                        if (!(p[0].p0.y < p[j].p0.y))
                             break;
                     }
 
@@ -320,18 +315,18 @@ namespace StbSharp
                 if (j < (n - i))
                 {
                     SortEdgesQuickSort(p, j);
-                    p += i;
+                    p = p.Slice(i);
                     n -= i;
                 }
                 else
                 {
-                    SortEdgesQuickSort(p + i, n - i);
+                    SortEdgesQuickSort(p.Slice(i), n - i);
                     n = j;
                 }
             }
         }
 
-        public static void SortEdges(TTEdge* p, int n)
+        public static void SortEdges(Span<TTEdge> p, int n)
         {
             SortEdgesQuickSort(p, n);
             SortEdgesInsertSort(p, n);

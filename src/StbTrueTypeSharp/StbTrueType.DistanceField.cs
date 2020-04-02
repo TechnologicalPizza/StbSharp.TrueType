@@ -42,7 +42,7 @@ namespace StbSharp
             offset = glyphBox.Position;
             scale.y = -scale.y;
 
-            int num_verts = GetGlyphShape(info, glyph, out TTVertex* verts);
+            int num_verts = GetGlyphShape(info, glyph, out TTVertex[] verts);
             byte* data = (byte*)CRuntime.MAlloc(glyphBox.w * glyphBox.h);
 
             int precomputeSize = num_verts * sizeof(float);
@@ -57,7 +57,7 @@ namespace StbSharp
             int j = 0;
             for (i = 0, j = num_verts - 1; i < num_verts; j = i++)
             {
-                TTVertex vertex = verts[i];
+                ref TTVertex vertex = ref verts[i];
                 if (vertex.type == STBTT_vline)
                 {
                     float x0 = vertex.x * scale.x;
@@ -248,7 +248,7 @@ namespace StbSharp
                 }
             }
 
-            FreeShape(verts);
+            //FreeShape(verts);
             return data;
         }
 

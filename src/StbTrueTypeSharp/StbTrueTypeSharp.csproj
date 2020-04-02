@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Authors>StbTrueTypeSharpTeam</Authors>
     <Product>StbTrueTypeSharp</Product>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <Description>C# port of stb_truetype.h</Description>
     <PackageLicense>https://github.com/rds1983/StbSharp#license</PackageLicense>
     <PackageProjectUrl>https://github.com/rds1983/StbSharp</PackageProjectUrl>

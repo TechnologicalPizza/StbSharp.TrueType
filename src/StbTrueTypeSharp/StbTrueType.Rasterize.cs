@@ -11,12 +11,12 @@ namespace StbSharp
     unsafe partial class StbTrueType
     {
         public static TTPoint* FlattenCurves(
-            TTVertex* vertices, int num_verts, float objspace_flatness,
+            ReadOnlySpan<TTVertex> vertices, float objspace_flatness,
             out int* contour_lengths, out int num_contours)
         {
             int n = 0;
             int i = 0;
-            for (i = 0; i < num_verts; ++i)
+            for (i = 0; i < vertices.Length; ++i)
             {
                 if (vertices[i].type == STBTT_vmove)
                     n++;
@@ -42,7 +42,7 @@ namespace StbSharp
             int num_points = 0;
             int start = 0;
             int pass = 0;
-            for (pass = 0; pass < 2; ++pass)
+            for (pass = 0; pass < 2; pass++)
             {
                 float x = 0f;
                 float y = 0f;
@@ -55,41 +55,43 @@ namespace StbSharp
 
                 num_points = 0;
                 n = -1;
-                for (i = 0; i < num_verts; ++i)
+                for (i = 0; i < vertices.Length; ++i)
                 {
-                    switch (vertices[i].type)
+                    ref readonly TTVertex vert = ref vertices[i];
+                    switch (vert.type)
                     {
                         case STBTT_vmove:
                             if (n >= 0)
                                 contour_lengths[n] = num_points - start;
-                            ++n;
+                            n++;
                             start = num_points;
-                            x = vertices[i].x;
-                            y = vertices[i].y;
+                            x = vert.x;
+                            y = vert.y;
                             AddPoint(points, num_points++, x, y);
                             break;
 
                         case STBTT_vline:
-                            x = vertices[i].x;
-                            y = vertices[i].y;
+                            x = vert.x;
+                            y = vert.y;
                             AddPoint(points, num_points++, x, y);
                             break;
 
                         case STBTT_vcurve:
-                            TesselateCurve(points, &num_points, x, y,
-                                vertices[i].cx, vertices[i].cy, vertices[i].x,
-                                vertices[i].y, objspace_flatness_squared, 0);
-                            x = vertices[i].x;
-                            y = vertices[i].y;
+                            TesselateCurve(
+                                points, &num_points, x, y,
+                                vert.cx, vert.cy, vert.x, vert.y,
+                                objspace_flatness_squared, 0);
+                            x = vert.x;
+                            y = vert.y;
                             break;
 
                         case STBTT_vcubic:
-                            TesselateCubic(points, &num_points, x, y,
-                                vertices[i].cx, vertices[i].cy, vertices[i].cx1,
-                                vertices[i].cy1, vertices[i].x, vertices[i].y,
+                            TesselateCubic(
+                                points, &num_points, x, y,
+                                vert.cx, vert.cy, vert.cx1, vert.cy1, vert.x, vert.y,
                                 objspace_flatness_squared, 0);
-                            x = vertices[i].x;
-                            y = vertices[i].y;
+                            x = vert.x;
+                            y = vert.y;
                             break;
                     }
                 }
@@ -99,7 +101,7 @@ namespace StbSharp
 
             return points;
 
-        error:
+            error:
             CRuntime.Free(points);
             CRuntime.Free(contour_lengths);
             contour_lengths = null;
@@ -108,32 +110,33 @@ namespace StbSharp
         }
 
         public static void Rasterize(
-            TTBitmap result, float flatness_in_pixels, TTVertex* vertices, int num_verts,
+            TTBitmap result, float flatness_in_pixels, ReadOnlySpan<TTVertex> vertices,
             TTPoint scale, TTPoint shift, TTIntPoint offset, TTIntPoint pixelOffset, bool invert)
         {
             float scaleValue = scale.x > scale.y ? scale.y : scale.x;
             float objspace_flatness = flatness_in_pixels / scaleValue;
+
             TTPoint* windings = FlattenCurves(
-                vertices, num_verts, objspace_flatness,
+                vertices, objspace_flatness,
                 out int* winding_lengths, out int winding_count);
 
-            if (windings != null)
+            if (windings == null)
+                return;
+
+            try
             {
-                try
-                {
-                    Rasterize(
-                        result, windings, winding_lengths, winding_count, scale, shift, offset, pixelOffset, invert);
-                }
-                finally
-                {
-                    CRuntime.Free(winding_lengths);
-                    CRuntime.Free(windings);
-                }
+                Rasterize(
+                    result, windings, winding_lengths, winding_count, scale, shift, offset, pixelOffset, invert);
+            }
+            finally
+            {
+                CRuntime.Free(winding_lengths);
+                CRuntime.Free(windings);
             }
         }
 
         public static void RasterizeSortedEdges(
-            TTBitmap result, TTEdge* e, int n, int vsubsample,
+            TTBitmap result, Span<TTEdge> e, int n, int vsubsample,
             TTIntPoint offset, TTIntPoint pixelOffset)
         {
             var hh = new TTHeap();
@@ -175,11 +178,12 @@ namespace StbSharp
                         }
                     }
 
-                    while (e->p0.y <= scan_y_bottom)
+                    int ie = 0;
+                    while (e[ie].p0.y <= scan_y_bottom)
                     {
-                        if (e->p0.y != e->p1.y)
+                        if (e[ie].p0.y != e[ie].p1.y)
                         {
-                            TTActiveEdge* z = NewActive(&hh, e, offset.x, scan_y_top);
+                            TTActiveEdge* z = NewActive(ref hh, e[ie], offset.x, scan_y_top);
                             if (z != null)
                             {
                                 if (j == 0 && offset.y != 0)
@@ -190,8 +194,9 @@ namespace StbSharp
                                 active = z;
                             }
                         }
-                        e++;
+                        ie++;
                     }
+                    e = e.Slice(ie);
 
                     if (active != null)
                         FillActiveEdgesNew(scanline, scanline2 + 1, result.w, active, scan_y_top);
@@ -203,9 +208,7 @@ namespace StbSharp
                         float k = scanline[i] + sum;
                         k = Math.Abs(k) * 255 + 0.5f;
 
-                        if (k > 255)
-                            k = 255;
-                        byte m = (byte)k;
+                        byte m = (byte)Math.Min(k, 255);
                         result.pixels[(j + pixelOffset.y) * result.stride + i + pixelOffset.x] = m;
                     }
 
@@ -238,54 +241,50 @@ namespace StbSharp
             for (i = 0; i < windings; ++i)
                 n += wcount[i];
 
-            var e = (TTEdge*)CRuntime.MAlloc(sizeof(TTEdge) * (n + 1));
-            if (e == null)
-                return;
-            try
+            var e = new TTEdge[n + 1];
+
+            float y_scale_inv = invert ? -scale.y : scale.y;
+            int vsubsample = 1;
+            int j = 0;
+            int k = 0;
+            int m = 0;
+            n = 0;
+            for (i = 0; i < windings; ++i)
             {
-                float y_scale_inv = invert ? -scale.y : scale.y;
-                int vsubsample = 1;
-                int j = 0;
-                int k = 0;
-                int m = 0;
-                n = 0;
-                for (i = 0; i < windings; ++i)
+                TTPoint* p = pts + m;
+                m += wcount[i];
+                j = wcount[i] - 1;
+
+                for (k = 0; k < wcount[i]; j = k++)
                 {
-                    TTPoint* p = pts + m;
-                    m += wcount[i];
-                    j = wcount[i] - 1;
+                    if (p[j].y == p[k].y)
+                        continue;
 
-                    for (k = 0; k < wcount[i]; j = k++)
+                    int a;
+                    int b;
+                    if ((invert && (p[j].y > p[k].y)) || (!invert && (p[j].y < p[k].y)))
                     {
-                        int a = k;
-                        int b = j;
-                        if (p[j].y == p[k].y)
-                            continue;
-
-                        if ((invert && (p[j].y > p[k].y)) || (!invert && (p[j].y < p[k].y)))
-                        {
-                            e[n].invert = true;
-                            a = j;
-                            b = k;
-                        }
-                        else
-                            e[n].invert = false;
-
-                        e[n].p0.x = p[a].x * scale.x + shift.x;
-                        e[n].p0.y = (p[a].y * y_scale_inv + shift.y) * vsubsample;
-                        e[n].p1.x = p[b].x * scale.x + shift.x;
-                        e[n].p1.y = (p[b].y * y_scale_inv + shift.y) * vsubsample;
-                        ++n;
+                        e[n].invert = true;
+                        a = j;
+                        b = k;
                     }
-                }
+                    else
+                    {
+                        e[n].invert = false;
+                        a = k;
+                        b = j;
+                    }
 
-                SortEdges(e, n);
-                RasterizeSortedEdges(result, e, n, vsubsample, offset, pixelOffset);
+                    e[n].p0.x = p[a].x * scale.x + shift.x;
+                    e[n].p0.y = (p[a].y * y_scale_inv + shift.y) * vsubsample;
+                    e[n].p1.x = p[b].x * scale.x + shift.x;
+                    e[n].p1.y = (p[b].y * y_scale_inv + shift.y) * vsubsample;
+                    ++n;
+                }
             }
-            finally
-            {
-                CRuntime.Free(e);
-            }
+
+            SortEdges(e, n);
+            RasterizeSortedEdges(result, e, n, vsubsample, offset, pixelOffset);
         }
     }
 }

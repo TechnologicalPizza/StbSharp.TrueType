@@ -6,7 +6,7 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -103,6 +103,15 @@ namespace StbSharp
             public short cy1;
             public byte type;
             public byte padding;
+
+            public void Set(byte type, int x, int y, int cx, int cy)
+            {
+                this.x = (short)x;
+                this.y = (short)y;
+                this.cx = (short)cx;
+                this.cy = (short)cy;
+                this.type = type;
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -123,7 +132,7 @@ namespace StbSharp
             public TTPoint pos;
             public TTIntPoint min;
             public TTIntPoint max;
-            public TTVertex* pvertices;
+            public TTVertex[] pvertices;
             public int num_vertices;
         }
 

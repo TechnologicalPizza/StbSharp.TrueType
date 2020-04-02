@@ -5,7 +5,7 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class StbTrueType
     {
@@ -58,7 +58,7 @@ namespace StbSharp
             return g1 == g2 ? -1 : g1;
         }
 
-        public static int GetGlyphShape(TTFontInfo info, int glyph_index, out TTVertex* pvertices)
+        public static int GetGlyphShape(TTFontInfo info, int glyph_index, out TTVertex[] pvertices)
         {
             if (info.cff.size == 0)
                 return GetGlyphShapeTT(info, glyph_index, out pvertices);
@@ -85,7 +85,7 @@ namespace StbSharp
             var c = new TTCharStringContext();
             c.bounds = 1;
 
-            int r = RunCharString(info, glyph_index, &c);
+            int r = RunCharString(info, glyph_index, ref c);
             if(r != 0)
             {
                 glyphBox = TTIntRect.FromEdgePoints(c.min, c.max);

@@ -30,7 +30,7 @@ namespace StbSharp
             return GetGlyphBox(info, glyph, out glyphBox);
         }
 
-        public static int GetCodepointShape(TTFontInfo info, int unicode_codepoint, out TTVertex* vertices)
+        public static int GetCodepointShape(TTFontInfo info, int unicode_codepoint, out TTVertex[] vertices)
         {
             return GetGlyphShape(info, FindGlyphIndex(info, unicode_codepoint), out vertices);
         }
