@@ -75,7 +75,7 @@ namespace StbSharp
 
                         case VertexType.Cubic:
                             TesselateCubic(
-                                points, ref num_points, 
+                                points, ref num_points,
                                 pos.X, pos.Y,
                                 vertex.cx, vertex.cy,
                                 vertex.cx1, vertex.cy1,
@@ -116,17 +116,17 @@ namespace StbSharp
             Bitmap result, Span<Edge> e, int n, int vsubsample,
             Vector2 offset, IntPoint pixelOffset)
         {
-            var hh = new Heap();
-            ActiveEdge* active = null;
-
             const int maxScanlineStackHalf = 256;
-
-            Span<float> scanline_full = result.w <= maxScanlineStackHalf
-                ? stackalloc float[result.w * 2 + 1]
-                : new float[result.w * 2 + 1];
-
+            
+            var hh = new Heap();
             try
             {
+                ActiveEdge* active = null;
+
+                Span<float> scanline_full = result.w <= maxScanlineStackHalf
+                    ? stackalloc float[result.w * 2 + 1]
+                    : new float[result.w * 2 + 1];
+
                 var scanline = scanline_full.Slice(0, result.w);
                 var scanline_fill = scanline_full.Slice(result.w);
 
@@ -182,17 +182,18 @@ namespace StbSharp
                     if (active != null)
                         FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
 
+                    var pixel_row = result.pixels.Slice(
+                        (j + pixelOffset.Y) * result.stride + pixelOffset.X);
                     float sum = 0f;
-                    var row = result.pixels.Slice((j + pixelOffset.Y) * result.stride + pixelOffset.X);
-                    for (int i = 0; i < scanline.Length; ++i)
-                    {
-                        sum += scanline_fill[i];
-                        float k = scanline[i] + sum;
-                        k = Math.Abs(k) * 255 + 0.5f;
 
+                    for (int x = 0; x < scanline.Length; x++)
+                    {
+                        sum += scanline_fill[x];
+                        float k = scanline[x] + sum;
+                        k = Math.Abs(k) * byte.MaxValue;
                         if (k > 255)
                             k = 255;
-                        row[i] = (byte)k;
+                        pixel_row[x] = (byte)k;
                     }
 
                     step = &active;
