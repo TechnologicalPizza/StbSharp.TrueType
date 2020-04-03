@@ -23,7 +23,7 @@ namespace StbSharp
             FontInfo info, out int typoAscent, out int typoDescent, out int typoLineGap)
         {
             var data = info.data.Span;
-            int table = (int)FindTable(data, info.fontstart, "OS/2");
+            int table = (int)FindTable(data, info.fontindex, "OS/2");
             if (table == 0)
             {
                 typoAscent = 0;

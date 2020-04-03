@@ -15,7 +15,7 @@ namespace StbSharp
             if (info.svg < 0)
             {
                 var data = info.data.Span;
-                int t = (int)FindTable(data, info.fontstart, "SVG ");
+                int t = (int)FindTable(data, info.fontindex, "SVG ");
                 if (t != 0)
                 {
                     int offset = (int)ReadUInt32(data.Slice(t + 2));

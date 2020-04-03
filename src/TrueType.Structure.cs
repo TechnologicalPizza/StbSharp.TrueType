@@ -69,16 +69,17 @@ namespace StbSharp
 
         public class FontInfo
         {
+            public ReadOnlyMemory<byte> data;
             public Buffer cff;
             public Buffer charstrings;
-            public ReadOnlyMemory<byte> data;
             public Buffer fdselect;
             public Buffer fontdicts;
-            public int fontstart;
+            public Buffer gsubrs;
+            public Buffer subrs;
+            public int fontindex;
             public int glyf;
             public int gpos;
             public int svg;
-            public Buffer gsubrs;
             public int head;
             public int hhea;
             public int hmtx;
@@ -87,7 +88,6 @@ namespace StbSharp
             public int kern;
             public int loca;
             public int numGlyphs;
-            public Buffer subrs;
         }
 
         [StructLayout(LayoutKind.Sequential)]

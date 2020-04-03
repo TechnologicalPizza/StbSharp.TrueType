@@ -108,21 +108,24 @@ namespace StbSharp
         }
 
         public static bool InitFont(
-            FontInfo info, ReadOnlyMemory<byte> fontData, int fontstart)
+            FontInfo info, ReadOnlyMemory<byte> fontData, int fontIndex)
         {
             info.data = fontData;
-            info.fontstart = fontstart;
+            info.fontindex = fontIndex;
             info.cff = Buffer.Empty;
             var data = fontData.Span;
-            int cmap = (int)FindTable(data, fontstart, "cmap");
-            info.loca = (int)FindTable(data, fontstart, "loca");
-            info.head = (int)FindTable(data, fontstart, "head");
-            info.glyf = (int)FindTable(data, fontstart, "glyf");
-            info.hhea = (int)FindTable(data, fontstart, "hhea");
-            info.hmtx = (int)FindTable(data, fontstart, "hmtx");
-            info.kern = (int)FindTable(data, fontstart, "kern");
-            info.gpos = (int)FindTable(data, fontstart, "GPOS");
-            if ((cmap == 0) || (info.head == 0) || (info.hhea == 0) || (info.hmtx == 0))
+            int cmap = (int)FindTable(data, fontIndex, "cmap");
+            info.loca = (int)FindTable(data, fontIndex, "loca");
+            info.head = (int)FindTable(data, fontIndex, "head");
+            info.glyf = (int)FindTable(data, fontIndex, "glyf");
+            info.hhea = (int)FindTable(data, fontIndex, "hhea");
+            info.hmtx = (int)FindTable(data, fontIndex, "hmtx");
+            info.kern = (int)FindTable(data, fontIndex, "kern");
+            info.gpos = (int)FindTable(data, fontIndex, "GPOS");
+            if ((cmap == 0) || 
+                (info.head == 0) || 
+                (info.hhea == 0) || 
+                (info.hmtx == 0))
                 return false;
 
             if (info.glyf != 0)
@@ -136,7 +139,7 @@ namespace StbSharp
                 uint charstrings = 0;
                 uint fdarrayoff = 0;
                 uint fdselectoff = 0;
-                int cff = (int)FindTable(data, fontstart, "CFF ");
+                int cff = (int)FindTable(data, fontIndex, "CFF ");
                 if (cff == 0)
                     return false;
 
@@ -173,7 +176,7 @@ namespace StbSharp
                 info.charstrings = CffGetIndex(ref b);
             }
 
-            int t = (int)FindTable(data, fontstart, "maxp");
+            int t = (int)FindTable(data, fontIndex, "maxp");
             if (t != 0)
                 info.numGlyphs = ReadUInt16(data.Slice(t + 4));
             else

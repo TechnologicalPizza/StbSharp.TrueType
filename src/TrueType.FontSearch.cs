@@ -200,7 +200,7 @@ namespace StbSharp
             int platformID, int encodingID, int languageID, int nameID)
         {
             var fc = font.data.Span;
-            int offset = font.fontstart;
+            int offset = font.fontindex;
             int nm = (int)FindTable(fc, offset, "name");
             if (nm == 0)
             {
