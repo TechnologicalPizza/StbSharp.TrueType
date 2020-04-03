@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace StbSharp
@@ -28,21 +29,18 @@ namespace StbSharp
             public ushort y0;
             public ushort x1;
             public ushort y1;
-            public float xoff;
-            public float yoff;
+            public Vector2 off;
             public float xadvance;
         }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct AlignedQuad
         {
-            public Point pos0;
-            public float s0;
-            public float t0;
-
-            public Point pos1;
-            public float s1;
-            public float t1;
+            public Vector2 pos0;
+            public Vector2 st0;
+            
+            public Vector2 pos1;
+            public Vector2 st1;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -53,9 +51,9 @@ namespace StbSharp
             public ushort x1;
             public ushort y1;
 
-            public Point offset0;
+            public Vector2 offset0;
             public float xadvance;
-            public Point offset1;
+            public Vector2 offset1;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -103,8 +101,8 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Vertex
         {
-            public short x;
-            public short y;
+            public short X;
+            public short Y;
             public short cx;
             public short cy;
             public short cx1;
@@ -114,8 +112,8 @@ namespace StbSharp
 
             public void Set(VertexType type, int x, int y, int cx, int cy)
             {
-                this.x = (short)x;
-                this.y = (short)y;
+                this.X = (short)x;
+                this.Y = (short)y;
                 this.cx = (short)cx;
                 this.cy = (short)cy;
                 this.type = type;
@@ -136,8 +134,8 @@ namespace StbSharp
         {
             public int bounds;
             public int started;
-            public Point firstPos;
-            public Point pos;
+            public Vector2 firstPos;
+            public Vector2 pos;
             public IntPoint min;
             public IntPoint max;
             public Vertex[] pvertices;
@@ -147,8 +145,8 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Edge
         {
-            public Point p0;
-            public Point p1;
+            public Vector2 p0;
+            public Vector2 p1;
             public bool invert;
         }
 
@@ -158,8 +156,7 @@ namespace StbSharp
             public ActiveEdge* next;
 
             public float fx;
-            public float fdx;
-            public float fdy;
+            public Vector2 fd;
             public float direction;
             public float sy;
             public float ey;
@@ -170,29 +167,29 @@ namespace StbSharp
         {
             public static readonly IntRect Zero = new IntRect(0, 0, 0, 0);
 
-            public int x;
-            public int y;
-            public int w;
-            public int h;
+            public int X;
+            public int Y;
+            public int W;
+            public int H;
 
             public IntPoint Position
             {
-                get => new IntPoint(x, y);
+                readonly get => new IntPoint(X, Y);
                 set
                 {
-                    x = value.x;
-                    y = value.y;
+                    X = value.X;
+                    Y = value.Y;
                 }
             }
 
-            public IntPoint BottomRight => new IntPoint(x + w, y + h);
+            public IntPoint BottomRight => new IntPoint(X + W, Y + H);
 
             public IntRect(int x, int y, int w, int h)
             {
-                this.x = x;
-                this.y = y;
-                this.w = w;
-                this.h = h;
+                X = x;
+                Y = y;
+                W = w;
+                H = h;
             }
 
             public static IntRect FromEdgePoints(int tlX, int tlY, int brX, int brY)
@@ -204,35 +201,55 @@ namespace StbSharp
                     h: brY - tlY);
             }
 
-            public static IntRect FromEdgePoints(
-                IntPoint topLeft, IntPoint bottomRight)
+            public static IntRect FromEdgePoints(IntPoint topLeft, IntPoint bottomRight)
             {
-                return FromEdgePoints(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+                return FromEdgePoints(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y);
             }
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct Point
+        public struct Rect
         {
-            public static readonly Point Zero = new Point(0, 0);
-            public static readonly Point One = new Point(1, 1);
+            public static readonly Rect Zero = new Rect(0, 0, 0, 0);
 
-            public float x;
-            public float y;
+            public float X;
+            public float Y;
+            public float W;
+            public float H;
 
-            public Point(float x, float y)
+            public Vector2 Position
             {
-                this.x = x;
-                this.y = y;
+                readonly get => new Vector2(X, Y);
+                set
+                {
+                    X = value.X;
+                    Y = value.Y;
+                }
             }
 
-            public Point(float value) : this(value, value)
+            public Vector2 BottomRight => new Vector2(X + W, Y + H);
+
+            public Rect(float x, float y, float w, float h)
             {
+                X = x;
+                Y = y;
+                W = w;
+                H = h;
             }
 
-            public static bool Equals(in Point a, in Point b) => a.x == b.x && a.y == b.y;
+            public static Rect FromEdgePoints(float tlX, float tlY, float brX, float brY)
+            {
+                return new Rect(
+                    x: tlX,
+                    y: tlY,
+                    w: brX - tlX,
+                    h: brY - tlY);
+            }
 
-            public static Point operator *(Point a, Point b) => new Point(a.x * b.x, a.y * b.y);
+            public static Rect FromEdgePoints(in Vector2 topLeft, in Vector2 bottomRight)
+            {
+                return FromEdgePoints(topLeft.X, topLeft.Y, bottomRight.X, bottomRight.Y);
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -241,22 +258,23 @@ namespace StbSharp
             public static readonly IntPoint Zero = new IntPoint(0, 0);
             public static readonly IntPoint One = new IntPoint(1, 1);
 
-            public int x;
-            public int y;
+            public int X;
+            public int Y;
 
             public IntPoint(int x, int y)
             {
-                this.x = x;
-                this.y = y;
+                this.X = x;
+                this.Y = y;
             }
 
             public IntPoint(int value) : this(value, value)
             {
             }
 
-            public static bool Equals(in Point a, in Point b) => a.x == b.x && a.y == b.y;
-
-            public static implicit operator Point(IntPoint value) => new Point(value.x, value.y);
+            public static implicit operator Vector2(IntPoint value)
+            {
+                return new Vector2(value.X, value.Y);
+            }
         }
     }
 }

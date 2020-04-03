@@ -54,15 +54,15 @@ namespace StbSharp.MonoGame.Test
 
                 for (int i = 0; i < charData.Length; ++i)
                 {
-                    var yOff = charData[i].offset0.y;
-                    yOff += ascent * scale.x;
+                    var yOff = charData[i].offset0.Y;
+                    yOff += ascent * scale.X;
 
                     var glyphInfo = new GlyphInfo(
                         x: charData[i].x0,
                         y: charData[i].y0,
                         width: charData[i].x1 - charData[i].x0,
                         height: charData[i].y1 - charData[i].y0,
-                        xOffset: (int)charData[i].offset0.x,
+                        xOffset: (int)charData[i].offset0.X,
                         yOffset: (int)Math.Round(yOff),
                         xAdvance: (int)Math.Round(charData[i].xadvance));
 

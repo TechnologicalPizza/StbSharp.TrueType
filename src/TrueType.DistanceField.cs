@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -10,7 +11,7 @@ namespace StbSharp
     unsafe partial class TrueType
     {
         public static byte[] GetGlyphSDF(
-            FontInfo info, Point scale, int glyph, int padding,
+            FontInfo info, Vector2 scale, int glyph, int padding,
             byte onedge_value, float pixel_dist_scale,
             out int width, out int height, out IntPoint offset)
         {
@@ -18,69 +19,64 @@ namespace StbSharp
             height = 0;
             offset = IntPoint.Zero;
 
-            if (scale.x == 0)
-                scale.x = scale.y;
-            if (scale.y == 0)
+            if (scale.X == 0)
+                scale.X = scale.Y;
+            if (scale.Y == 0)
             {
-                if (scale.x == 0)
+                if (scale.X == 0)
                     return null;
-                scale.y = scale.x;
+                scale.Y = scale.X;
             }
 
             GetGlyphBitmapBoxSubpixel(
-                info, glyph, scale, Point.Zero, out var glyphBox);
+                info, glyph, scale, Vector2.Zero, out var glyphBox);
 
-            if (glyphBox.w == 0 || glyphBox.y == 0)
+            if (glyphBox.W == 0 || glyphBox.Y == 0)
                 return null;
 
-            glyphBox.x -= padding;
-            glyphBox.y -= padding;
-            glyphBox.w += padding;
-            glyphBox.h += padding;
-            width = glyphBox.w;
-            height = glyphBox.h;
+            glyphBox.X -= padding;
+            glyphBox.Y -= padding;
+            glyphBox.W += padding;
+            glyphBox.H += padding;
+            width = glyphBox.W;
+            height = glyphBox.H;
             offset = glyphBox.Position;
-            scale.y = -scale.y;
+            scale.Y = -scale.Y;
 
-            int num_verts = GetGlyphShape(info, glyph, out Vertex[] verts);
-            int precomputeSize = num_verts * sizeof(float);
-            Span<float> precompute = precomputeSize > 2048 
-                ? new float[precomputeSize] 
+            int num_verts = GetGlyphShape(info, glyph, out Vertex[] src_verts);
+            var vertices = src_verts.AsSpan(0, num_verts);
+
+            int precomputeSize = vertices.Length * sizeof(float);
+            Span<float> precompute = precomputeSize > 2048
+                ? new float[precomputeSize]
                 : stackalloc float[precomputeSize];
 
-            var pixels = new byte[glyphBox.w * glyphBox.h];
+            var pixels = new byte[glyphBox.W * glyphBox.H];
 
             int x = 0;
             int y = 0;
 
             int i = 0;
             int j = 0;
-            for (i = 0, j = num_verts - 1; i < num_verts; j = i++)
+            for (i = 0, j = vertices.Length - 1; i < vertices.Length; j = i++)
             {
-                ref Vertex vertex = ref verts[i];
+                ref Vertex vertex = ref vertices[i];
                 if (vertex.type == VertexType.Line)
                 {
-                    float x0 = vertex.x * scale.x;
-                    float y0 = vertex.y * scale.y;
-                    float x1 = verts[j].x * scale.x;
-                    float y1 = verts[j].y * scale.y;
-                    float dist = MathF.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+                    var pos0 = new Vector2(vertex.X, vertex.Y) * scale;
+                    var pos1 = new Vector2(vertices[j].X, vertices[j].Y) * scale;
+                    float dist = Vector2.Distance(pos0, pos1);
                     precompute[i] = (dist == 0) ? 0f : 1f / dist;
                 }
                 else if (vertex.type == VertexType.Curve)
                 {
-                    float x2 = verts[j].x * scale.x;
-                    float y2 = verts[j].y * scale.y;
-                    float x1 = vertex.cx * scale.x;
-                    float y1 = vertex.cy * scale.y;
-                    float x0 = vertex.x * scale.x;
-                    float y0 = vertex.y * scale.y;
-                    float bx = x0 - 2 * x1 + x2;
-                    float by = y0 - 2 * y1 + y2;
-                    float len2 = bx * bx + by * by;
-
+                    var pos2 = new Vector2(vertices[j].X, vertices[j].Y) * scale;
+                    var pos1 = new Vector2(vertex.cx, vertex.cy) * scale;
+                    var pos0 = new Vector2(vertex.X, vertex.Y) * scale;
+                    var b = pos0 - pos1 * 2 + pos2;
+                    float len2 = b.LengthSquared();
                     if (len2 != 0f)
-                        precompute[i] = 1f / (bx * bx + by * by);
+                        precompute[i] = 1f / len2;
                     else
                         precompute[i] = 0f;
                 }
@@ -91,120 +87,112 @@ namespace StbSharp
             float* res = stackalloc float[3];
 
             var glyphBr = glyphBox.BottomRight;
-            for (y = glyphBox.y; y < glyphBr.y; ++y)
+            for (y = glyphBox.Y; y < glyphBr.Y; ++y)
             {
-                for (x = glyphBox.x; x < glyphBr.x; ++x)
+                for (x = glyphBox.X; x < glyphBr.X; ++x)
                 {
                     float val = 0;
                     float min_dist = 999999f;
-                    float sx = x + 0.5f;
-                    float sy = y + 0.5f;
-                    float x_gspace = sx / scale.x;
-                    float y_gspace = sy / scale.y;
-                    int winding = ComputeCrossingsX(x_gspace, y_gspace, num_verts, verts);
+                    var s = new Vector2(x + 0.5f, y + 0.5f);
+                    var gspace = s / scale;
+                    int winding = ComputeCrossingsX(gspace, vertices);
                     for (i = 0; i < num_verts; ++i)
                     {
-                        float x0 = verts[i].x * scale.x;
-                        float y0 = verts[i].y * scale.y;
-                        float dist2 = (x0 - sx) * (x0 - sx) + (y0 - sy) * (y0 - sy);
+                        var pos0 = new Vector2(vertices[i].X, vertices[i].Y) * scale;
+                        float dist2 = Vector2.DistanceSquared(pos0, s);
                         if (dist2 < (min_dist * min_dist))
                             min_dist = MathF.Sqrt(dist2);
 
-                        if (verts[i].type == VertexType.Line)
+                        if (vertices[i].type == VertexType.Line)
                         {
-                            float x1 = verts[i - 1].x * scale.x;
-                            float y1 = verts[i - 1].y * scale.y;
+                            var pos1 = new Vector2(vertices[i - 1].X, vertices[i - 1].Y) * scale;
                             float dist = Math.Abs(
-                                (x1 - x0) * (y0 - sy) - (y1 - y0) * (x0 - sx)) * precompute[i];
+                                (pos1.X - pos0.X) * (pos0.Y - s.Y) -
+                                (pos1.Y - pos0.Y) * (pos0.X - s.X)) * precompute[i];
 
                             if (dist < min_dist)
                             {
-                                float dx = x1 - x0;
-                                float dy = y1 - y0;
-                                float px = x0 - sx;
-                                float py = y0 - sy;
-                                float t = -(px * dx + py * dy) / (dx * dx + dy * dy);
-
+                                var d = pos1 - pos0;
+                                var p = pos0 - s;
+                                float t = -Vector2.Dot(p, d) / d.LengthSquared();
                                 if ((t >= 0f) && (t <= 1f))
                                     min_dist = dist;
                             }
                         }
-                        else if (verts[i].type == VertexType.Curve)
+                        else if (vertices[i].type == VertexType.Curve)
                         {
-                            float x2 = verts[i - 1].x * scale.x;
-                            float y2 = verts[i - 1].y * scale.y;
-                            float x1 = verts[i].cx *    scale.x;
-                            float y1 = verts[i].cy *    scale.y;
-                            float box_x0 = (x0 < x1 ? x0 : x1) < x2
-                                ? (x0 < x1 ? x0 : x1)
-                                : x2;
-                            float box_y0 = (y0 < y1 ? y0 : y1) < y2
-                                ? (y0 < y1 ? y0 : y1)
-                                : y2;
-                            float box_x1 = (x0 < x1 ? x1 : x0) < x2
-                                ? x2
-                                : (x0 < x1 ? x1 : x0);
-                            float box_y1 = (y0 < y1 ? y1 : y0) < y2
-                                ? y2
-                                : (y0 < y1 ? y1 : y0);
+                            var pos2 = new Vector2(vertices[i - 1].X, vertices[i - 1].Y) * scale;
+                            var pos1 = new Vector2(vertices[i].X, vertices[i].Y) * scale;
 
-                            if (sx > (box_x0 - min_dist) &&
-                                sx < (box_x1 + min_dist) &&
-                                sy > (box_y0 - min_dist) &&
-                                sy < (box_y1 + min_dist))
+                            float box_x0 = (pos0.X < pos1.X ? pos0.X : pos1.X) < pos2.X
+                                ? (pos0.X < pos1.X ? pos0.X : pos1.X)
+                                : pos2.X;
+
+                            float box_y0 = (pos0.Y < pos1.Y ? pos0.Y : pos1.Y) < pos2.Y
+                                ? (pos0.Y < pos1.Y ? pos0.Y : pos1.Y)
+                                : pos2.Y;
+
+                            float box_x1 = (pos0.X < pos1.X ? pos1.X : pos0.X) < pos2.X
+                                ? pos2.X
+                                : (pos0.X < pos1.X ? pos1.X : pos0.X);
+
+                            float box_y1 = (pos0.Y < pos1.Y ? pos1.Y : pos0.Y) < pos2.Y
+                                ? pos2.Y
+                                : (pos0.Y < pos1.Y ? pos1.Y : pos0.Y);
+
+                            if (s.X > (box_x0 - min_dist) &&
+                                s.X < (box_x1 + min_dist) &&
+                                s.Y > (box_y0 - min_dist) &&
+                                s.Y < (box_y1 + min_dist))
                             {
                                 int num = 0;
-                                float ax = x1 - x0;
-                                float ay = y1 - y0;
-                                float bx = x0 - 2 * x1 + x2;
-                                float by = y0 - 2 * y1 + y2;
-                                float mx = x0 - sx;
-                                float my = y0 - sy;
-                                float px = 0;
-                                float py = 0;
+                                var a = pos1 - pos0;
+                                var b = pos0 - pos1 * 2 + pos2;
+                                var m = pos0 - s;
+                                var p = Vector2.Zero;
                                 float t = 0;
                                 float it = 0;
                                 float a_inv = precompute[i];
 
                                 if (a_inv == 0)
                                 {
-                                    float a = 3 * (ax * bx + ay * by);
-                                    float b = 2 * (ax * ax + ay * ay) + (mx * bx + my * by);
-                                    float c = mx * ax + my * ay;
-                                    if (a == 0)
+                                    float fa = 3 * Vector2.Dot(a, b);
+                                    float fb = 2 * a.LengthSquared() + Vector2.Dot(m, b);
+                                    float fc = Vector2.Dot(m, a);
+                                    if (fa == 0)
                                     {
-                                        if (b != 0)
-                                            res[num++] = -c / b;
+                                        if (fb != 0)
+                                            res[num++] = -fc / fb;
                                     }
                                     else
                                     {
-                                        float discriminant = b * b - 4 * a * c;
+                                        float discriminant = fb * fb - 4 * fa * fc;
                                         if (discriminant < 0)
                                             num = 0;
                                         else
                                         {
                                             float root = MathF.Sqrt(discriminant);
-                                            res[0] = (-b - root) / (2 * a);
-                                            res[1] = (-b + root) / (2 * a);
+                                            res[0] = (-fb - root) / (2 * fa);
+                                            res[1] = (-fb + root) / (2 * fa);
                                             num = 2;
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    float b = 3 * (ax * bx + ay * by) * a_inv;
-                                    float c = (2 * (ax * ax + ay * ay) + (mx * bx + my * by)) * a_inv;
-                                    float d = (mx * ax + my * ay) * a_inv;
-                                    num = SolveCubic(b, c, d, res);
+                                    float fb = 3 * Vector2.Dot(a, b) * a_inv;
+                                    float fc = 2 * a.LengthSquared() + Vector2.Dot(m, b) * a_inv;
+                                    float fd = Vector2.Dot(m, a) * a_inv;
+                                    num = SolveCubic(fb, fc, fd, res);
                                 }
-                                
+
                                 if ((num >= 1) && (res[0] >= 0f) && (res[0] <= 1f))
                                 {
                                     t = res[0];
                                     it = 1f - t;
-                                    px = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    py = it * it * y0 + 2 * t * it * y1 + t * t * y2;
-                                    dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
+                                    p.X = it * it * pos0.X + 2 * t * it * pos1.X + t * t * pos2.X;
+                                    p.Y = it * it * pos0.Y + 2 * t * it * pos1.Y + t * t * pos2.Y;
+                                    dist2 = Vector2.DistanceSquared(p, s);
 
                                     if (dist2 < (min_dist * min_dist))
                                         min_dist = MathF.Sqrt(dist2);
@@ -214,9 +202,9 @@ namespace StbSharp
                                 {
                                     t = res[1];
                                     it = 1f - t;
-                                    px = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    py = it * it * y0 + 2 * t * it * y1 + t * t * y2;
-                                    dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
+                                    p.X = it * it * pos0.X + 2 * t * it * pos1.X + t * t * pos2.X;
+                                    p.Y = it * it * pos0.Y + 2 * t * it * pos1.Y + t * t * pos2.Y;
+                                    dist2 = Vector2.DistanceSquared(p, s);
 
                                     if (dist2 < (min_dist * min_dist))
                                         min_dist = MathF.Sqrt(dist2);
@@ -226,9 +214,9 @@ namespace StbSharp
                                 {
                                     t = res[2];
                                     it = 1f - t;
-                                    px = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    py = it * it * y0 + 2 * t * it * y1 + t * t * y2;
-                                    dist2 = (px - sx) * (px - sx) + (py - sy) * (py - sy);
+                                    p.X = it * it * pos0.X + 2 * t * it * pos1.X + t * t * pos2.X;
+                                    p.Y = it * it * pos0.Y + 2 * t * it * pos1.Y + t * t * pos2.Y;
+                                    dist2 = Vector2.DistanceSquared(p, s);
 
                                     if (dist2 < (min_dist * min_dist))
                                         min_dist = MathF.Sqrt(dist2);
@@ -244,7 +232,7 @@ namespace StbSharp
                         val = 0f;
                     else if (val > 255)
                         val = 255;
-                    pixels[(y - glyphBox.y) * glyphBox.w + (x - glyphBox.x)] = (byte)val;
+                    pixels[(y - glyphBox.Y) * glyphBox.W + (x - glyphBox.X)] = (byte)val;
                 }
             }
 
@@ -252,7 +240,7 @@ namespace StbSharp
         }
 
         public static byte[] GetCodepointSDF(
-            FontInfo info, Point scale, int codepoint, int padding,
+            FontInfo info, Vector2 scale, int codepoint, int padding,
             byte onedge_value, float pixel_dist_scale,
             out int width, out int height, out IntPoint offset)
         {

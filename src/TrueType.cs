@@ -16,16 +16,16 @@ namespace StbSharp
             float d3d_bias = opengl_fillrule ? 0 : -0.5f;
             float ipw = 1f / pw;
             float iph = 1f / ph;
-            int round_x = (int)Math.Floor(xpos + chardata.xoff + 0.5f);
-            int round_y = (int)Math.Floor(ypos + chardata.yoff + 0.5f);
-            q.pos0.x = round_x + d3d_bias;
-            q.pos0.y = round_y + d3d_bias;
-            q.pos1.x = round_x + chardata.x1 - chardata.x0 + d3d_bias;
-            q.pos1.y = round_y + chardata.y1 - chardata.y0 + d3d_bias;
-            q.s0 = chardata.x0 * ipw;
-            q.t0 = chardata.y0 * iph;
-            q.s1 = chardata.x1 * ipw;
-            q.t1 = chardata.y1 * iph;
+            int round_x = (int)Math.Floor(xpos + chardata.off.X + 0.5f);
+            int round_y = (int)Math.Floor(ypos + chardata.off.Y + 0.5f);
+            q.pos0.X = round_x + d3d_bias;
+            q.pos0.Y = round_y + d3d_bias;
+            q.pos1.X = round_x + chardata.x1 - chardata.x0 + d3d_bias;
+            q.pos1.Y = round_y + chardata.y1 - chardata.y0 + d3d_bias;
+            q.st0.X = chardata.x0 * ipw;
+            q.st0.Y = chardata.y0 * iph;
+            q.st1.X = chardata.x1 * ipw;
+            q.st1.Y = chardata.y1 * iph;
             xpos += chardata.xadvance;
         }
 

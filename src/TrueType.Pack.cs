@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 using static StbSharp.StbRectPack;
 
 namespace StbSharp
@@ -18,8 +19,8 @@ namespace StbSharp
             spc.pack_info = new RPContext();
             spc.padding = padding;
             spc.stride_in_bytes = stride_in_bytes != 0 ? stride_in_bytes : pw;
-            spc.oversample.x = 1;
-            spc.oversample.y = 1;
+            spc.oversample.X = 1;
+            spc.oversample.Y = 1;
             spc.skip_missing = skipMissing;
             spc.pack_info.Init(pw - padding, ph - padding);
             return 1;
@@ -27,10 +28,10 @@ namespace StbSharp
 
         public static void PackSetOversampling(PackContext spc, IntPoint oversample)
         {
-            if (oversample.x <= 8)
-                spc.oversample.x = oversample.x;
-            if (oversample.y <= 8)
-                spc.oversample.y = oversample.y;
+            if (oversample.X <= 8)
+                spc.oversample.X = oversample.X;
+            if (oversample.Y <= 8)
+                spc.oversample.Y = oversample.Y;
         }
 
         public static void PackSetSkipMissingCodepoints(PackContext spc, bool skip)
@@ -46,8 +47,8 @@ namespace StbSharp
             Span<RPRect> rects)
         {
             bool return_value = true;
-            int old_h_over = spc.oversample.x;
-            int old_v_over = spc.oversample.y;
+            int old_h_over = spc.oversample.X;
+            int old_v_over = spc.oversample.Y;
             int k = 0;
             int j = 0;
             int i = 0;
@@ -57,19 +58,19 @@ namespace StbSharp
             {
                 Span<PackedChar> charData = ranges[i].chardata_for_range.Span;
                 float fh = ranges[i].font_size;
-                Point scale = fh > 0
+                Vector2 scale = fh > 0
                     ? ScaleForPixelHeight(info, fh)
                     : ScaleForMappingEmToPixels(info, -fh);
                 float recip_h = 0;
                 float recip_v = 0;
                 float sub_x = 0;
                 float sub_y = 0;
-                spc.oversample.x = ranges[i].oversample_x;
-                spc.oversample.y = ranges[i].oversample_y;
-                recip_h = 1f / spc.oversample.x;
-                recip_v = 1f / spc.oversample.y;
-                sub_x = OversampleShift(spc.oversample.x);
-                sub_y = OversampleShift(spc.oversample.y);
+                spc.oversample.X = ranges[i].oversample_x;
+                spc.oversample.Y = ranges[i].oversample_y;
+                recip_h = 1f / spc.oversample.X;
+                recip_v = 1f / spc.oversample.Y;
+                sub_x = OversampleShift(spc.oversample.X);
+                sub_y = OversampleShift(spc.oversample.Y);
 
                 for (j = 0; j < charData.Length; ++j)
                 {
@@ -89,13 +90,13 @@ namespace StbSharp
                         var pixelSlice = pixels.Slice(r.x + r.y * spc.stride_in_bytes);
                         MakeGlyphBitmapSubpixel(
                             info, pixelSlice,
-                            r.w - spc.oversample.x + 1, r.h - spc.oversample.y + 1, spc.stride_in_bytes,
-                            scale * spc.oversample, Point.Zero, IntPoint.Zero, glyph);
+                            r.w - spc.oversample.X + 1, r.h - spc.oversample.Y + 1, spc.stride_in_bytes,
+                            scale * spc.oversample, Vector2.Zero, IntPoint.Zero, glyph);
 
-                        if (spc.oversample.x > 1)
-                            HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.x);
-                        if (spc.oversample.y > 1)
-                            VerticalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.y);
+                        if (spc.oversample.X > 1)
+                            HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.X);
+                        if (spc.oversample.Y > 1)
+                            VerticalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.Y);
                         
                         charData[j].x0 = (ushort)(short)r.x;
                         charData[j].y0 = (ushort)(short)r.y;
@@ -106,11 +107,11 @@ namespace StbSharp
                         GetGlyphBitmapBox(
                             info, glyph, scale * spc.oversample, out var glyphBox);
 
-                        charData[j].xadvance = scale.x * advance;
-                        charData[j].offset0.x = glyphBox.x * recip_h + sub_x;
-                        charData[j].offset0.y = glyphBox.y * recip_v + sub_y;
-                        charData[j].offset1.x = (glyphBox.x + r.w) * recip_h + sub_x;
-                        charData[j].offset1.y = (glyphBox.y + r.h) * recip_v + sub_y;
+                        charData[j].xadvance = scale.X * advance;
+                        charData[j].offset0.X = glyphBox.X * recip_h + sub_x;
+                        charData[j].offset0.Y = glyphBox.Y * recip_v + sub_y;
+                        charData[j].offset1.X = (glyphBox.X + r.w) * recip_h + sub_x;
+                        charData[j].offset1.Y = (glyphBox.Y + r.h) * recip_v + sub_y;
 
                         if (glyph == 0)
                             missing_glyph = j;
@@ -131,8 +132,8 @@ namespace StbSharp
                 }
             }
 
-            spc.oversample.x = old_h_over;
-            spc.oversample.y = old_v_over;
+            spc.oversample.X = old_h_over;
+            spc.oversample.Y = old_v_over;
             return return_value;
         }
 
@@ -150,8 +151,8 @@ namespace StbSharp
                     ? ScaleForPixelHeight(info, fh)
                     : ScaleForMappingEmToPixels(info, -fh);
 
-                ranges[i].oversample_x = (byte)spc.oversample.x;
-                ranges[i].oversample_y = (byte)spc.oversample.y;
+                ranges[i].oversample_x = (byte)spc.oversample.X;
+                ranges[i].oversample_y = (byte)spc.oversample.Y;
 
                 for (int j = 0; j < ranges[i].chardata_for_range.Length; ++j)
                 {
@@ -167,10 +168,10 @@ namespace StbSharp
                     else
                     {
                         GetGlyphBitmapBoxSubpixel(
-                            info, glyph, scale * spc.oversample, Point.Zero, out var glyphBox);
+                            info, glyph, scale * spc.oversample, Vector2.Zero, out var glyphBox);
 
-                        rects[k].w = glyphBox.w + spc.padding + spc.oversample.x - 1;
-                        rects[k].h = glyphBox.h + spc.padding + spc.oversample.y - 1;
+                        rects[k].w = glyphBox.W + spc.padding + spc.oversample.X - 1;
+                        rects[k].h = glyphBox.H + spc.padding + spc.oversample.Y - 1;
 
                         if (glyph == 0)
                             missing_glyph_added = true;
@@ -250,9 +251,9 @@ namespace StbSharp
                 : ScaleForMappingEmToPixels(info, -size);
 
             GetFontVMetrics(info, out int i_ascent, out int i_descent, out int i_lineGap);
-            ascent = i_ascent * scale.y;
-            descent = i_descent * scale.y;
-            lineGap = i_lineGap * scale.y;
+            ascent = i_ascent * scale.Y;
+            descent = i_descent * scale.Y;
+            lineGap = i_lineGap * scale.Y;
         }
 
         public static void GetPackedQuad(
@@ -264,25 +265,25 @@ namespace StbSharp
             ref readonly var b = ref chardata[char_index];
             if (align_to_integer)
             {
-                float x = (int)Math.Floor(xpos + b.offset0.x + 0.5f);
-                float y = (int)Math.Floor(ypos + b.offset0.y + 0.5f);
-                q.pos0.x = x;
-                q.pos0.y = y;
-                q.pos1.x = x + b.offset1.x - b.offset0.x;
-                q.pos1.y = y + b.offset1.y - b.offset0.y;
+                float x = (int)Math.Floor(xpos + b.offset0.X + 0.5f);
+                float y = (int)Math.Floor(ypos + b.offset0.Y + 0.5f);
+                q.pos0.X = x;
+                q.pos0.Y = y;
+                q.pos1.X = x + b.offset1.X - b.offset0.X;
+                q.pos1.Y = y + b.offset1.Y - b.offset0.Y;
             }
             else
             {
-                q.pos0.x = xpos + b.offset0.x;
-                q.pos0.y = ypos + b.offset0.y;
-                q.pos1.x = xpos + b.offset1.x;
-                q.pos1.y = ypos + b.offset1.y;
+                q.pos0.X = xpos + b.offset0.X;
+                q.pos0.Y = ypos + b.offset0.Y;
+                q.pos1.X = xpos + b.offset1.X;
+                q.pos1.Y = ypos + b.offset1.Y;
             }
 
-            q.s0 = b.x0 * ipw;
-            q.t0 = b.y0 * iph;
-            q.s1 = b.x1 * ipw;
-            q.t1 = b.y1 * iph;
+            q.st0.X = b.x0 * ipw;
+            q.st0.Y = b.y0 * iph;
+            q.st1.X = b.x1 * ipw;
+            q.st1.Y = b.y1 * iph;
             xpos += b.xadvance;
         }
     }

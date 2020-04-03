@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
@@ -7,23 +9,23 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class TrueType
+    partial class TrueType
     {
-        public static void AddPoint(Span<Point> points, int n, float x, float y)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void AddPoint(Span<Vector2> points, int n, float x, float y)
         {
             if (points.IsEmpty)
                 return;
-
-            points[n].x = x;
-            points[n].y = y;
+            points[n].X = x;
+            points[n].Y = y;
         }
 
-        public static int TesselateCurve(
-            Span<Point> points, int* num_points, float x0, float y0, float x1,
+        public static void TesselateCurve(
+            Span<Vector2> points, ref int num_points, float x0, float y0, float x1,
             float y1, float x2, float y2, float objspace_flatness_squared, int n)
         {
             if (n > 16)
-                return 1;
+                return;
 
             float mx = (x0 + x2 + 2 * x1) / 4;
             float my = (y0 + y2 + 2 * y1) / 4;
@@ -32,25 +34,29 @@ namespace StbSharp
 
             if ((dx * dx + dy * dy) > objspace_flatness_squared)
             {
-                TesselateCurve(points, num_points, x0, y0, (x0 + x1) / 2f,
-                    (y0 + y1) / 2f, mx, my, objspace_flatness_squared,
-                    n + 1);
+                TesselateCurve(
+                    points, ref num_points,
+                    x0, y0, 
+                    (x0 + x1) / 2f, (y0 + y1) / 2f, 
+                    mx, my, 
+                    objspace_flatness_squared, n + 1);
 
-                TesselateCurve(points, num_points, mx, my, (x1 + x2) / 2f,
-                    (y1 + y2) / 2f, x2, y2, objspace_flatness_squared,
-                    n + 1);
+                TesselateCurve(
+                    points, ref num_points, 
+                    mx, my, 
+                    (x1 + x2) / 2f, (y1 + y2) / 2f,
+                    x2, y2,
+                    objspace_flatness_squared, n + 1);
             }
             else
             {
-                AddPoint(points, *num_points, x2, y2);
-                *num_points = *num_points + 1;
+                AddPoint(points, num_points, x2, y2);
+                num_points++;
             }
-
-            return 1;
         }
 
         public static void TesselateCubic(
-            Span<Point> points, ref int num_points,
+            Span<Vector2> points, ref int num_points,
             float x0, float y0,
             float x1, float y1,
             float x2, float y2,

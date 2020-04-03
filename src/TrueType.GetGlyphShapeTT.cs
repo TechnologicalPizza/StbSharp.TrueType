@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -87,7 +88,7 @@ namespace StbSharp
                         }
                     }
 
-                    offVertices[i].x = (short)x;
+                    offVertices[i].X = (short)x;
                 }
 
                 y = 0;
@@ -109,7 +110,7 @@ namespace StbSharp
                         }
                     }
 
-                    offVertices[i].y = (short)y;
+                    offVertices[i].Y = (short)y;
                 }
 
                 num_vertices = 0;
@@ -117,8 +118,8 @@ namespace StbSharp
                 for (i = 0; i < n; ++i)
                 {
                     flags = (byte)offVertices[i].type;
-                    x = offVertices[i].x;
-                    y = offVertices[i].y;
+                    x = offVertices[i].X;
+                    y = offVertices[i].Y;
                     if (next_move == i)
                     {
                         if (i != 0)
@@ -133,13 +134,13 @@ namespace StbSharp
                             scy = y;
                             if (((int)offVertices[i + 1].type & 1) == 0)
                             {
-                                sx = (x + offVertices[i + 1].x) >> 1;
-                                sy = (y + offVertices[i + 1].y) >> 1;
+                                sx = (x + offVertices[i + 1].X) >> 1;
+                                sy = (y + offVertices[i + 1].Y) >> 1;
                             }
                             else
                             {
-                                sx = offVertices[i + 1].x;
-                                sy = offVertices[i + 1].y;
+                                sx = offVertices[i + 1].X;
+                                sy = offVertices[i + 1].Y;
                                 ++i;
                             }
                         }
@@ -261,10 +262,10 @@ namespace StbSharp
                         {
                             ref Vertex v = ref compVerts[i];
                             
-                            short x = v.x;
-                            short y = v.y;
-                            v.x = (short)(m * (matrix[0] * x + matrix[2] * y + matrix[4]));
-                            v.y = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
+                            short x = v.X;
+                            short y = v.Y;
+                            v.X = (short)(m * (matrix[0] * x + matrix[2] * y + matrix[4]));
+                            v.Y = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
 
                             x = v.cx;
                             y = v.cy;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -95,18 +96,18 @@ namespace StbSharp
                         for (; (i + 1) < sp; i += 2)
                             CsContext_RLineTo(ref c, s[i], s[i + 1]);
                         break;
-                    
+
                     case 0x07:
                     case 0x06:
                         if (sp < 1)
-                            return 0; 
+                            return 0;
 
                         int goto_vlineto = b0 == 0x07 ? 1 : 0;
                         for (; ; )
                         {
                             if (goto_vlineto == 0)
                             {
-                                if (i >= sp) 
+                                if (i >= sp)
                                     break;
                                 CsContext_RLineTo(ref c, s[i], 0);
                                 i++;
@@ -134,8 +135,10 @@ namespace StbSharp
                                     break;
 
                                 CsContext_RCCurveTo(
-                                    ref c, 0f, s[i], s[i + 1], s[i + 2], s[i + 3],
-                                    ((sp - i) == 5) ? s[i + 4] : 0f);
+                                    ref c,
+                                    0f, s[i],
+                                    s[i + 1], s[i + 2],
+                                    s[i + 3], ((sp - i) == 5) ? s[i + 4] : 0f);
                                 i += 4;
                             }
 
@@ -143,8 +146,10 @@ namespace StbSharp
                             if ((i + 3) >= sp)
                                 break;
                             CsContext_RCCurveTo(
-                                ref c, s[i], 0f, s[i + 1],
-                                s[i + 2], ((sp - i) == 5) ? s[i + 4] : 0f, s[i + 3]);
+                                ref c,
+                                s[i], 0f,
+                                s[i + 1], s[i + 2],
+                                ((sp - i) == 5) ? s[i + 4] : 0f, s[i + 3]);
                             i += 4;
                         }
                         break;
@@ -155,7 +160,10 @@ namespace StbSharp
 
                         for (; (i + 5) < sp; i += 6)
                             CsContext_RCCurveTo(
-                                ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+                                ref c,
+                                s[i], s[i + 1],
+                                s[i + 2], s[i + 3],
+                                s[i + 4], s[i + 5]);
                         break;
 
                     case 0x18:
@@ -164,7 +172,10 @@ namespace StbSharp
 
                         for (; (i + 5) < (sp - 2); i += 6)
                             CsContext_RCCurveTo(
-                                ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+                                ref c,
+                                s[i], s[i + 1],
+                                s[i + 2], s[i + 3],
+                                s[i + 4], s[i + 5]);
 
                         if ((i + 1) >= sp)
                             return 0;
@@ -182,7 +193,10 @@ namespace StbSharp
                             return 0;
 
                         CsContext_RCCurveTo(
-                            ref c, s[i], s[i + 1], s[i + 2], s[i + 3], s[i + 4], s[i + 5]);
+                            ref c,
+                            s[i], s[i + 1],
+                            s[i + 2], s[i + 3],
+                            s[i + 4], s[i + 5]);
                         break;
 
                     case 0x1A:
@@ -201,10 +215,16 @@ namespace StbSharp
                         {
                             if (b0 == 0x1B)
                                 CsContext_RCCurveTo(
-                                    ref c, s[i], f, s[i + 1], s[i + 2], s[i + 3], 0);
+                                    ref c,
+                                    s[i], f,
+                                    s[i + 1], s[i + 2],
+                                    s[i + 3], 0);
                             else
                                 CsContext_RCCurveTo(
-                                    ref c, f, s[i], s[i + 1], s[i + 2], 0, s[i + 3]);
+                                    ref c,
+                                    f, s[i],
+                                    s[i + 1], s[i + 2],
+                                    0, s[i + 3]);
 
                             f = 0;
                         }

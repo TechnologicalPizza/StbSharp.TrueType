@@ -34,14 +34,25 @@ namespace StbSharp
 
         public static void TrackVertex(ref CharStringContext c, int x, int y)
         {
-            if ((x > c.max.x) || (c.started == 0))
-                c.max.x = x;
-            if ((y > c.max.y) || (c.started == 0))
-                c.max.y = y;
-            if ((x < c.min.x) || (c.started == 0))
-                c.min.x = x;
-            if ((y < c.min.y) || (c.started == 0))
-                c.min.y = y;
+            if (c.started == 0)
+            {
+                c.max.X = x;
+                c.max.Y = y;
+                c.min.X = x;
+                c.min.Y = y;
+            }
+            else
+            {
+                if (x > c.max.X)
+                    c.max.X = x;
+                if (y > c.max.Y)
+                    c.max.Y = y;
+
+                if (x < c.min.X)
+                    c.min.X = x;
+                if (y < c.min.Y)
+                    c.min.Y = y;
+            }
             c.started = 1;
         }
 
@@ -70,43 +81,43 @@ namespace StbSharp
 
         public static void CsContext_CloseShape(ref CharStringContext ctx)
         {
-            if ((ctx.firstPos.x != ctx.pos.x) || (ctx.firstPos.y != ctx.pos.y))
+            if ((ctx.firstPos.X != ctx.pos.X) || (ctx.firstPos.Y != ctx.pos.Y))
                 CsContextV(
-                    ref ctx, VertexType.Line, 
-                    (int)ctx.firstPos.x, (int)ctx.firstPos.y, 0, 0, 0, 0);
+                    ref ctx, VertexType.Line,
+                    (int)ctx.firstPos.X, (int)ctx.firstPos.Y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RMoveTo(ref CharStringContext ctx, float dx, float dy)
         {
             CsContext_CloseShape(ref ctx);
-            ctx.firstPos.x = ctx.pos.x += dx;
-            ctx.firstPos.y = ctx.pos.y += dy;
+            ctx.firstPos.X = ctx.pos.X += dx;
+            ctx.firstPos.Y = ctx.pos.Y += dy;
             CsContextV(
-                ref ctx, VertexType.Move, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
+                ref ctx, VertexType.Move, (int)ctx.pos.X, (int)ctx.pos.Y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RLineTo(ref CharStringContext ctx, float dx, float dy)
         {
-            ctx.pos.x += dx;
-            ctx.pos.y += dy;
+            ctx.pos.X += dx;
+            ctx.pos.Y += dy;
             CsContextV(
-                ref ctx, VertexType.Line, (int)ctx.pos.x, (int)ctx.pos.y, 0, 0, 0, 0);
+                ref ctx, VertexType.Line, (int)ctx.pos.X, (int)ctx.pos.Y, 0, 0, 0, 0);
         }
 
         public static void CsContext_RCCurveTo(
-            ref CharStringContext ctx, 
+            ref CharStringContext ctx,
             float dx1, float dy1, float dx2, float dy2, float dx3, float dy3)
         {
-            float cx1 = ctx.pos.x + dx1;
-            float cy1 = ctx.pos.y + dy1;
+            float cx1 = ctx.pos.X + dx1;
+            float cy1 = ctx.pos.Y + dy1;
             float cx2 = cx1 + dx2;
             float cy2 = cy1 + dy2;
-            ctx.pos.x = cx2 + dx3;
-            ctx.pos.y = cy2 + dy3;
-            
+            ctx.pos.X = cx2 + dx3;
+            ctx.pos.Y = cy2 + dy3;
+
             CsContextV(
-                ref ctx, VertexType.Cubic, 
-                (int)ctx.pos.x, (int)ctx.pos.y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
+                ref ctx, VertexType.Cubic,
+                (int)ctx.pos.X, (int)ctx.pos.Y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
         }
 
         public static void FreeShape(Vertex* v)

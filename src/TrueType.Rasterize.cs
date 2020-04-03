@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -8,14 +9,14 @@ namespace StbSharp
 #else
     internal
 #endif
-    unsafe partial class TrueType
+    partial class TrueType
     {
-        public static Point[] FlattenCurves(
+        public static Vector2[] FlattenCurves(
             ReadOnlySpan<Vertex> vertices, float objspace_flatness,
             out int[] contour_lengths, out int num_contours)
         {
             int n = 0;
-            for (int i = 0; i < vertices.Length; ++i)
+            for (int i = 0; i < vertices.Length; i++)
                 if (vertices[i].type == VertexType.Move)
                     n++;
 
@@ -27,58 +28,61 @@ namespace StbSharp
             }
 
             contour_lengths = new int[n];
+            Vector2[] points = null;
 
-            Point[] points = null;
             float objspace_flatness_squared = objspace_flatness * objspace_flatness;
-
             int num_points = 0;
             int start = 0;
             for (int pass = 0; pass < 2; pass++)
             {
-                float x = 0f;
-                float y = 0f;
                 if (pass == 1)
-                    points = new Point[num_points];
+                    points = new Vector2[num_points];
 
+                var pos = Vector2.Zero;
                 num_points = 0;
                 n = -1;
                 for (int i = 0; i < vertices.Length; ++i)
                 {
-                    ref readonly Vertex vert = ref vertices[i];
-                    switch (vert.type)
+                    ref readonly Vertex vertex = ref vertices[i];
+                    switch (vertex.type)
                     {
                         case VertexType.Move:
                             if (n >= 0)
                                 contour_lengths[n] = num_points - start;
                             n++;
                             start = num_points;
-                            x = vert.x;
-                            y = vert.y;
-                            AddPoint(points, num_points++, x, y);
+                            pos.X = vertex.X;
+                            pos.Y = vertex.Y;
+                            AddPoint(points, num_points++, pos.X, pos.Y);
                             break;
 
                         case VertexType.Line:
-                            x = vert.x;
-                            y = vert.y;
-                            AddPoint(points, num_points++, x, y);
+                            pos.X = vertex.X;
+                            pos.Y = vertex.Y;
+                            AddPoint(points, num_points++, pos.X, pos.Y);
                             break;
 
                         case VertexType.Curve:
                             TesselateCurve(
-                                points, &num_points, x, y,
-                                vert.cx, vert.cy, vert.x, vert.y,
+                                points, ref num_points,
+                                pos.X, pos.Y,
+                                vertex.cx, vertex.cy,
+                                vertex.X, vertex.Y,
                                 objspace_flatness_squared, 0);
-                            x = vert.x;
-                            y = vert.y;
+                            pos.X = vertex.X;
+                            pos.Y = vertex.Y;
                             break;
 
                         case VertexType.Cubic:
                             TesselateCubic(
-                                points, ref num_points, x, y,
-                                vert.cx, vert.cy, vert.cx1, vert.cy1, vert.x, vert.y,
+                                points, ref num_points, 
+                                pos.X, pos.Y,
+                                vertex.cx, vertex.cy,
+                                vertex.cx1, vertex.cy1,
+                                vertex.X, vertex.Y,
                                 objspace_flatness_squared, 0);
-                            x = vert.x;
-                            y = vert.y;
+                            pos.X = vertex.X;
+                            pos.Y = vertex.Y;
                             break;
                     }
                 }
@@ -91,12 +95,12 @@ namespace StbSharp
 
         public static void Rasterize(
             Bitmap result, float flatness_in_pixels, ReadOnlySpan<Vertex> vertices,
-            Point scale, Point shift, IntPoint offset, IntPoint pixelOffset, bool invert)
+            Vector2 scale, Vector2 shift, Vector2 offset, IntPoint pixelOffset, bool invert)
         {
-            float scaleValue = scale.x > scale.y ? scale.y : scale.x;
+            float scaleValue = scale.X > scale.Y ? scale.Y : scale.X;
             float objspace_flatness = flatness_in_pixels / scaleValue;
 
-            Point[] windings = FlattenCurves(
+            Vector2[] windings = FlattenCurves(
                 vertices, objspace_flatness,
                 out int[] winding_lengths, out int winding_count);
 
@@ -108,14 +112,12 @@ namespace StbSharp
                 scale, shift, offset, pixelOffset, invert);
         }
 
-        public static void RasterizeSortedEdges(
+        public static unsafe void RasterizeSortedEdges(
             Bitmap result, Span<Edge> e, int n, int vsubsample,
-            IntPoint offset, IntPoint pixelOffset)
+            Vector2 offset, IntPoint pixelOffset)
         {
             var hh = new Heap();
             ActiveEdge* active = null;
-            int y = 0;
-            int j = 0;
 
             const int maxScanlineStackHalf = 256;
 
@@ -128,11 +130,13 @@ namespace StbSharp
                 var scanline = scanline_full.Slice(0, result.w);
                 var scanline_fill = scanline_full.Slice(result.w);
 
-                y = offset.y;
-                e[n].p0.y = (float)(offset.y + result.h) + 1;
+                float y = offset.Y;
+                e[n].p0.Y = offset.Y + result.h + 1;
+
+                int j = 0;
                 while (j < result.h)
                 {
-                    scanline_full.Fill(0);
+                    CRuntime.MemSet(scanline_full, 0);
 
                     float scan_y_top = y;
                     float scan_y_bottom = y + 1f;
@@ -154,14 +158,14 @@ namespace StbSharp
 
                     int oof = 0;
                     int ie = 0;
-                    while (e[ie].p0.y <= scan_y_bottom)
+                    while (e[ie].p0.Y <= scan_y_bottom)
                     {
-                        if (e[ie].p0.y != e[ie].p1.y)
+                        if (e[ie].p0.Y != e[ie].p1.Y)
                         {
-                            ActiveEdge* z = NewActive(ref hh, e[ie], offset.x, scan_y_top);
+                            ActiveEdge* z = NewActive(ref hh, e[ie], offset.X, scan_y_top);
                             if (z != null)
                             {
-                                if (j == 0 && offset.y != 0)
+                                if (j == 0 && offset.Y != 0)
                                     if (z->ey < scan_y_top)
                                         z->ey = scan_y_top;
 
@@ -179,7 +183,7 @@ namespace StbSharp
                         FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
 
                     float sum = 0f;
-                    var row = result.pixels.Slice((j + pixelOffset.y) * result.stride + pixelOffset.x);
+                    var row = result.pixels.Slice((j + pixelOffset.Y) * result.stride + pixelOffset.X);
                     for (int i = 0; i < scanline.Length; ++i)
                     {
                         sum += scanline_fill[i];
@@ -195,7 +199,7 @@ namespace StbSharp
                     while ((*step) != null)
                     {
                         ActiveEdge* z = *step;
-                        z->fx += z->fdx;
+                        z->fx += z->fd.X;
                         step = &(*step)->next;
                     }
 
@@ -210,19 +214,19 @@ namespace StbSharp
         }
 
         public static void Rasterize(
-            Bitmap result, ReadOnlySpan<Point> pts, ReadOnlySpan<int> windings,
-            Point scale, Point shift, IntPoint offset, IntPoint pixelOffset, bool invert)
+            Bitmap result, ReadOnlySpan<Vector2> pts, ReadOnlySpan<int> windings,
+            Vector2 scale, Vector2 shift, Vector2 offset, IntPoint pixelOffset, bool invert)
         {
-            int n = 0;
-            for (int i = 0; i < windings.Length; ++i)
-                n += windings[i];
+            int winding_sum = 0;
+            for (int i = 0; i < windings.Length; i++)
+                winding_sum += windings[i];
 
-            var e = new Edge[n + 1];
-            n = 0;
+            var e = new Edge[winding_sum + 1];
 
-            float y_scale_inv = invert ? -scale.y : scale.y;
+            float y_scale_inv = invert ? -scale.Y : scale.Y;
             int vsubsample = 1;
             int m = 0;
+            int n = 0;
             for (int i = 0; i < windings.Length; ++i)
             {
                 var p = pts.Slice(m);
@@ -231,13 +235,13 @@ namespace StbSharp
 
                 for (int k = 0; k < windings[i]; j = k++)
                 {
-                    if (p[j].y == p[k].y)
+                    if (p[j].Y == p[k].Y)
                         continue;
 
                     int a;
                     int b;
-                    if ((invert && (p[j].y > p[k].y)) ||
-                        (!invert && (p[j].y < p[k].y)))
+                    if ((invert && (p[j].Y > p[k].Y)) ||
+                        (!invert && (p[j].Y < p[k].Y)))
                     {
                         e[n].invert = true;
                         a = j;
@@ -250,10 +254,10 @@ namespace StbSharp
                         b = j;
                     }
 
-                    e[n].p0.x = p[a].x * scale.x + shift.x;
-                    e[n].p0.y = (p[a].y * y_scale_inv + shift.y) * vsubsample;
-                    e[n].p1.x = p[b].x * scale.x + shift.x;
-                    e[n].p1.y = (p[b].y * y_scale_inv + shift.y) * vsubsample;
+                    e[n].p0.X = p[a].X * scale.X + shift.X;
+                    e[n].p0.Y = (p[a].Y * y_scale_inv + shift.Y) * vsubsample;
+                    e[n].p1.X = p[b].X * scale.X + shift.X;
+                    e[n].p1.Y = (p[b].Y * y_scale_inv + shift.Y) * vsubsample;
                     ++n;
                 }
             }

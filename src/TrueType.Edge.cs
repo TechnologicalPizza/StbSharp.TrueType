@@ -10,26 +10,26 @@ namespace StbSharp
 #endif
     unsafe partial class TrueType
     {
-        public static ActiveEdge* NewActive(ref Heap hh, in Edge e, int off_x, float start_point)
+        public static ActiveEdge* NewActive(ref Heap hh, in Edge e, float off_x, float start_point)
         {
             var z = (ActiveEdge*)HeapAlloc(ref hh, sizeof(ActiveEdge));
             if (z == null)
                 return z;
 
-            float dxdy = (e.p1.x - e.p0.x) / (e.p1.y - e.p0.y);
-            z->fdx = dxdy;
-            z->fdy = dxdy != 0f ? (1f / dxdy) : 0f;
-            z->fx = e.p0.x + dxdy * (start_point - e.p0.y);
+            float dxdy = (e.p1.X - e.p0.X) / (e.p1.Y - e.p0.Y);
+            z->fd.X = dxdy;
+            z->fd.Y = dxdy != 0f ? (1f / dxdy) : 0f;
+            z->fx = e.p0.X + dxdy * (start_point - e.p0.Y);
             z->fx -= off_x;
             z->direction = e.invert ? 1f : -1f;
-            z->sy = e.p0.y;
-            z->ey = e.p1.y;
+            z->sy = e.p0.Y;
+            z->ey = e.p1.Y;
             z->next = null;
             return z;
         }
 
         public static void HandleClippedEdge(
-            Span<float> scanline, int x, ActiveEdge* e, 
+            Span<float> scanline, int x, ActiveEdge* e,
             float x0, float y0, float x1, float y1)
         {
             if (y0 == y1)
@@ -86,7 +86,7 @@ namespace StbSharp
             float y_bottom = y_top + 1;
             while (e != null)
             {
-                if (e->fdx == 0)
+                if (e->fd.X == 0)
                 {
                     float x0 = e->fx;
                     if (x0 < scanline.Length)
@@ -105,13 +105,13 @@ namespace StbSharp
                 else
                 {
                     float x0 = e->fx;
-                    float dx = e->fdx;
+                    float dx = e->fd.X;
                     float xb = x0 + dx;
                     float x_top = 0;
                     float x_bottom = 0;
                     float sy0 = 0;
                     float sy1 = 0;
-                    float dy = e->fdy;
+                    float dy = e->fd.Y;
 
                     if (e->sy > y_top)
                     {
@@ -137,7 +137,7 @@ namespace StbSharp
 
                     if ((x_top >= 0) &&
                         (x_bottom >= 0) &&
-                        (x_top < scanline.Length) && 
+                        (x_top < scanline.Length) &&
                         (x_bottom < scanline.Length))
                     {
                         if (((int)x_top) == ((int)x_bottom))
@@ -252,12 +252,12 @@ namespace StbSharp
             for (int i = 1; i < n; ++i)
             {
                 Edge a = p[i];
-                
+
                 int j = i;
                 while (j > 0)
                 {
                     ref Edge b = ref p[j - 1];
-                    if (!(a.p0.y < b.p0.y))
+                    if (!(a.p0.Y < b.p0.Y))
                         break;
 
                     p[j] = b;
@@ -275,11 +275,11 @@ namespace StbSharp
             {
                 Edge t;
                 int m = n >> 1;
-                int c01 = p[0].p0.y < p[m].p0.y ? 1 : 0;
-                int c12 = p[m].p0.y < p[n - 1].p0.y ? 1 : 0;
+                int c01 = p[0].p0.Y < p[m].p0.Y ? 1 : 0;
+                int c12 = p[m].p0.Y < p[n - 1].p0.Y ? 1 : 0;
                 if (c01 != c12)
                 {
-                    int c = p[0].p0.y < p[n - 1].p0.y ? 1 : 0;
+                    int c = p[0].p0.Y < p[n - 1].p0.Y ? 1 : 0;
                     int z = (c == c12) ? 0 : n - 1;
                     t = p[z];
                     p[z] = p[m];
@@ -295,13 +295,13 @@ namespace StbSharp
                 {
                     for (; ; ++i)
                     {
-                        if (!(p[i].p0.y < p[0].p0.y))
+                        if (!(p[i].p0.Y < p[0].p0.Y))
                             break;
                     }
 
                     for (; ; --j)
                     {
-                        if (!(p[0].p0.y < p[j].p0.y))
+                        if (!(p[0].p0.Y < p[j].p0.Y))
                             break;
                     }
 
@@ -330,7 +330,7 @@ namespace StbSharp
 
         public static void SortEdges(Span<Edge> p, int n)
         {
-            SortEdgesQuickSort(p, n);       
+            SortEdgesQuickSort(p, n);
             SortEdgesInsertSort(p, n);
         }
     }

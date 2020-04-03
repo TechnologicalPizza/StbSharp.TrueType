@@ -10,7 +10,7 @@ namespace StbSharp
     unsafe partial class TrueType
     {
         public static bool GetGlyphBox(
-            FontInfo info, int glyph_index, out IntRect glyphBox)
+            FontInfo info, int glyph_index, out Rect glyphBox)
         {
             if (info.cff.size != 0)
             {
@@ -21,12 +21,12 @@ namespace StbSharp
                 int g = GetGlyphOffset(info, glyph_index);
                 if (g < 0)
                 {
-                    glyphBox = IntRect.Zero;
+                    glyphBox = Rect.Zero;
                     return false;
                 }
 
                 var data = info.data.Span;
-                glyphBox = IntRect.FromEdgePoints(
+                glyphBox = Rect.FromEdgePoints(
                     tlX: ReadInt16(data.Slice(g + 2)),
                     tlY: ReadInt16(data.Slice(g + 4)),
                     brX: ReadInt16(data.Slice(g + 6)),
@@ -45,15 +45,16 @@ namespace StbSharp
 
             int g1;
             int g2;
+            var locaData = info.data.Span.Slice(info.loca);
             if (info.indexToLocFormat == 0)
             {
-                g1 = info.glyf + ReadUInt16(info.data.Span.Slice(info.loca + glyph_index * 2)) * 2;
-                g2 = info.glyf + ReadUInt16(info.data.Span.Slice(info.loca + glyph_index * 2 + 2)) * 2;
+                g1 = info.glyf + ReadUInt16(locaData.Slice(glyph_index * 2)) * 2;
+                g2 = info.glyf + ReadUInt16(locaData.Slice(glyph_index * 2 + 2)) * 2;
             }
             else
             {
-                g1 = (int)(info.glyf + ReadUInt32(info.data.Span.Slice(info.loca + glyph_index * 4)));
-                g2 = (int)(info.glyf + ReadUInt32(info.data.Span.Slice(info.loca + glyph_index * 4 + 4)));
+                g1 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyph_index * 4)));
+                g2 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyph_index * 4 + 4)));
             }
             return g1 == g2 ? -1 : g1;
         }
@@ -80,7 +81,7 @@ namespace StbSharp
         }
 
         public static int GetGlyphInfoT2(
-            FontInfo info, int glyph_index, out IntRect glyphBox)
+            FontInfo info, int glyph_index, out Rect glyphBox)
         {
             var c = new CharStringContext();
             c.bounds = 1;
@@ -88,11 +89,11 @@ namespace StbSharp
             int r = RunCharString(info, glyph_index, ref c);
             if (r != 0)
             {
-                glyphBox = IntRect.FromEdgePoints(c.min, c.max);
+                glyphBox = Rect.FromEdgePoints(c.min, c.max);
                 return c.num_vertices;
             }
 
-            glyphBox = IntRect.Zero;
+            glyphBox = Rect.Zero;
             return 0;
         }
 

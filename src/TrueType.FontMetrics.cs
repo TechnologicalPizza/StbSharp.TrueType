@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -12,10 +13,10 @@ namespace StbSharp
         public static void GetFontVMetrics(
             FontInfo info, out int ascent, out int descent, out int lineGap)
         {
-            var data = info.data.Span;
-            ascent = ReadInt16(data.Slice(info.hhea + 4));
-            descent = ReadInt16(data.Slice(info.hhea + 6));
-            lineGap = ReadInt16(data.Slice(info.hhea + 8));
+            var data = info.data.Span.Slice(info.hhea);
+            ascent = ReadInt16(data.Slice(4));
+            descent = ReadInt16(data.Slice(6));
+            lineGap = ReadInt16(data.Slice(8));
         }
 
         public static bool GetFontVMetricsOS2(
@@ -31,32 +32,33 @@ namespace StbSharp
                 return false;
             }
 
-            typoAscent = ReadInt16(data.Slice(table + 68));
-            typoDescent = ReadInt16(data.Slice(table + 70));
-            typoLineGap = ReadInt16(data.Slice(table + 72));
+            var tableData = data.Slice(table);
+            typoAscent = ReadInt16(tableData.Slice(68));
+            typoDescent = ReadInt16(tableData.Slice(70));
+            typoLineGap = ReadInt16(tableData.Slice(72));
             return true;
         }
 
-        public static void GetFontBoundingBox(FontInfo info, out Point p0, out Point p1)
+        public static void GetFontBoundingBox(FontInfo info, out Vector2 p0, out Vector2 p1)
         {
-            var data = info.data.Span;
-            p0.x = ReadInt16(data.Slice(info.head + 36));
-            p0.y = ReadInt16(data.Slice(info.head + 38));
-            p1.x = ReadInt16(data.Slice(info.head + 40));
-            p1.y = ReadInt16(data.Slice(info.head + 42));
+            var head = info.data.Span.Slice(info.head);
+            p0.X = ReadInt16(head.Slice(36));
+            p0.Y = ReadInt16(head.Slice(38));
+            p1.X = ReadInt16(head.Slice(40));
+            p1.Y = ReadInt16(head.Slice(42));
         }
 
-        public static Point ScaleForPixelHeight(FontInfo info, float height)
+        public static Vector2 ScaleForPixelHeight(FontInfo info, float height)
         {
-            var data = info.data.Span;
-            int fheight = ReadInt16(data.Slice(info.hhea + 4)) - ReadInt16(data.Slice(info.hhea + 6));
-            return new Point(height / fheight);
+            var data = info.data.Span.Slice(info.hhea);
+            int fheight = ReadInt16(data.Slice(4)) - ReadInt16(data.Slice(6));
+            return new Vector2(height / fheight);
         }
 
-        public static Point ScaleForMappingEmToPixels(FontInfo info, float pixels)
+        public static Vector2 ScaleForMappingEmToPixels(FontInfo info, float pixels)
         {
             int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
-            return new Point(pixels / unitsPerEm);
+            return new Vector2(pixels / unitsPerEm);
         }
     }
 }
