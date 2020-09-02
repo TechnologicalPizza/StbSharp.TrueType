@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace StbSharp
@@ -28,43 +29,48 @@ namespace StbSharp
         }
 
         public static void HandleClippedEdge(
-            Span<float> scanline, int x, in ActiveEdge e,
+            Span<float> scanline, int x,
+            float eey, float esy, float edirection,
             float x0, float y0, float x1, float y1)
         {
-            if (y0 == y1)
-                return;
-            if (y0 > e.ey)
-                return;
-            if (y1 < e.sy)
+            if (y0 == y1 || y0 > eey || y1 < esy)
                 return;
 
-            if (y0 < e.sy)
+            if (y0 < esy)
             {
-                x0 += (x1 - x0) * (e.sy - y0) / (y1 - y0);
-                y0 = e.sy;
+                x0 += (x1 - x0) * (esy - y0) / (y1 - y0);
+                y0 = esy;
             }
 
-            if (y1 > e.ey)
+            if (y1 > eey)
             {
-                x1 += (x1 - x0) * (e.ey - y1) / (y1 - y0);
-                y1 = e.ey;
+                x1 += (x1 - x0) * (eey - y1) / (y1 - y0);
+                y1 = eey;
             }
 
+            HandleClippedEdge(scanline, x, edirection, x0, y0, x1, y1);
+        }
+
+        public static void HandleClippedEdge(
+            Span<float> scanline, int x,
+            float edirection,
+            float x0, float y0, float x1, float y1)
+        {
             if ((x0 <= x) && (x1 <= x))
             {
-                scanline[x] += e.direction * (y1 - y0);
+                scanline[x] += edirection * (y1 - y0);
             }
             else
             {
                 if ((x0 >= (x + 1)) && (x1 >= (x + 1)))
                     return;
 
-                scanline[x] += e.direction * (y1 - y0) * (1 - (x0 - x + (x1 - x)) / 2);
+                scanline[x] += edirection * (y1 - y0) * (1 - (x0 - x + (x1 - x)) / 2);
             }
         }
 
         public static void FillActiveEdgesNew(
-            Span<float> scanline, Span<float> scanline_fill, ActiveEdge? active, float y_top)
+            Span<float> scanline, Span<float> scanlineFill, ActiveEdge? active, float y_top)
         {
             float y_bottom = y_top + 1;
 
@@ -76,14 +82,18 @@ namespace StbSharp
                     float x0 = e.fx;
                     if (x0 < scanline.Length)
                     {
+                        float eey = e.ey;
+                        float esy = e.sy;
+                        float edir = e.direction;
+
                         if (x0 >= 0)
                         {
-                            HandleClippedEdge(scanline, (int)x0, e, x0, y_top, x0, y_bottom);
-                            HandleClippedEdge(scanline_fill, (int)(x0 + 1), e, x0, y_top, x0, y_bottom);
+                            HandleClippedEdge(scanline, (int)x0, eey, esy, edir, x0, y_top, x0, y_bottom);
+                            HandleClippedEdge(scanlineFill, (int)(x0 + 1), eey, esy, edir, x0, y_top, x0, y_bottom);
                         }
                         else
                         {
-                            HandleClippedEdge(scanline_fill, 0, e, x0, y_top, x0, y_bottom);
+                            HandleClippedEdge(scanlineFill, 0, eey, esy, edir, x0, y_top, x0, y_bottom);
                         }
                     }
                 }
@@ -130,7 +140,7 @@ namespace StbSharp
                             int x = (int)x_top;
                             float height = sy1 - sy0;
                             scanline[x] += e.direction * (1 - (x_top - x + (x_bottom - x)) / 2) * height;
-                            scanline_fill[x + 1] += e.direction * height;
+                            scanlineFill[x + 1] += e.direction * height;
                         }
                         else
                         {
@@ -173,7 +183,7 @@ namespace StbSharp
 
                             y_crossing += dy * (x2 - (x1 + 1));
                             scanline[x2] += area + sign * (1 - (x2 - x2 + (x_bottom - x2)) / 2) * (sy1 - y_crossing);
-                            scanline_fill[x2 + 1] += sign * (sy1 - sy0);
+                            scanlineFill[x2 + 1] += sign * (sy1 - sy0);
                         }
                     }
                     else
@@ -181,103 +191,78 @@ namespace StbSharp
                         float y0 = y_top;
                         float x3 = xb;
                         float y3 = y_bottom;
+                        float dx_fac = 1f / dx;
 
-                        int x = 0;
-                        if (false && Vector.IsHardwareAccelerated)
+                        float eey = e.ey;
+                        float esy = e.sy;
+                        float edir = e.direction;
+
+                        float lastX0 = x0;
+                        float lastY0 = y0;
+                        float lastX1 = x3;
+                        float lastY1 = y3;
+                        bool executeLast = !(lastY0 == lastY1 || lastY0 > eey || lastY1 < esy);
+
+                        if (lastY0 < esy)
                         {
-                            var v_x0 = new Vector<float>(x0);
-                            var v_y0 = new Vector<float>(y0);
-                            var v_x3 = new Vector<float>(x3);
-                            var v_y3 = new Vector<float>(y3);
-
-                            for (; x + Vector<float>.Count < scanline.Length; x += Vector<float>.Count)
-                            {
-                                var v_x1 = new Vector<float>(x);
-                                var v_x2 = new Vector<float>(x + 1);
-                                var v_y1 = new Vector<float>((x - x0) / dx + y_top);
-                                var v_y2 = new Vector<float>((x + 1 - x0) / dx + y_top);
-
-                                //if ((x0 < x1) && (x3 > x2))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                //    HandleClippedEdge(scanline, x, e, x1, y1, x2, y2);
-                                //    HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
-                                //}
-                                //else if ((x3 < x1) && (x0 > x2))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                //    HandleClippedEdge(scanline, x, e, x2, y2, x1, y1);
-                                //    HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
-                                //}
-                                //else if ((x0 < x1) && (x3 > x1))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                //    HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
-                                //}
-                                //else if ((x3 < x1) && (x0 > x1))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                //    HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
-                                //}
-                                //else if ((x0 < x2) && (x3 > x2))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                //    HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
-                                //}
-                                //else if ((x3 < x2) && (x0 > x2))
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                //    HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
-                                //}
-                                //else
-                                //{
-                                //    HandleClippedEdge(scanline, x, e, x0, y0, x3, y3);
-                                //}
-                            }
+                            lastX0 += (lastX1 - lastX0) * (esy - lastY0) / (lastY1 - lastY0);
+                            lastY0 = esy;
                         }
 
-                        for (; x < scanline.Length; x++)
+                        if (lastY1 > eey)
+                        {
+                            lastX1 += (lastX1 - lastX0) * (eey - lastY1) / (lastY1 - lastY0);
+                            lastY1 = eey;
+                        }
+
+                        for (int x = 0; x < scanline.Length; x++)
                         {
                             float x1 = x;
                             float x2 = x + 1;
-                            float y1 = (x - x0) / dx + y_top;
-                            float y2 = (x + 1 - x0) / dx + y_top;
 
                             if ((x0 < x1) && (x3 > x2))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                HandleClippedEdge(scanline, x, e, x1, y1, x2, y2);
-                                HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
+                                float y1 = (x1 - x0) * dx_fac + y_top;
+                                float y2 = (x2 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x1, y1);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x2, y2);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x3, y3);
                             }
                             else if ((x3 < x1) && (x0 > x2))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                HandleClippedEdge(scanline, x, e, x2, y2, x1, y1);
-                                HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
+                                float y1 = (x1 - x0) * dx_fac + y_top;
+                                float y2 = (x2 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x2, y2);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x1, y1);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
                             else if ((x0 < x1) && (x3 > x1))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
+                                float y1 = (x1 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x1, y1);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
                             else if ((x3 < x1) && (x0 > x1))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x1, y1);
-                                HandleClippedEdge(scanline, x, e, x1, y1, x3, y3);
+                                float y1 = (x1 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x1, y1);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
                             else if ((x0 < x2) && (x3 > x2))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
+                                float y2 = (x2 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x2, y2);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x3, y3);
                             }
                             else if ((x3 < x2) && (x0 > x2))
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x2, y2);
-                                HandleClippedEdge(scanline, x, e, x2, y2, x3, y3);
+                                float y2 = (x2 - x0) * dx_fac + y_top;
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x2, y2);
+                                HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x3, y3);
                             }
-                            else
+                            else if (executeLast)
                             {
-                                HandleClippedEdge(scanline, x, e, x0, y0, x3, y3);
+                                HandleClippedEdge(scanline, x, edir, lastX0, lastY0, lastX1, lastY1);
                             }
                         }
                     }
