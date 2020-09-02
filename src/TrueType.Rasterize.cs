@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
@@ -112,105 +113,106 @@ namespace StbSharp
                 scale, shift, offset, pixelOffset, invert);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe ref T NullRef<T>()
+        {
+            return ref Unsafe.AsRef<T>(null);
+        }
+
         public static unsafe void RasterizeSortedEdges(
             Bitmap result, Span<Edge> e, int n, int vsubsample,
             Vector2 offset, IntPoint pixelOffset)
         {
-            const int maxScanlineStackHalf = 256;
-            
-            var hh = new Heap();
-            try
+            const int HalfMaxScanlineStack = 256;
+
+            Span<float> scanlineBuffer = result.w <= HalfMaxScanlineStack
+                ? stackalloc float[result.w * 2 + 1]
+                : new float[result.w * 2 + 1];
+
+            var scanline = scanlineBuffer.Slice(0, result.w);
+            var scanline_fill = scanlineBuffer.Slice(result.w);
+
+            float offY = offset.Y;
+            e[n].p0.Y = offset.Y + result.h + 1;
+
+            ActiveEdge? active = null;
+
+            int bmpY = 0;
+            while (bmpY < result.h)
             {
-                ActiveEdge* active = null;
+                scanlineBuffer.Clear();
 
-                Span<float> scanline_full = result.w <= maxScanlineStackHalf
-                    ? stackalloc float[result.w * 2 + 1]
-                    : new float[result.w * 2 + 1];
+                // find center of pixel for this scanline
+                float scan_y_top = offY;
+                float scan_y_bottom = offY + 1f;
 
-                var scanline = scanline_full.Slice(0, result.w);
-                var scanline_fill = scanline_full.Slice(result.w);
-
-                float y = offset.Y;
-                e[n].p0.Y = offset.Y + result.h + 1;
-
-                int j = 0;
-                while (j < result.h)
+                ActiveEdge? step = active;
+                while (step != null)
                 {
-                    CRuntime.MemSet(scanline_full, 0);
-
-                    float scan_y_top = y;
-                    float scan_y_bottom = y + 1f;
-                    ActiveEdge** step = &active;
-                    while ((*step) != null)
+                    ActiveEdge z = step;
+                    if (z.ey <= scan_y_top)
                     {
-                        ActiveEdge* z = *step;
-                        if (z->ey <= scan_y_top)
-                        {
-                            *step = z->next;
-                            z->direction = 0f;
-                            HeapFree(&hh, z);
-                        }
-                        else
-                        {
-                            step = &(*step)->next;
-                        }
+                        step = z.next; // delete from list
+                        z.direction = 0;
+                        // return z object
+                        //HeapFree(ref hh, z);
                     }
-
-                    int oof = 0;
-                    int ie = 0;
-                    while (e[ie].p0.Y <= scan_y_bottom)
+                    else
                     {
-                        if (e[ie].p0.Y != e[ie].p1.Y)
+                        step = step.next; // advance through list
+                    }
+                }
+
+                // insert all edges that start before the bottom of this scanline
+                int ie = 0;
+                while (e[ie].p0.Y <= scan_y_bottom)
+                {
+                    if (e[ie].p0.Y != e[ie].p1.Y)
+                    {
+                        ActiveEdge z = NewActive(e[ie], offset.X, scan_y_top);
+                        if (bmpY == 0 && offset.Y != 0)
                         {
-                            ActiveEdge* z = NewActive(ref hh, e[ie], offset.X, scan_y_top);
-                            if (z != null)
+                            if (z.ey < scan_y_top)
                             {
-                                if (j == 0 && offset.Y != 0)
-                                    if (z->ey < scan_y_top)
-                                        z->ey = scan_y_top;
-
-                                z->next = active;
-                                active = z;
-
-                                oof++;
+                                // this can happen due to subpixel positioning and 
+                                // some kind of fp rounding error i think
+                                z.ey = scan_y_top;
                             }
                         }
-                        ie++;
+                        z.next = active;
+                        active = z;
                     }
-                    e = e.Slice(ie);
-
-                    if (active != null)
-                        FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
-
-                    var pixel_row = result.pixels.Slice(
-                        (j + pixelOffset.Y) * result.stride + pixelOffset.X);
-                    float sum = 0f;
-
-                    for (int x = 0; x < scanline.Length; x++)
-                    {
-                        sum += scanline_fill[x];
-                        float k = scanline[x] + sum;
-                        k = Math.Abs(k) * byte.MaxValue;
-                        if (k > 255)
-                            k = 255;
-                        pixel_row[x] = (byte)k;
-                    }
-
-                    step = &active;
-                    while ((*step) != null)
-                    {
-                        ActiveEdge* z = *step;
-                        z->fx += z->fd.X;
-                        step = &(*step)->next;
-                    }
-
-                    y++;
-                    j++;
+                    ie++;
                 }
-            }
-            finally
-            {
-                HeapCleanup(&hh);
+                e = e.Slice(ie);
+
+                if (active != null)
+                    FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
+
+                var pixel_row = result.pixels.Slice(
+                    (bmpY + pixelOffset.Y) * result.stride + pixelOffset.X);
+                float sum = 0f;
+
+                for (int x = 0; x < scanline.Length; x++)
+                {
+                    sum += scanline_fill[x];
+                    float k = scanline[x] + sum;
+                    k = Math.Abs(k) * byte.MaxValue;
+                    if (k > 255)
+                        k = 255;
+                    pixel_row[x] = (byte)k;
+                }
+
+                step = active;
+                while (step != null)
+                {
+                    ActiveEdge z = step;
+                    z.fx += z.fd.X;
+                    step = step.next;
+                }
+
+                offY++;
+                bmpY++;
             }
         }
 

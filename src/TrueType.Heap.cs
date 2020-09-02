@@ -28,34 +28,33 @@ namespace StbSharp
 
         public static void* HeapAlloc(ref Heap hh, int size)
         {
+            throw new NotImplementedException();
+
+            /*
             const int maxAlloc = 64000;
 
             if (size > maxAlloc)
                 throw new ArgumentOutOfRangeException(nameof(size));
-                
+
             if (hh.first_free != null)
             {
                 void* p = hh.first_free;
                 hh.first_free = *(void**)p;
                 return p;
             }
-            else
+
+            if (hh.num_remaining_in_head_chunk == 0)
             {
-                if (hh.num_remaining_in_head_chunk == 0)
-                {
-                    int count = maxAlloc / size;
-                    var c = (HeapChunk*)CRuntime.MAlloc(sizeof(HeapChunk) + size * count);
-                    if (c == null)
-                        return null;
-
-                    c->next = hh.head;
-                    hh.head = c;
-                    hh.num_remaining_in_head_chunk = count;
-                }
-
-                --hh.num_remaining_in_head_chunk;
-                return (byte*)(hh.head + 1) + size * hh.num_remaining_in_head_chunk;
+                int count = maxAlloc / size;
+                var c = (HeapChunk*)CRuntime.MAlloc(sizeof(HeapChunk) + size * count);
+                c->next = hh.head;
+                hh.head = c;
+                hh.num_remaining_in_head_chunk = count;
             }
+
+            --hh.num_remaining_in_head_chunk;
+            return (byte*)(hh.head + 1) + size * hh.num_remaining_in_head_chunk;
+            */
         }
 
         public static void HeapFree(Heap* hh, void* p)
@@ -66,6 +65,9 @@ namespace StbSharp
 
         public static void HeapCleanup(Heap* hh)
         {
+            throw new NotImplementedException();
+
+            /*
             HeapChunk* c = hh->head;
             while (c != null)
             {
@@ -73,6 +75,7 @@ namespace StbSharp
                 CRuntime.Free(c);
                 c = n;
             }
+            */
         }
     }
 }

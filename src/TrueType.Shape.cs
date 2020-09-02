@@ -119,10 +119,5 @@ namespace StbSharp
                 ref ctx, VertexType.Cubic,
                 (int)ctx.pos.X, (int)ctx.pos.Y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
         }
-
-        public static void FreeShape(Vertex* v)
-        {
-            CRuntime.Free(v);
-        }
     }
 }

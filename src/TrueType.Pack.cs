@@ -86,7 +86,7 @@ namespace StbSharp
                         r.y += pad;
                         r.w -= pad;
                         r.h -= pad;
-                        
+
                         var pixelSlice = pixels.Slice(r.x + r.y * spc.stride_in_bytes);
                         MakeGlyphBitmapSubpixel(
                             info, pixelSlice,
@@ -97,7 +97,7 @@ namespace StbSharp
                             HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.X);
                         if (spc.oversample.Y > 1)
                             VerticalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.Y);
-                        
+
                         charData[j].x0 = (ushort)(short)r.x;
                         charData[j].y0 = (ushort)(short)r.y;
                         charData[j].x1 = (ushort)(short)(r.x + r.w);
@@ -188,37 +188,27 @@ namespace StbSharp
             ReadOnlyMemory<byte> fontData,
             Span<PackRange> ranges)
         {
-            int n = 0;
+            int count = 0;
             for (int i = 0; i < ranges.Length; ++i)
             {
                 Span<PackedChar> charData = ranges[i].chardata_for_range.Span;
                 for (int j = 0; j < charData.Length; ++j)
                     charData[j].x0 = charData[j].y0 = charData[j].x1 = charData[j].y1 = 0;
 
-                n += charData.Length;
+                count += charData.Length;
             }
 
-            var rectPtr = CRuntime.MAlloc(sizeof(RPRect) * n);
-            if (rectPtr == null)
+            var info = new FontInfo();
+            if (!InitFont(info, fontData, GetFontOffset(fontData.Span, 0)))
                 return false;
 
-            try
-            {
-                var info = new FontInfo();
-                if (!InitFont(info, fontData, GetFontOffset(fontData.Span, 0)))
-                    return false;
+            var rectBuffer = new RPRect[count];
+            var rects = rectBuffer.AsSpan(0, count);
+            int packedCount = PackFontRangesGatherRects(spc, info, ranges, rects);
+            rects = rects.Slice(0, packedCount);
 
-                var rects = new Span<RPRect>(rectPtr, n);
-                n = PackFontRangesGatherRects(spc, info, ranges, rects);
-                rects = rects.Slice(0, n);
-
-                spc.pack_info.PackRects(rects);
-                return PackFontRangesRenderIntoRects(spc, info, pixels, ranges, rects);
-            }
-            finally
-            {
-                CRuntime.Free(rectPtr);
-            }
+            spc.pack_info.PackRects(rects);
+            return PackFontRangesRenderIntoRects(spc, info, pixels, ranges, rects);
         }
 
         public static bool PackFontRange(

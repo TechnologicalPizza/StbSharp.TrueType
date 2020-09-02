@@ -5,7 +5,7 @@ namespace StbSharp
 #if !STBSHARP_INTERNAL
     public
 #else
-	internal
+    internal
 #endif
     unsafe partial class TrueType
     {
@@ -121,8 +121,7 @@ namespace StbSharp
         public static int FindMatchingFont(
             ReadOnlySpan<byte> fontData, ReadOnlySpan<byte> name_utf8, int flags)
         {
-            int i;
-            for (i = 0; ; ++i)
+            for (int i = 0; ; i++)
             {
                 int off = GetFontOffset(fontData, i);
                 if (off < 0)
@@ -232,6 +231,7 @@ namespace StbSharp
         {
             if (!IsFont(fontData.Slice(offset)))
                 return false;
+
             if (flags != 0)
             {
                 int hd = (int)FindTable(fontData, offset, "head");
@@ -243,7 +243,7 @@ namespace StbSharp
             if (nm == 0)
                 return false;
 
-            int nlen = CRuntime.StringLength(name);
+            int nlen = name.IndexOf((byte)0);
             if (flags != 0)
             {
                 if (MatchPair(fontData, nm, name, nlen, 16, -1) != 0 ||

@@ -89,11 +89,12 @@ namespace StbSharp
         public static Buffer GetSubRs(Buffer cff, Buffer fontdict)
         {
             Span<uint> tmp = stackalloc uint[2];
-            tmp.Fill(0);
+            tmp.Clear();
 
             var pdict = new Buffer();
             DictGetInts(ref fontdict, 18, tmp);
-            if ((tmp[1] == 0) || (tmp[0] == 0))
+
+            if (tmp[0] == 0 || tmp[1] == 0)
                 return Buffer.EmptyWithLength(9);
 
             pdict = cff.Slice((int)tmp[1], (int)tmp[0]);
@@ -110,9 +111,13 @@ namespace StbSharp
         public static bool InitFont(
             FontInfo info, ReadOnlyMemory<byte> fontData, int fontIndex)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             info.data = fontData;
             info.fontindex = fontIndex;
             info.cff = Buffer.Empty;
+
             var data = fontData.Span;
             int cmap = (int)FindTable(data, fontIndex, "cmap");
             info.loca = (int)FindTable(data, fontIndex, "loca");
@@ -122,9 +127,9 @@ namespace StbSharp
             info.hmtx = (int)FindTable(data, fontIndex, "hmtx");
             info.kern = (int)FindTable(data, fontIndex, "kern");
             info.gpos = (int)FindTable(data, fontIndex, "GPOS");
-            if ((cmap == 0) || 
-                (info.head == 0) || 
-                (info.hhea == 0) || 
+            if ((cmap == 0) ||
+                (info.head == 0) ||
+                (info.hhea == 0) ||
                 (info.hmtx == 0))
                 return false;
 

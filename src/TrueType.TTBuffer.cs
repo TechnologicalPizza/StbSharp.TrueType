@@ -13,7 +13,7 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Buffer
         {
-            public static readonly Buffer Empty = EmptyWithLength(0);
+            public static Buffer Empty { get; } = EmptyWithLength(0);
 
             public ReadOnlyMemory<byte> data;
             public int size;

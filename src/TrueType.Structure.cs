@@ -150,10 +150,9 @@ namespace StbSharp
             public bool invert;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct ActiveEdge
+        public class ActiveEdge
         {
-            public ActiveEdge* next;
+            public ActiveEdge? next;
 
             public float fx;
             public Vector2 fd;
