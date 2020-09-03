@@ -3,16 +3,11 @@ using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
-        public static byte[] GetGlyphSDF(
+        public static byte[]? GetGlyphSDF(
             FontInfo info, Vector2 scale, int glyph, int padding,
-            byte onedge_value, float pixel_dist_scale,
+            byte onEdgeValue, float pixelDistScale,
             out int width, out int height, out IntPoint offset)
         {
             width = 0;
@@ -38,6 +33,7 @@ namespace StbSharp
             glyphBox.Y -= padding;
             glyphBox.W += padding;
             glyphBox.H += padding;
+
             width = glyphBox.W;
             height = glyphBox.H;
             offset = glyphBox.Position;
@@ -50,8 +46,6 @@ namespace StbSharp
             Span<float> precompute = precomputeSize > 2048
                 ? new float[precomputeSize]
                 : stackalloc float[precomputeSize];
-
-            var pixels = new byte[glyphBox.W * glyphBox.H];
 
             int x = 0;
             int y = 0;
@@ -73,6 +67,7 @@ namespace StbSharp
                     var pos2 = new Vector2(vertices[j].X, vertices[j].Y) * scale;
                     var pos1 = new Vector2(vertex.cx, vertex.cy) * scale;
                     var pos0 = new Vector2(vertex.X, vertex.Y) * scale;
+
                     var b = pos0 - pos1 * 2 + pos2;
                     float len2 = b.LengthSquared();
                     if (len2 != 0f)
@@ -81,10 +76,13 @@ namespace StbSharp
                         precompute[i] = 0f;
                 }
                 else
+                {
                     precompute[i] = 0f;
+                }
             }
 
-            float* res = stackalloc float[3];
+            var pixels = new byte[glyphBox.W * glyphBox.H];
+            Span<float> res = stackalloc float[3];
 
             var glyphBr = glyphBox.BottomRight;
             for (y = glyphBox.Y; y < glyphBr.Y; ++y)
@@ -227,7 +225,7 @@ namespace StbSharp
 
                     if (winding == 0)
                         min_dist = -min_dist;
-                    val = onedge_value + pixel_dist_scale * min_dist;
+                    val = onEdgeValue + pixelDistScale * min_dist;
                     if (val < 0)
                         val = 0f;
                     else if (val > 255)
@@ -239,14 +237,14 @@ namespace StbSharp
             return pixels;
         }
 
-        public static byte[] GetCodepointSDF(
+        public static byte[]? GetCodepointSDF(
             FontInfo info, Vector2 scale, int codepoint, int padding,
-            byte onedge_value, float pixel_dist_scale,
+            byte onEdgeValue, float pixelDistScale,
             out int width, out int height, out IntPoint offset)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             return GetGlyphSDF(
-                info, scale, glyph, padding, onedge_value, pixel_dist_scale,
+                info, scale, glyph, padding, onEdgeValue, pixelDistScale,
                 out width, out height, out offset);
         }
     }

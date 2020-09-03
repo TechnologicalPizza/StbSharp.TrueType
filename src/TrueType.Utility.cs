@@ -2,20 +2,29 @@
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
-        public static ushort ReadUInt16(ReadOnlySpan<byte> p) => (ushort)(p[0] * 256 + p[1]);
+        [CLSCompliant(false)]
+        public static ushort ReadUInt16(ReadOnlySpan<byte> p)
+        {
+            return (ushort)(p[0] * 256 + p[1]);
+        }
 
-        public static short ReadInt16(ReadOnlySpan<byte> p) => (short)(p[0] * 256 + p[1]);
+        public static short ReadInt16(ReadOnlySpan<byte> p)
+        {
+            return (short)(p[0] * 256 + p[1]);
+        }
 
-        public static uint ReadUInt32(ReadOnlySpan<byte> p) => (uint)((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]);
+        [CLSCompliant(false)]
+        public static uint ReadUInt32(ReadOnlySpan<byte> p)
+        {
+            return (uint)((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]);
+        }
 
-        public static int ReadInt32(ReadOnlySpan<byte> p) => (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+        public static int ReadInt32(ReadOnlySpan<byte> p)
+        {
+            return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+        }
 
         public static float CubeRoot(float x)
         {
@@ -25,13 +34,14 @@ namespace StbSharp
                 return MathF.Pow(x, 1 / 3f);
         }
 
-        public static int SolveCubic(float a, float b, float c, float* r)
+        public static int SolveCubic(float a, float b, float c, Span<float> r)
         {
             float p = b - a * a / 3;
             float p3 = p * p * p;
             float q = a * (2 * a * a - 9 * b) / 27 + c;
             float d = q * q + 4 * p3 / 27;
             float s = -a / 3;
+
             if (d >= 0)
             {
                 float z = MathF.Sqrt(d);

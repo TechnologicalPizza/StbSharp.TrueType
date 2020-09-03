@@ -3,12 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct Buffer
