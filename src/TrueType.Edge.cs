@@ -2,6 +2,9 @@
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace StbSharp
 {
@@ -101,12 +104,12 @@ namespace StbSharp
                 {
                     float x0 = e.fx;
                     float dx = e.fd.X;
-                    float xb = x0 + dx;
-                    float x_top = 0;
-                    float x_bottom = 0;
-                    float sy0 = 0;
-                    float sy1 = 0;
                     float dy = e.fd.Y;
+                    float xb = x0 + dx;
+                    float x_top;
+                    float x_bottom;
+                    float sy0;
+                    float sy1;
 
                     if (e.sy > y_top)
                     {
@@ -144,18 +147,11 @@ namespace StbSharp
                         }
                         else
                         {
-                            int x1 = 0;
-                            int x2 = 0;
-                            float y_crossing = 0;
-                            float step = 0;
-                            float sign = 0;
-                            float area = 0;
                             if (x_top > x_bottom)
                             {
-                                float t = 0;
                                 sy0 = y_bottom - (sy0 - y_top);
                                 sy1 = y_bottom - (sy1 - y_top);
-                                t = sy0;
+                                float t = sy0;
                                 sy0 = sy1;
                                 sy1 = t;
                                 t = x_bottom;
@@ -168,13 +164,14 @@ namespace StbSharp
                                 xb = t;
                             }
 
-                            x1 = (int)x_top;
-                            x2 = (int)x_bottom;
-                            y_crossing = (x1 + 1 - x0) * dy + y_top;
-                            sign = e.direction;
-                            area = sign * (y_crossing - sy0);
+                            int x1 = (int)x_top;
+                            int x2 = (int)x_bottom;
+                            float y_crossing = (x1 + 1 - x0) * dy + y_top;
+                            float sign = e.direction;
+                            float area = sign * (y_crossing - sy0);
                             scanline[x1] += area * (1 - (x_top - x1 + (x1 + 1 - x1)) / 2);
-                            step = sign * dy;
+
+                            float step = sign * dy;
                             for (int x = x1 + 1; x < x2; ++x)
                             {
                                 scanline[x] += area + step / 2;
@@ -220,7 +217,7 @@ namespace StbSharp
                             float x1 = x;
                             float x2 = x + 1;
 
-                            if ((x0 < x1) && (x3 > x2))
+                            if (x0 < x1 && x3 > x2)
                             {
                                 float y1 = (x1 - x0) * dx_fac + y_top;
                                 float y2 = (x2 - x0) * dx_fac + y_top;
@@ -228,7 +225,7 @@ namespace StbSharp
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x2, y2);
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x3, y3);
                             }
-                            else if ((x3 < x1) && (x0 > x2))
+                            else if (x3 < x1 && x0 > x2)
                             {
                                 float y1 = (x1 - x0) * dx_fac + y_top;
                                 float y2 = (x2 - x0) * dx_fac + y_top;
@@ -236,25 +233,25 @@ namespace StbSharp
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x1, y1);
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
-                            else if ((x0 < x1) && (x3 > x1))
+                            else if (x0 < x1 && x3 > x1)
                             {
                                 float y1 = (x1 - x0) * dx_fac + y_top;
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x1, y1);
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
-                            else if ((x3 < x1) && (x0 > x1))
+                            else if (x3 < x1 && x0 > x1)
                             {
                                 float y1 = (x1 - x0) * dx_fac + y_top;
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x1, y1);
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x1, y1, x3, y3);
                             }
-                            else if ((x0 < x2) && (x3 > x2))
+                            else if (x0 < x2 && x3 > x2)
                             {
                                 float y2 = (x2 - x0) * dx_fac + y_top;
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x2, y2);
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x2, y2, x3, y3);
                             }
-                            else if ((x3 < x2) && (x0 > x2))
+                            else if (x3 < x2 && x0 > x2)
                             {
                                 float y2 = (x2 - x0) * dx_fac + y_top;
                                 HandleClippedEdge(scanline, x, eey, esy, edir, x0, y0, x2, y2);
