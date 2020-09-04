@@ -4,21 +4,16 @@ using static StbSharp.StbRectPack;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int PackPrepare(
-            PackContext spc, bool skipMissing, int pw, int ph, int stride_in_bytes, int padding)
+            PackContext spc, bool skipMissing, int pw, int ph, int byteStride, int padding)
         {
             spc.width = pw;
             spc.height = ph;
             spc.pack_info = new RPContext();
             spc.padding = padding;
-            spc.stride_in_bytes = stride_in_bytes != 0 ? stride_in_bytes : pw;
+            spc.stride_in_bytes = byteStride != 0 ? byteStride : pw;
             spc.oversample.X = 1;
             spc.oversample.Y = 1;
             spc.skip_missing = skipMissing;
@@ -58,9 +53,9 @@ namespace StbSharp
             {
                 Span<PackedChar> charData = ranges[i].chardata_for_range.Span;
                 float fh = ranges[i].font_size;
-                Vector2 scale = fh > 0
+                var scale = new Vector2(fh > 0
                     ? ScaleForPixelHeight(info, fh)
-                    : ScaleForMappingEmToPixels(info, -fh);
+                    : ScaleForMappingEmToPixels(info, -fh));
                 float recip_h = 0;
                 float recip_v = 0;
                 float sub_x = 0;
@@ -147,9 +142,9 @@ namespace StbSharp
             for (int i = 0; i < ranges.Length; ++i)
             {
                 float fh = ranges[i].font_size;
-                var scale = fh > 0
+                var scale = new Vector2(fh > 0
                     ? ScaleForPixelHeight(info, fh)
-                    : ScaleForMappingEmToPixels(info, -fh);
+                    : ScaleForMappingEmToPixels(info, -fh));
 
                 ranges[i].oversample_x = (byte)spc.oversample.X;
                 ranges[i].oversample_y = (byte)spc.oversample.Y;
@@ -215,15 +210,15 @@ namespace StbSharp
             PackContext spc,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontdata,
-            float font_size,
-            int first_unicode_codepoint_in_range,
-            Memory<PackedChar> chardata_for_range)
+            float fontSize,
+            int firstUnicodeCodepointInRange,
+            Memory<PackedChar> chardataForRange)
         {
             var range = new PackRange();
-            range.first_unicode_codepoint_in_range = first_unicode_codepoint_in_range;
+            range.first_unicode_codepoint_in_range = firstUnicodeCodepointInRange;
             range.array_of_unicode_codepoints = null;
-            range.chardata_for_range = chardata_for_range;
-            range.font_size = font_size;
+            range.chardata_for_range = chardataForRange;
+            range.font_size = fontSize;
 
             // todo: remove this array alloc
             return PackFontRanges(spc, pixels, fontdata, new PackRange[] { range });
@@ -236,24 +231,24 @@ namespace StbSharp
             var info = new FontInfo();
             InitFont(info, fontData, GetFontOffset(fontData.Span, index));
 
-            var scale = size > 0
+            float scale = size > 0
                 ? ScaleForPixelHeight(info, size)
                 : ScaleForMappingEmToPixels(info, -size);
 
             GetFontVMetrics(info, out int i_ascent, out int i_descent, out int i_lineGap);
-            ascent = i_ascent * scale.Y;
-            descent = i_descent * scale.Y;
-            lineGap = i_lineGap * scale.Y;
+            ascent = i_ascent * scale;
+            descent = i_descent * scale;
+            lineGap = i_lineGap * scale;
         }
 
         public static void GetPackedQuad(
-            ReadOnlySpan<PackedChar> chardata, int pw, int ph, int char_index,
-            ref float xpos, float ypos, ref AlignedQuad q, bool align_to_integer)
+            ReadOnlySpan<PackedChar> chardata, int pw, int ph, int charIndex,
+            ref float xpos, float ypos, ref AlignedQuad q, bool alignToInteger)
         {
             float ipw = 1f / pw;
             float iph = 1f / ph;
-            ref readonly var b = ref chardata[char_index];
-            if (align_to_integer)
+            ref readonly var b = ref chardata[charIndex];
+            if (alignToInteger)
             {
                 float x = (int)Math.Floor(xpos + b.offset0.X + 0.5f);
                 float y = (int)Math.Floor(ypos + b.offset0.Y + 0.5f);

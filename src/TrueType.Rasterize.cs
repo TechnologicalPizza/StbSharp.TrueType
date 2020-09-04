@@ -1,37 +1,31 @@
-﻿
-using System;
+﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    partial class TrueType
+    public partial class TrueType
     {
-        public static Vector2[] FlattenCurves(
-            ReadOnlySpan<Vertex> vertices, float objspace_flatness,
-            out int[] contour_lengths, out int num_contours)
+        public static Vector2[]? FlattenCurves(
+            ReadOnlySpan<Vertex> vertices, float objspaceFlatness,
+            out int[]? contourLengths, out int contourCount)
         {
             int n = 0;
             for (int i = 0; i < vertices.Length; i++)
                 if (vertices[i].type == VertexType.Move)
                     n++;
 
-            num_contours = n;
+            contourCount = n;
             if (n == 0)
             {
-                contour_lengths = null;
+                contourLengths = null;
                 return null;
             }
 
-            contour_lengths = new int[n];
-            Vector2[] points = null;
+            contourLengths = new int[n];
+            Vector2[]? points = null;
 
-            float objspace_flatness_squared = objspace_flatness * objspace_flatness;
+            float objspace_flatness_squared = objspaceFlatness * objspaceFlatness;
             int num_points = 0;
             int start = 0;
             for (int pass = 0; pass < 2; pass++)
@@ -49,7 +43,7 @@ namespace StbSharp
                     {
                         case VertexType.Move:
                             if (n >= 0)
-                                contour_lengths[n] = num_points - start;
+                                contourLengths[n] = num_points - start;
                             n++;
                             start = num_points;
                             pos.X = vertex.X;
@@ -88,22 +82,22 @@ namespace StbSharp
                     }
                 }
 
-                contour_lengths[n] = num_points - start;
+                contourLengths[n] = num_points - start;
             }
 
             return points;
         }
 
         public static void Rasterize(
-            Bitmap result, float flatness_in_pixels, ReadOnlySpan<Vertex> vertices,
+            Bitmap result, float pixelFlatness, ReadOnlySpan<Vertex> vertices,
             Vector2 scale, Vector2 shift, Vector2 offset, IntPoint pixelOffset, bool invert)
         {
             float scaleValue = scale.X > scale.Y ? scale.Y : scale.X;
-            float objspace_flatness = flatness_in_pixels / scaleValue;
+            float objspaceFlatness = pixelFlatness / scaleValue;
 
-            Vector2[] windings = FlattenCurves(
-                vertices, objspace_flatness,
-                out int[] winding_lengths, out int winding_count);
+            Vector2[]? windings = FlattenCurves(
+                vertices, objspaceFlatness,
+                out int[]? winding_lengths, out int winding_count);
 
             if (windings == null)
                 return;
@@ -261,7 +255,7 @@ namespace StbSharp
                     e[n].p0.Y = (p[a].Y * y_scale_inv + shift.Y) * vsubsample;
                     e[n].p1.X = p[b].X * scale.X + shift.X;
                     e[n].p1.Y = (p[b].Y * y_scale_inv + shift.Y) * vsubsample;
-                    ++n;
+                    n++;
                 }
             }
 

@@ -1,16 +1,10 @@
-﻿
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
-        public static byte[] GetCodepointBitmap(
+        public static byte[]? GetCodepointBitmap(
             FontInfo info, Vector2 scale, int codepoint,
             out int width, out int height, out IntPoint offset)
         {
@@ -18,7 +12,7 @@ namespace StbSharp
                 info, scale, Vector2.Zero, codepoint, out width, out height, out offset);
         }
 
-        public static byte[] GetCodepointBitmapSubpixel(
+        public static byte[]? GetCodepointBitmapSubpixel(
             FontInfo info, Vector2 scale, Vector2 shift, int codepoint,
             out int width, out int height, out IntPoint offset)
         {
@@ -35,9 +29,9 @@ namespace StbSharp
         }
 
         public static int GetCodepointShape(
-            FontInfo info, int unicode_codepoint, out Vertex[] vertices)
+            FontInfo info, int codepoint, out Vertex[]? vertices)
         {
-            return GetGlyphShape(info, FindGlyphIndex(info, unicode_codepoint), out vertices);
+            return GetGlyphShape(info, FindGlyphIndex(info, codepoint), out vertices);
         }
 
         public static int GetCodepointKernAdvance(

@@ -10,7 +10,7 @@ namespace StbSharp
 #endif
     unsafe partial class TrueType
     {
-        public static int GetGlyphShapeTT(FontInfo info, int glyph_index, out Vertex[] pvertices)
+        public static int GetGlyphShapeTT(FontInfo info, int glyph_index, out Vertex[]? pvertices)
         {
             int g = GetGlyphOffset(info, glyph_index);
             if (g < 0)
@@ -19,7 +19,7 @@ namespace StbSharp
                 return 0;
             }
 
-            Vertex[] vertices = null;
+            Vertex[]? vertices = null;
             int num_vertices = 0;
             var data = info.data.Span;
             short numberOfContours = ReadInt16(data.Slice(g));
@@ -187,7 +187,7 @@ namespace StbSharp
                 var comp = data.Slice(g + 10);
                 num_vertices = 0;
                 vertices = null;
-                float* matrix = stackalloc float[6];
+                Span<float> matrix = stackalloc float[6];
 
                 while (more != 0)
                 {
@@ -257,7 +257,7 @@ namespace StbSharp
                     
                     if (compVerts.Length > 0)
                     {
-                        // TODO: optimize this?
+                        // TODO: optimize/vectorize this?
                         for (i = 0; i < compVerts.Length; ++i)
                         {
                             ref Vertex v = ref compVerts[i];

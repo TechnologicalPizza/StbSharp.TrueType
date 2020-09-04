@@ -1,14 +1,8 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static void GetFontVMetrics(
             FontInfo info, out int ascent, out int descent, out int lineGap)
@@ -48,17 +42,17 @@ namespace StbSharp
             p1.Y = ReadInt16(head.Slice(42));
         }
 
-        public static Vector2 ScaleForPixelHeight(FontInfo info, float height)
+        public static float ScaleForPixelHeight(FontInfo info, float height)
         {
             var data = info.data.Span.Slice(info.hhea);
             int fheight = ReadInt16(data.Slice(4)) - ReadInt16(data.Slice(6));
-            return new Vector2(height / fheight);
+            return height / fheight;
         }
 
-        public static Vector2 ScaleForMappingEmToPixels(FontInfo info, float pixels)
+        public static float ScaleForMappingEmToPixels(FontInfo info, float pixels)
         {
             int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
-            return new Vector2(pixels / unitsPerEm);
+            return pixels / unitsPerEm;
         }
     }
 }

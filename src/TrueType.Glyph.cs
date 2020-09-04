@@ -10,15 +10,15 @@ namespace StbSharp
     unsafe partial class TrueType
     {
         public static bool GetGlyphBox(
-            FontInfo info, int glyph_index, out Rect glyphBox)
+            FontInfo info, int glyphIndex, out Rect glyphBox)
         {
             if (info.cff.size != 0)
             {
-                return GetGlyphInfoT2(info, glyph_index, out glyphBox) != 0;
+                return GetGlyphInfoT2(info, glyphIndex, out glyphBox) != 0;
             }
             else
             {
-                int g = GetGlyphOffset(info, glyph_index);
+                int g = GetGlyphOffset(info, glyphIndex);
                 if (g < 0)
                 {
                     glyphBox = Rect.Zero;
@@ -35,9 +35,9 @@ namespace StbSharp
             }
         }
 
-        public static int GetGlyphOffset(FontInfo info, int glyph_index)
+        public static int GetGlyphOffset(FontInfo info, int glyphIndex)
         {
-            if (glyph_index >= info.numGlyphs)
+            if (glyphIndex >= info.numGlyphs)
                 return -1;
 
             if (info.indexToLocFormat >= 2)
@@ -48,45 +48,45 @@ namespace StbSharp
             var locaData = info.data.Span.Slice(info.loca);
             if (info.indexToLocFormat == 0)
             {
-                g1 = info.glyf + ReadUInt16(locaData.Slice(glyph_index * 2)) * 2;
-                g2 = info.glyf + ReadUInt16(locaData.Slice(glyph_index * 2 + 2)) * 2;
+                g1 = info.glyf + ReadUInt16(locaData.Slice(glyphIndex * 2)) * 2;
+                g2 = info.glyf + ReadUInt16(locaData.Slice(glyphIndex * 2 + 2)) * 2;
             }
             else
             {
-                g1 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyph_index * 4)));
-                g2 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyph_index * 4 + 4)));
+                g1 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyphIndex * 4)));
+                g2 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyphIndex * 4 + 4)));
             }
             return g1 == g2 ? -1 : g1;
         }
 
-        public static int GetGlyphShape(FontInfo info, int glyph_index, out Vertex[] pvertices)
+        public static int GetGlyphShape(FontInfo info, int glyphIndex, out Vertex[]? pvertices)
         {
             if (info.cff.size == 0)
-                return GetGlyphShapeTT(info, glyph_index, out pvertices);
+                return GetGlyphShapeTT(info, glyphIndex, out pvertices);
             else
-                return GetGlyphShapeT2(info, glyph_index, out pvertices);
+                return GetGlyphShapeT2(info, glyphIndex, out pvertices);
         }
 
-        public static bool IsGlyphEmpty(FontInfo info, int glyph_index)
+        public static bool IsGlyphEmpty(FontInfo info, int glyphIndex)
         {
             if (info.cff.size != 0)
-                return GetGlyphInfoT2(info, glyph_index, out _) == 0 ? true : false;
+                return GetGlyphInfoT2(info, glyphIndex, out _) == 0;
 
-            int g = GetGlyphOffset(info, glyph_index);
+            int g = GetGlyphOffset(info, glyphIndex);
             if (g < 0)
                 return true;
 
             short numberOfContours = ReadInt16(info.data.Span.Slice(g));
-            return numberOfContours == 0 ? true : false;
+            return numberOfContours == 0;
         }
 
         public static int GetGlyphInfoT2(
-            FontInfo info, int glyph_index, out Rect glyphBox)
+            FontInfo info, int glyphIndex, out Rect glyphBox)
         {
             var c = new CharStringContext();
             c.bounds = 1;
 
-            int r = RunCharString(info, glyph_index, ref c);
+            int r = RunCharString(info, glyphIndex, ref c);
             if (r != 0)
             {
                 glyphBox = Rect.FromEdgePoints(c.min, c.max);
@@ -98,19 +98,21 @@ namespace StbSharp
         }
 
         public static void GetGlyphHMetrics(
-            FontInfo info, int glyph_index, out int advanceWidth, out int leftSideBearing)
+            FontInfo info, int glyphIndex, out int advanceWidth, out int leftSideBearing)
         {
             ushort numOfLongHorMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
-            if (glyph_index < numOfLongHorMetrics)
+            if (glyphIndex < numOfLongHorMetrics)
             {
-                advanceWidth = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyph_index));
-                leftSideBearing = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyph_index + 2));
+                advanceWidth = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex));
+                leftSideBearing = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex + 2));
             }
             else
             {
-                advanceWidth = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * (numOfLongHorMetrics - 1)));
-                leftSideBearing = ReadInt16(
-                    info.data.Span.Slice(info.hmtx + 4 * numOfLongHorMetrics + 2 * (glyph_index - numOfLongHorMetrics)));
+                advanceWidth = ReadInt16(info.data.Span.Slice(
+                    info.hmtx + 4 * (numOfLongHorMetrics - 1)));
+
+                leftSideBearing = ReadInt16(info.data.Span.Slice(
+                    info.hmtx + 4 * numOfLongHorMetrics + 2 * (glyphIndex - numOfLongHorMetrics)));
             }
         }
 

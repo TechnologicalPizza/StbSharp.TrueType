@@ -10,7 +10,7 @@ namespace StbSharp
 #endif
     unsafe partial class TrueType
     {
-        public static byte[] GetGlyphBitmap(
+        public static byte[]? GetGlyphBitmap(
             FontInfo info, Vector2 scale, int glyph,
             out int width, out int height, out IntPoint offset)
         {
@@ -18,8 +18,8 @@ namespace StbSharp
                 info, scale, Vector2.Zero, glyph, out width, out height, out offset);
         }
 
-        public static byte[] GetGlyphBitmapSubpixel(
-            FontInfo info, Vector2 scale, Vector2 shift, int glyph, 
+        public static byte[]? GetGlyphBitmapSubpixel(
+            FontInfo info, Vector2 scale, Vector2 shift, int glyph,
             out int width, out int height, out IntPoint offset)
         {
             if (scale.X == 0)
@@ -36,7 +36,13 @@ namespace StbSharp
                 scale.Y = scale.X;
             }
 
-            GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
+            if (!GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox))
+            {
+                width = default;
+                height = default;
+                offset = default;
+                return null;
+            }
 
             var gbm = new Bitmap();
             gbm.w = glyphBox.W;
@@ -55,7 +61,7 @@ namespace StbSharp
                 gbm.pixels.Fill(0);
                 gbm.stride = gbm.w;
 
-                int num_verts = GetGlyphShape(info, glyph, out Vertex[] vertices);
+                int num_verts = GetGlyphShape(info, glyph, out Vertex[]? vertices);
                 Rasterize(
                     gbm, 0.35f, vertices.AsSpan(0, num_verts), scale, shift,
                     glyphBox.Position, IntPoint.Zero, invert: true);
@@ -103,64 +109,67 @@ namespace StbSharp
         }
 
         public static void MakeGlyphBitmapSubpixel(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, Vector2 shift, IntPoint pixelOffset, int glyph)
         {
-            int num_verts = GetGlyphShape(info, glyph, out Vertex[] vertices);
             GetGlyphBitmapBoxSubpixel(info, glyph, scale, shift, out var glyphBox);
 
             var gbm = new Bitmap();
             gbm.pixels = output;
-            gbm.w = out_w;
-            gbm.h = out_h;
-            gbm.stride = out_stride;
+            gbm.w = width;
+            gbm.h = height;
+            gbm.stride = stride;
 
             if (gbm.w != 0 && gbm.h != 0)
+            {
+                int num_verts = GetGlyphShape(info, glyph, out Vertex[]? vertices);
+
                 Rasterize(
                     gbm, 0.35f, vertices.AsSpan(0, num_verts), scale, shift,
                     glyphBox.Position, pixelOffset, true);
+            }
         }
 
         public static void MakeGlyphBitmap(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, IntPoint pixelOffset, int glyph)
         {
             MakeGlyphBitmapSubpixel(
-                info, output, out_w, out_h, out_stride, scale, Vector2.Zero, pixelOffset, glyph);
+                info, output, width, height, stride, scale, Vector2.Zero, pixelOffset, glyph);
         }
 
         public static void MakeCodepointBitmapSubpixelPrefilter(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, Vector2 shift, IntPoint pixelOffset,
             IntPoint oversample, out Vector2 sub, int codepoint)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             MakeGlyphBitmapSubpixelPrefilter(
-                info, output, out_w, out_h, out_stride,
+                info, output, width, height, stride,
                 scale, shift, pixelOffset,
                 oversample, out sub, glyph);
         }
 
         public static void MakeCodepointBitmapSubpixel(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, Vector2 shift, IntPoint pixelOffset, int codepoint)
         {
             int glyph = FindGlyphIndex(info, codepoint);
             MakeGlyphBitmapSubpixel(
-                info, output, out_w, out_h, out_stride, scale, shift, pixelOffset, glyph);
+                info, output, width, height, stride, scale, shift, pixelOffset, glyph);
         }
 
         public static void MakeCodepointBitmap(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, IntPoint pixelOffset, int codepoint)
         {
             MakeCodepointBitmapSubpixel(
-                info, output, out_w, out_h, out_stride, scale, Vector2.Zero, pixelOffset, codepoint);
+                info, output, width, height, stride, scale, Vector2.Zero, pixelOffset, codepoint);
         }
 
         public static int BakeFontBitmap(
-            ReadOnlyMemory<byte> fontData, int offset, float pixel_height, Span<byte> pixels,
-            int pw, int ph, int first_char, Span<BakedChar> chardata)
+            ReadOnlyMemory<byte> fontData, int offset, Vector2 scale, Span<byte> pixels,
+            int pw, int ph, int firstChar, Span<BakedChar> chardata)
         {
             var info = new FontInfo();
             if (!InitFont(info, fontData, offset))
@@ -168,13 +177,11 @@ namespace StbSharp
 
             int x = 1;
             int y = 1;
-
             int bottom_y = 1;
-            var scale = ScaleForPixelHeight(info, pixel_height);
-
+            
             for (int i = 0; i < chardata.Length; ++i)
             {
-                int g = FindGlyphIndex(info, first_char + i);
+                int g = FindGlyphIndex(info, firstChar + i);
                 GetGlyphHMetrics(info, g, out int advance, out _);
                 GetGlyphBitmapBox(info, g, scale, out var glyphBox);
                 if ((x + glyphBox.W + 1) >= pw)
@@ -206,19 +213,19 @@ namespace StbSharp
         }
 
         public static void MakeGlyphBitmapSubpixelPrefilter(
-            FontInfo info, Span<byte> output, int out_w, int out_h, int out_stride,
+            FontInfo info, Span<byte> output, int width, int height, int stride,
             Vector2 scale, Vector2 shift, IntPoint pixelOffset,
             IntPoint prefilter, out Vector2 sub, int glyph)
         {
-            int bw = out_w - (prefilter.X - 1);
-            int bh = out_h - (prefilter.Y - 1);
+            int bw = width - (prefilter.X - 1);
+            int bh = height - (prefilter.Y - 1);
             MakeGlyphBitmapSubpixel(
-                info, output, bw, bh, out_stride, scale, shift, pixelOffset, glyph);
+                info, output, bw, bh, stride, scale, shift, pixelOffset, glyph);
 
             if (prefilter.X > 1)
-                HorizontalPrefilter(output, out_w, out_h, out_stride, prefilter.X);
+                HorizontalPrefilter(output, width, height, stride, prefilter.X);
             if (prefilter.Y > 1)
-                VerticalPrefilter(output, out_w, out_h, out_stride, prefilter.Y);
+                VerticalPrefilter(output, width, height, stride, prefilter.Y);
 
             sub.X = OversampleShift(prefilter.X);
             sub.Y = OversampleShift(prefilter.Y);

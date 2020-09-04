@@ -38,7 +38,7 @@ namespace StbSharp
         {
             public Vector2 pos0;
             public Vector2 st0;
-            
+
             public Vector2 pos1;
             public Vector2 st1;
         }
@@ -61,7 +61,7 @@ namespace StbSharp
         {
             public float font_size;
             public int first_unicode_codepoint_in_range;
-            public int* array_of_unicode_codepoints;
+            public int[]? array_of_unicode_codepoints;
             public Memory<PackedChar> chardata_for_range;
             public byte oversample_x;
             public byte oversample_y;
@@ -194,9 +194,9 @@ namespace StbSharp
             public static IntRect FromEdgePoints(int tlX, int tlY, int brX, int brY)
             {
                 return new IntRect(
-                    x: tlX, 
+                    x: tlX,
                     y: tlY,
-                    w: brX - tlX, 
+                    w: brX - tlX,
                     h: brY - tlY);
             }
 
@@ -254,8 +254,8 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct IntPoint
         {
-            public static readonly IntPoint Zero = new IntPoint(0, 0);
-            public static readonly IntPoint One = new IntPoint(1, 1);
+            public static IntPoint Zero => default;
+            public static IntPoint One { get; } = new IntPoint(1, 1);
 
             public int X;
             public int Y;

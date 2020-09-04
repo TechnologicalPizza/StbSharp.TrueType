@@ -11,18 +11,18 @@ namespace StbSharp
     unsafe partial class TrueType
     {
         public static int GetGlyphShapeT2(
-            FontInfo info, int glyph_index, out Vertex[] pvertices)
+            FontInfo info, int glyphIndex, out Vertex[]? pvertices)
         {
             var output_ctx = new CharStringContext();
             var count_ctx = new CharStringContext();
             count_ctx.bounds = 1;
 
-            if (RunCharString(info, glyph_index, ref count_ctx) != 0)
+            if (RunCharString(info, glyphIndex, ref count_ctx) != 0)
             {
                 pvertices = new Vertex[count_ctx.num_vertices];
                 output_ctx.pvertices = pvertices;
 
-                if (RunCharString(info, glyph_index, ref output_ctx) != 0)
+                if (RunCharString(info, glyphIndex, ref output_ctx) != 0)
                     return output_ctx.num_vertices;
             }
 
@@ -31,8 +31,9 @@ namespace StbSharp
         }
 
         public static int RunCharString(
-            FontInfo info, int glyph_index, ref CharStringContext c)
+            FontInfo info, int glyphIndex, ref CharStringContext c)
         {
+            var subrs = info.subrs;
             int in_header = 1;
             int maskbits = 0;
             int subr_stack_height = 0;
@@ -44,9 +45,8 @@ namespace StbSharp
             int clear_stack = 0;
             Span<float> s = stackalloc float[48];
             var subr_stack = new Buffer[10];
-            var subrs = info.subrs;
             float f = 0;
-            var b = CffIndexGet(info.charstrings, glyph_index);
+            var b = CffIndexGet(info.charstrings, glyphIndex);
             while (b.cursor < b.size)
             {
                 i = 0;
@@ -237,7 +237,7 @@ namespace StbSharp
                             if (has_subrs == 0)
                             {
                                 if (info.fdselect.size != 0)
-                                    subrs = CidGetGlyphSubRs(info, glyph_index);
+                                    subrs = CidGetGlyphSubRs(info, glyphIndex);
                                 has_subrs = 1;
                             }
                         }
@@ -400,11 +400,13 @@ namespace StbSharp
         {
             int count = CffIndexCount(ref idx);
             int bias = 107;
+            
             if (count >= 33900)
                 bias = 32768;
             else if (count >= 1240)
                 bias = 1131;
             n += bias;
+
             if ((n < 0) || (n >= count))
                 return Buffer.Empty;
             return CffIndexGet(idx, n);
