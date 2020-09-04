@@ -107,13 +107,7 @@ namespace StbSharp
                 scale, shift, offset, pixelOffset, invert);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe ref T NullRef<T>()
-        {
-            return ref Unsafe.AsRef<T>(null);
-        }
-
-        public static unsafe void RasterizeSortedEdges(
+        public static void RasterizeSortedEdges(
             Bitmap result, Span<Edge> e, int n, int vsubsample,
             Vector2 offset, IntPoint pixelOffset)
         {

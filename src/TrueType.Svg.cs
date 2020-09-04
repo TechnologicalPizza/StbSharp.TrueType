@@ -3,12 +3,7 @@ using System;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int GetSvgIndex(FontInfo info)
         {
@@ -29,7 +24,7 @@ namespace StbSharp
             return info.svg;
         }
 
-        ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
+        private ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
         {
             var svg_doc_list = info.data.Slice(GetSvgIndex(info));
             int numEntries = ReadUInt16(svg_doc_list.Span);
@@ -46,7 +41,7 @@ namespace StbSharp
             return default;
         }
 
-        ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
+        private ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
         {
             if (info.svg != 0)
             {
@@ -62,7 +57,7 @@ namespace StbSharp
             return default;
         }
 
-        ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)
+        private ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)
         {
             int index = FindGlyphIndex(info, unicode_codepoint);
             return GetGlyphSVG(info, index);

@@ -100,8 +100,8 @@ namespace StbSharp
         public static void GetGlyphHMetrics(
             FontInfo info, int glyphIndex, out int advanceWidth, out int leftSideBearing)
         {
-            ushort numOfLongHorMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
-            if (glyphIndex < numOfLongHorMetrics)
+            ushort numOfLongHMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
+            if (glyphIndex < numOfLongHMetrics)
             {
                 advanceWidth = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex));
                 leftSideBearing = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex + 2));
@@ -109,10 +109,10 @@ namespace StbSharp
             else
             {
                 advanceWidth = ReadInt16(info.data.Span.Slice(
-                    info.hmtx + 4 * (numOfLongHorMetrics - 1)));
+                    info.hmtx + 4 * (numOfLongHMetrics - 1)));
 
                 leftSideBearing = ReadInt16(info.data.Span.Slice(
-                    info.hmtx + 4 * numOfLongHorMetrics + 2 * (glyphIndex - numOfLongHorMetrics)));
+                    info.hmtx + 4 * numOfLongHMetrics + 2 * (glyphIndex - numOfLongHMetrics)));
             }
         }
 
