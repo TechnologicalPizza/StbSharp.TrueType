@@ -3,12 +3,7 @@ using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static byte[]? GetGlyphBitmap(
             FontInfo info, Vector2 scale, int glyph,

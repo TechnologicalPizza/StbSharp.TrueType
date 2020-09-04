@@ -1,14 +1,8 @@
-﻿
-using System;
+﻿using System;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static Buffer CffGetIndex(ref Buffer b)
         {

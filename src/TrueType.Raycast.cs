@@ -3,12 +3,7 @@ using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int RayIntersectBezier(
             in Vector2 ray, in Vector2 orig,

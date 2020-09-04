@@ -1,19 +1,8 @@
-﻿
-using System;
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+﻿using System;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static ActiveEdge NewActive(in Edge e, float off_x, float start_point)
         {

@@ -3,12 +3,7 @@ using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int GetGlyphShapeTT(FontInfo info, int glyph_index, out Vertex[]? pvertices)
         {
@@ -30,7 +25,7 @@ namespace StbSharp
                 int n = 1 + ReadUInt16(endPtsOfContours.Slice(numberOfContours * 2 - 2));
                 int m = n + 2 * numberOfContours;
                 vertices = new Vertex[m];
-                
+
                 byte flags = 0;
                 int i = 0;
                 int j = 0;
@@ -252,16 +247,16 @@ namespace StbSharp
 
                     m = MathF.Sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);
                     n = MathF.Sqrt(matrix[2] * matrix[2] + matrix[3] * matrix[3]);
-                    int comp_num_verts = GetGlyphShape(info, gidx, out Vertex[] comp_verts);
+                    int comp_num_verts = GetGlyphShape(info, gidx, out Vertex[]? comp_verts);
                     var compVerts = comp_verts.AsSpan(0, comp_num_verts);
-                    
+
                     if (compVerts.Length > 0)
                     {
                         // TODO: optimize/vectorize this?
                         for (i = 0; i < compVerts.Length; ++i)
                         {
                             ref Vertex v = ref compVerts[i];
-                            
+
                             short x = v.X;
                             short y = v.Y;
                             v.X = (short)(m * (matrix[0] * x + matrix[2] * y + matrix[4]));

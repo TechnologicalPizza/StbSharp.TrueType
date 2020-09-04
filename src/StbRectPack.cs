@@ -3,12 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    class StbRectPack
+    public class StbRectPack
     {
         [StructLayout(LayoutKind.Sequential)]
         public struct RPContext

@@ -2,12 +2,7 @@
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static bool GetGlyphBox(
             FontInfo info, int glyphIndex, out Rect glyphBox)

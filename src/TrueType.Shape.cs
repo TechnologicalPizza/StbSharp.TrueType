@@ -2,12 +2,7 @@
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int CloseShape(
             Span<Vertex> vertices, int num_vertices, int was_off, int start_off,

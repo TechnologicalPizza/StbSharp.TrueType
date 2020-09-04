@@ -3,12 +3,7 @@ using System.Numerics;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int GetGlyphShapeT2(
             FontInfo info, int glyphIndex, out Vertex[]? pvertices)
@@ -400,7 +395,7 @@ namespace StbSharp
         {
             int count = CffIndexCount(ref idx);
             int bias = 107;
-            
+
             if (count >= 33900)
                 bias = 32768;
             else if (count >= 1240)

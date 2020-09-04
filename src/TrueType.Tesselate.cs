@@ -4,18 +4,14 @@ using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    partial class TrueType
+    public partial class TrueType
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AddPoint(Span<Vector2> points, int n, float x, float y)
         {
             if (points.IsEmpty)
                 return;
+
             points[n].X = x;
             points[n].Y = y;
         }

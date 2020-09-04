@@ -3,12 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static bool IsFont(ReadOnlySpan<byte> fontData)
         {
@@ -221,7 +216,7 @@ namespace StbSharp
             return true;
         }
 
-        public static Buffer CidGetGlyphSubRs(FontInfo info, int glyph_index)
+        public static Buffer CidGetGlyphSubRs(FontInfo info, int glyphIndex)
         {
             var fdselect = info.fdselect;
             int fdselector = -1;
@@ -230,7 +225,7 @@ namespace StbSharp
             int fmt = fdselect.GetByte();
             if (fmt == 0)
             {
-                fdselect.Skip(glyph_index);
+                fdselect.Skip(glyphIndex);
                 fdselector = fdselect.GetByte();
             }
             else if (fmt == 3)
@@ -241,7 +236,7 @@ namespace StbSharp
                 {
                     int v = fdselect.GetByte();
                     int end = (int)fdselect.Get(2);
-                    if ((glyph_index >= start) && (glyph_index < end))
+                    if ((glyphIndex >= start) && (glyphIndex < end))
                     {
                         fdselector = v;
                         break;
@@ -260,15 +255,17 @@ namespace StbSharp
             // we only look at the first table. it must be 'horizontal' and format 0.
             if (info.kern == 0)
                 return 0;
+
             if (ReadUInt16(data.Slice(2)) < 1) // number of tables, need at least 1
                 return 0;
+
             if (ReadUInt16(data.Slice(8)) != 1) // horizontal flag must be set in format
                 return 0;
 
             return ReadUInt16(data.Slice(10));
         }
 
-        public static int GetKerningTable(FontInfo info, KerningEntry* table, int table_length)
+        public static int GetKerningTable(FontInfo info, Span<KerningEntry> table)
         {
             var data = info.data.Span.Slice(info.kern);
 
@@ -281,17 +278,17 @@ namespace StbSharp
                 return 0;
 
             int length = ReadUInt16(data.Slice(10));
-            if (table_length < length)
-                length = table_length;
+            if (table.Length > length)
+                table = table.Slice(0, length);
 
-            for (int k = 0; k < length; k++)
+            for (int i = 0; i < table.Length; i++)
             {
-                table[k].glyph1 = ReadUInt16(data.Slice(18 + (k * 6)));
-                table[k].glyph2 = ReadUInt16(data.Slice(20 + (k * 6)));
-                table[k].advance = ReadInt16(data.Slice(22 + (k * 6)));
+                table[i].glyph1 = ReadUInt16(data.Slice(18 + (i * 6)));
+                table[i].glyph2 = ReadUInt16(data.Slice(20 + (i * 6)));
+                table[i].advance = ReadInt16(data.Slice(22 + (i * 6)));
             }
 
-            return length;
+            return table.Length;
         }
     }
 }

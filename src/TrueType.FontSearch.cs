@@ -2,12 +2,7 @@
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static int FindGlyphIndex(FontInfo info, int unicode_codepoint)
         {
@@ -100,6 +95,7 @@ namespace StbSharp
             return 0;
         }
 
+        [CLSCompliant(false)]
         public static uint FindTable(ReadOnlySpan<byte> data, int fontstart, string tag)
         {
             int num_tables = ReadUInt16(data.Slice(fontstart + 4));

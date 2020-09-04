@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 
 namespace StbSharp
 {
@@ -24,7 +23,7 @@ namespace StbSharp
             return info.svg;
         }
 
-        private ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
+        private static ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
         {
             var svg_doc_list = info.data.Slice(GetSvgIndex(info));
             int numEntries = ReadUInt16(svg_doc_list.Span);
@@ -41,7 +40,7 @@ namespace StbSharp
             return default;
         }
 
-        private ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
+        private static ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
         {
             if (info.svg != 0)
             {
@@ -57,7 +56,7 @@ namespace StbSharp
             return default;
         }
 
-        private ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)
+        private static ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)
         {
             int index = FindGlyphIndex(info, unicode_codepoint);
             return GetGlyphSVG(info, index);

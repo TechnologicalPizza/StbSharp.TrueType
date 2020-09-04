@@ -2,12 +2,7 @@ using System;
 
 namespace StbSharp
 {
-#if !STBSHARP_INTERNAL
-    public
-#else
-    internal
-#endif
-    unsafe partial class TrueType
+    public partial class TrueType
     {
         public static void GetBakedQuad(
             in BakedChar chardata, int pw, int ph,
