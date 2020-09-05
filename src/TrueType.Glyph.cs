@@ -111,6 +111,19 @@ namespace StbSharp
             }
         }
 
+        public static bool GetGlyphRightSideBearing(FontInfo info, int glyphIndex, out float rightSideBearing)
+        {
+            if (GetGlyphBox(info, glyphIndex, out var box))
+            {
+                GetGlyphHMetrics(info, glyphIndex, out int advanceWidth, out int leftSideBearing);
+
+                rightSideBearing = advanceWidth - (leftSideBearing + box.W);
+                return true;
+            }
+            rightSideBearing = default;
+            return false;
+        }
+
         public static int GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
             var data = info.data.Span.Slice(info.kern);
