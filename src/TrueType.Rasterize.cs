@@ -108,10 +108,9 @@ namespace StbSharp
         }
 
         public static void RasterizeSortedEdges(
-            Bitmap result, Span<Edge> e, int n, int vsubsample,
-            Vector2 offset, IntPoint pixelOffset)
+            Bitmap result, Span<Edge> e, int n, Vector2 offset, IntPoint pixelOffset)
         {
-            const int HalfMaxScanlineStack = 256;
+            const int HalfMaxScanlineStack = 512;
 
             Span<float> scanlineBuffer = result.w <= HalfMaxScanlineStack
                 ? stackalloc float[result.w * 2 + 1]
@@ -177,10 +176,12 @@ namespace StbSharp
                 if (active != null)
                     FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
 
+                // TODO: output pixel rows instead
                 var pixel_row = result.pixels.Slice(
                     (bmpY + pixelOffset.Y) * result.stride + pixelOffset.X);
-                float sum = 0f;
 
+                // TODO: vectorize
+                float sum = 0f;
                 for (int x = 0; x < scanline.Length; x++)
                 {
                     sum += scanline_fill[x];
@@ -254,7 +255,7 @@ namespace StbSharp
             }
 
             SortEdges(e, n);
-            RasterizeSortedEdges(result, e, n, vsubsample, offset, pixelOffset);
+            RasterizeSortedEdges(result, e, n, offset, pixelOffset);
         }
     }
 }
