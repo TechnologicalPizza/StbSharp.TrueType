@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -34,11 +35,14 @@ namespace StbSharp
             return GetGlyphShape(info, FindGlyphIndex(info, codepoint), out vertices);
         }
 
-        public static int GetCodepointKernAdvance(
+        public static int? GetCodepointKernAdvance(
             FontInfo info, int ch1, int ch2)
         {
-            if ((info.kern == 0) && (info.gpos == 0))
-                return 0;
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
+            if (info.kern == 0 && info.gpos == 0)
+                return null;
 
             int chIndex1 = FindGlyphIndex(info, ch1);
             int chIndex2 = FindGlyphIndex(info, ch2);
@@ -46,11 +50,11 @@ namespace StbSharp
         }
 
         public static void GetCodepointHMetrics(
-            FontInfo info, int codepoint, 
+            FontInfo info, int codepoint,
             out int advanceWidth, out int leftSideBearing)
         {
             GetGlyphHMetrics(
-                info, FindGlyphIndex(info, codepoint), 
+                info, FindGlyphIndex(info, codepoint),
                 out advanceWidth, out leftSideBearing);
         }
     }

@@ -124,16 +124,16 @@ namespace StbSharp
             return false;
         }
 
-        public static int GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
+        public static int? GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
             if (info.kern == 0)
-                return 0;
+                return null;
 
             var data = info.data.Span.Slice(info.kern);
             if (ReadUInt16(data.Slice(2)) < 1)
-                return 0;
+                return null;
             if (ReadUInt16(data.Slice(8)) != 1)
-                return 0;
+                return null;
 
             int l = 0;
             int r = ReadUInt16(data.Slice(10)) - 1;
@@ -151,7 +151,7 @@ namespace StbSharp
                     return ReadInt16(data.Slice(22 + (m * 6)));
             }
 
-            return 0;
+            return null;
         }
 
         public static int GetCoverageIndex(ReadOnlySpan<byte> coverageTable, int glyph)
@@ -261,16 +261,16 @@ namespace StbSharp
             return -1;
         }
 
-        public static int GetGlyphGPOSInfoAdvance(FontInfo info, int glyph1, int glyph2)
+        public static int? GetGlyphGPOSInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
             if (info.gpos == 0)
-                return 0;
+                return null;
 
             var data = info.data.Span.Slice(info.gpos);
             if (ReadUInt16(data) != 1)
-                return 0;
+                return null;
             if (ReadUInt16(data.Slice(2)) != 0)
-                return 0;
+                return null;
 
             ushort lookupListOffset = ReadUInt16(data.Slice(8));
             var lookupList = data.Slice(lookupListOffset);
@@ -369,16 +369,12 @@ namespace StbSharp
                 }
             }
 
-            return 0;
+            return null;
         }
 
-        public static int GetGlyphKernAdvance(FontInfo info, int g1, int g2)
+        public static int? GetGlyphKernAdvance(FontInfo info, int g1, int g2)
         {
-            if (info.gpos != 0)
-                return GetGlyphGPOSInfoAdvance(info, g1, g2);
-            if (info.kern != 0)
-                return GetGlyphKernInfoAdvance(info, g1, g2);
-            return 0;
+            return GetGlyphKernInfoAdvance(info, g1, g2) ?? GetGlyphGPOSInfoAdvance(info, g1, g2);
         }
     }
 }
