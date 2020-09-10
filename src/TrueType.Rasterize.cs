@@ -174,7 +174,7 @@ namespace StbSharp
                 e = e.Slice(ie);
 
                 if (active != null)
-                    FillActiveEdgesNew(scanline, scanline_fill, active, scan_y_top);
+                    FillActiveEdges(scanline, scanline_fill, active, scan_y_top);
 
                 // TODO: output pixel rows instead
                 var pixel_row = result.pixels.Slice(

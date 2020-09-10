@@ -126,9 +126,10 @@ namespace StbSharp
 
         public static int GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
-            var data = info.data.Span.Slice(info.kern);
             if (info.kern == 0)
                 return 0;
+
+            var data = info.data.Span.Slice(info.kern);
             if (ReadUInt16(data.Slice(2)) < 1)
                 return 0;
             if (ReadUInt16(data.Slice(8)) != 1)
@@ -164,6 +165,7 @@ namespace StbSharp
                     int l = 0;
                     int r = glyphCount - 1;
                     int needle = glyph;
+
                     while (l <= r)
                     {
                         var glyphArray = coverageTable.Slice(4);
@@ -188,12 +190,14 @@ namespace StbSharp
                     int l = 0;
                     int r = rangeCount - 1;
                     int needle = glyph;
+
                     while (l <= r)
                     {
                         int m = (l + r) >> 1;
                         var rangeRecord = rangeArray.Slice(6 * m);
                         int strawStart = ReadUInt16(rangeRecord);
                         int strawEnd = ReadUInt16(rangeRecord.Slice(2));
+
                         if (needle < strawStart)
                             r = m - 1;
                         else if (needle > strawEnd)
@@ -279,6 +283,7 @@ namespace StbSharp
                 ushort lookupType = ReadUInt16(lookupTable);
                 ushort subTableCount = ReadUInt16(lookupTable.Slice(4));
                 var subTableOffsets = lookupTable.Slice(6);
+
                 if (lookupType == 2)
                 {
                     for (int sti = 0; sti < subTableCount; sti++)
@@ -303,6 +308,7 @@ namespace StbSharp
                                 var pairValueTable = table.Slice(pairPosOffset);
                                 ushort pairValueCount = ReadUInt16(pairValueTable);
                                 var pairValueArray = pairValueTable.Slice(2);
+
                                 if (valueFormat1 != 4)
                                     return 0;
                                 if (valueFormat2 != 0)
@@ -311,12 +317,14 @@ namespace StbSharp
                                 int needle = glyph2;
                                 int r = pairValueCount - 1;
                                 int l = 0;
+
                                 while (l <= r)
                                 {
                                     int m = (l + r) >> 1;
                                     var pairValue = pairValueArray.Slice((2 + valueRecordPairSizeInBytes) * m);
                                     ushort secondGlyph = ReadUInt16(pairValue);
                                     int straw = secondGlyph;
+
                                     if (needle < straw)
                                         r = m - 1;
                                     else if (needle > straw)
@@ -345,6 +353,7 @@ namespace StbSharp
                                     return 0;
                                 if (valueFormat2 != 0)
                                     return 0;
+
                                 if ((glyph1class >= 0) && (glyph1class < class1Count) &&
                                      (glyph2class >= 0) && (glyph2class < class2Count))
                                 {

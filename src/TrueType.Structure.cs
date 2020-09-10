@@ -6,7 +6,30 @@ namespace StbSharp
 {
     public partial class TrueType
     {
-        public unsafe class PackContext
+        public class FontInfo
+        {
+            public ReadOnlyMemory<byte> data;
+            public Buffer cff;
+            public Buffer charstrings;
+            public Buffer fdselect;
+            public Buffer fontdicts;
+            public Buffer gsubrs;
+            public Buffer subrs;
+            public int fontindex;
+            public int glyf;
+            public int gpos;
+            public int svg;
+            public int head;
+            public int hhea;
+            public int hmtx;
+            public int index_map;
+            public int indexToLocFormat;
+            public int kern;
+            public int loca;
+            public int numGlyphs;
+        }
+
+        public class PackContext
         {
             public IntPoint oversample;
             public StbRectPack.RPContext pack_info;
@@ -62,29 +85,6 @@ namespace StbSharp
             public byte oversample_y;
         }
 
-        public class FontInfo
-        {
-            public ReadOnlyMemory<byte> data;
-            public Buffer cff;
-            public Buffer charstrings;
-            public Buffer fdselect;
-            public Buffer fontdicts;
-            public Buffer gsubrs;
-            public Buffer subrs;
-            public int fontindex;
-            public int glyf;
-            public int gpos;
-            public int svg;
-            public int head;
-            public int hhea;
-            public int hmtx;
-            public int index_map;
-            public int indexToLocFormat;
-            public int kern;
-            public int loca;
-            public int numGlyphs;
-        }
-
         [StructLayout(LayoutKind.Sequential)]
         public struct KerningEntry
         {
@@ -107,8 +107,8 @@ namespace StbSharp
 
             public void Set(VertexType type, int x, int y, int cx, int cy)
             {
-                this.X = (short)x;
-                this.Y = (short)y;
+                X = (short)x;
+                Y = (short)y;
                 this.cx = (short)cx;
                 this.cy = (short)cy;
                 this.type = type;
@@ -159,7 +159,7 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct IntRect
         {
-            public static readonly IntRect Zero = new IntRect(0, 0, 0, 0);
+            public static IntRect Zero => default;
 
             public int X;
             public int Y;
@@ -204,7 +204,7 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Rect
         {
-            public static readonly Rect Zero = new Rect(0, 0, 0, 0);
+            public static Rect Zero => default;
 
             public float X;
             public float Y;
@@ -257,8 +257,8 @@ namespace StbSharp
 
             public IntPoint(int x, int y)
             {
-                this.X = x;
-                this.Y = y;
+                X = x;
+                Y = y;
             }
 
             public IntPoint(int value) : this(value, value)

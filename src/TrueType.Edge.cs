@@ -61,7 +61,7 @@ namespace StbSharp
             }
         }
 
-        public static void FillActiveEdgesNew(
+        public static void FillActiveEdges(
             Span<float> scanline, Span<float> scanlineFill, ActiveEdge? active, float y_top)
         {
             float y_bottom = y_top + 1;
