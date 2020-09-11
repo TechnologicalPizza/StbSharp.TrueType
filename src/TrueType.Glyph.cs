@@ -126,6 +126,8 @@ namespace StbSharp
 
         public static int? GetGlyphKernInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
             if (info.kern == 0)
                 return null;
 
@@ -141,7 +143,7 @@ namespace StbSharp
 
             while (l <= r)
             {
-                int m = (l + r) >> 1;
+                int m = (l + r) / 2;
                 uint straw = ReadUInt32(data.Slice(18 + (m * 6)));
                 if (needle < straw)
                     r = m - 1;
@@ -263,6 +265,8 @@ namespace StbSharp
 
         public static int? GetGlyphGPOSInfoAdvance(FontInfo info, int glyph1, int glyph2)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
             if (info.gpos == 0)
                 return null;
 
@@ -275,27 +279,28 @@ namespace StbSharp
             ushort lookupListOffset = ReadUInt16(data.Slice(8));
             var lookupList = data.Slice(lookupListOffset);
             ushort lookupCount = ReadUInt16(lookupList);
+            var lookupOffsets = lookupList.Slice(sizeof(ushort), lookupCount * sizeof(ushort));
 
-            for (int i = 0; i < lookupCount; ++i)
+            for (int i = 0; i < lookupOffsets.Length; i += sizeof(ushort))
             {
-                ushort lookupOffset = ReadUInt16(lookupList.Slice(2 + 2 * i));
+                ushort lookupOffset = ReadUInt16(lookupOffsets.Slice(i));
                 var lookupTable = lookupList.Slice(lookupOffset);
                 ushort lookupType = ReadUInt16(lookupTable);
-                ushort subTableCount = ReadUInt16(lookupTable.Slice(4));
-                var subTableOffsets = lookupTable.Slice(6);
-
                 if (lookupType == 2)
                 {
-                    for (int sti = 0; sti < subTableCount; sti++)
+                    ushort subTableCount = ReadUInt16(lookupTable.Slice(4));
+                    var subTableOffsets = lookupTable.Slice(6, subTableCount * sizeof(ushort));
+
+                    for (int sti = 0; sti < subTableOffsets.Length; sti += sizeof(ushort))
                     {
-                        ushort subtableOffset = ReadUInt16(subTableOffsets.Slice(2 * sti));
+                        ushort subtableOffset = ReadUInt16(subTableOffsets.Slice(sti));
                         var table = lookupTable.Slice(subtableOffset);
-                        ushort posFormat = ReadUInt16(table);
                         ushort coverageOffset = ReadUInt16(table.Slice(2));
                         int coverageIndex = GetCoverageIndex(table.Slice(coverageOffset), glyph1);
                         if (coverageIndex == (-1))
                             continue;
 
+                        ushort posFormat = ReadUInt16(table);
                         switch (posFormat)
                         {
                             case 1:
@@ -320,7 +325,7 @@ namespace StbSharp
 
                                 while (l <= r)
                                 {
-                                    int m = (l + r) >> 1;
+                                    int m = (l + r) / 2;
                                     var pairValue = pairValueArray.Slice((2 + valueRecordPairSizeInBytes) * m);
                                     ushort secondGlyph = ReadUInt16(pairValue);
                                     int straw = secondGlyph;

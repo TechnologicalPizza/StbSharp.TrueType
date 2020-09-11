@@ -1,31 +1,37 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
     public partial class TrueType
     {
         [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort ReadUInt16(ReadOnlySpan<byte> p)
         {
             return (ushort)(p[0] * 256 + p[1]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static short ReadInt16(ReadOnlySpan<byte> p)
         {
             return (short)(p[0] * 256 + p[1]);
         }
 
         [CLSCompliant(false)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ReadUInt32(ReadOnlySpan<byte> p)
         {
             return (uint)((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ReadInt32(ReadOnlySpan<byte> p)
         {
             return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float CubeRoot(float x)
         {
             if (x < 0)
