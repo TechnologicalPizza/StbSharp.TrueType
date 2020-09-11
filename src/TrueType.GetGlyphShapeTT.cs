@@ -15,7 +15,7 @@ namespace StbSharp
             }
 
             Vertex[]? vertices = null;
-            int num_vertices = 0;
+            int numVertices = 0;
             var data = info.data.Span;
             short numberOfContours = ReadInt16(data.Slice(g));
             if (numberOfContours > 0)
@@ -108,9 +108,9 @@ namespace StbSharp
                     offVertices[i].Y = (short)y;
                 }
 
-                num_vertices = 0;
+                numVertices = 0;
                 sx = sy = cx = cy = scx = scy = 0;
-                for (i = 0; i < n; ++i)
+                for (i = 0; i < n; i++)
                 {
                     flags = (byte)offVertices[i].type;
                     x = offVertices[i].X;
@@ -118,9 +118,11 @@ namespace StbSharp
                     if (next_move == i)
                     {
                         if (i != 0)
-                            num_vertices = CloseShape(
-                                vertices, num_vertices, was_off, start_off,
+                        {
+                            CloseShape(
+                                vertices, ref numVertices, was_off, start_off,
                                 sx, sy, scx, scy, cx, cy);
+                        }
 
                         start_off = (flags & 1) != 0 ? 0 : 1;
                         if (start_off != 0)
@@ -145,7 +147,7 @@ namespace StbSharp
                             sy = y;
                         }
 
-                        vertices[num_vertices++].Set(VertexType.Move, sx, sy, 0, 0);
+                        vertices[numVertices++].Set(VertexType.Move, sx, sy, 0, 0);
                         was_off = 0;
                         next_move = 1 + ReadUInt16(endPtsOfContours.Slice(j * 2));
                         ++j;
@@ -155,7 +157,7 @@ namespace StbSharp
                         if ((flags & 1) == 0)
                         {
                             if (was_off != 0)
-                                vertices[num_vertices++].Set(
+                                vertices[numVertices++].Set(
                                     VertexType.Curve, (cx + x) >> 1, (cy + y) >> 1, cx, cy);
 
                             cx = x;
@@ -165,22 +167,23 @@ namespace StbSharp
                         else
                         {
                             if (was_off != 0)
-                                vertices[num_vertices++].Set(VertexType.Curve, x, y, cx, cy);
+                                vertices[numVertices++].Set(VertexType.Curve, x, y, cx, cy);
                             else
-                                vertices[num_vertices++].Set(VertexType.Line, x, y, 0, 0);
+                                vertices[numVertices++].Set(VertexType.Line, x, y, 0, 0);
                             was_off = 0;
                         }
                     }
                 }
 
-                num_vertices = CloseShape(
-                    vertices, num_vertices, was_off, start_off, sx, sy, scx, scy, cx, cy);
+                CloseShape(
+                    vertices, ref numVertices, was_off, start_off,
+                    sx, sy, scx, scy, cx, cy);
             }
             else if (numberOfContours < 0)
             {
                 int more = 1;
                 var comp = data.Slice(g + 10);
-                num_vertices = 0;
+                numVertices = 0;
                 vertices = null;
                 Span<float> matrix = stackalloc float[6];
 
@@ -268,13 +271,13 @@ namespace StbSharp
                             v.cy = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
                         }
 
-                        var tmp = new Vertex[num_vertices + compVerts.Length];
+                        var tmp = new Vertex[numVertices + compVerts.Length];
 
-                        vertices.AsSpan(0, num_vertices).CopyTo(tmp);
-                        compVerts.CopyTo(tmp.AsSpan(num_vertices));
+                        vertices.AsSpan(0, numVertices).CopyTo(tmp);
+                        compVerts.CopyTo(tmp.AsSpan(numVertices));
 
                         vertices = tmp;
-                        num_vertices += compVerts.Length;
+                        numVertices += compVerts.Length;
                     }
 
                     more = flags & (1 << 5);
@@ -282,7 +285,7 @@ namespace StbSharp
             }
 
             pvertices = vertices;
-            return num_vertices;
+            return numVertices;
         }
 
     }

@@ -1,118 +1,126 @@
 ﻿using System;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace StbSharp
 {
     public partial class TrueType
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CharStringContext
+        {
+            public int bounds;
+            public bool started;
+            public Vector2 firstPos;
+            public Vector2 pos;
+            public IntPoint min;
+            public IntPoint max;
+            public Vertex[] pvertices;
+            public int num_vertices;
+
+            public void TrackVertex(int x, int y)
+            {
+                if (!started)
+                {
+                    max.X = x;
+                    max.Y = y;
+                    min.X = x;
+                    min.Y = y;
+                }
+                else
+                {
+                    if (x > max.X)
+                        max.X = x;
+                    if (y > max.Y)
+                        max.Y = y;
+
+                    if (x < min.X)
+                        min.X = x;
+                    if (y < min.Y)
+                        min.Y = y;
+                }
+                started = true;
+            }
+
+            public void Vertex(
+                VertexType type, int x, int y, int cx, int cy, int cx1, int cy1)
+            {
+                if (bounds != 0)
+                {
+                    TrackVertex(x, y);
+                    if (type == VertexType.Cubic)
+                    {
+                        TrackVertex(cx, cy);
+                        TrackVertex(cx1, cy1);
+                    }
+                }
+                else
+                {
+                    pvertices[num_vertices].Set(type, x, y, cx, cy);
+                    pvertices[num_vertices].cx1 = (short)cx1;
+                    pvertices[num_vertices].cy1 = (short)cy1;
+                }
+
+                num_vertices++;
+            }
+
+            public void CloseShape()
+            {
+                if ((firstPos.X != pos.X) || (firstPos.Y != pos.Y))
+                    Vertex(VertexType.Line, (int)firstPos.X, (int)firstPos.Y, 0, 0, 0, 0);
+            }
+
+            public void RMoveTo(float dx, float dy)
+            {
+                CloseShape();
+                firstPos.X = pos.X += dx;
+                firstPos.Y = pos.Y += dy;
+                Vertex(VertexType.Move, (int)pos.X, (int)pos.Y, 0, 0, 0, 0);
+            }
+
+            public void RLineTo(float dx, float dy)
+            {
+                pos.X += dx;
+                pos.Y += dy;
+                Vertex(VertexType.Line, (int)pos.X, (int)pos.Y, 0, 0, 0, 0);
+            }
+
+            public void RCCurveTo(
+                float dx1, float dy1, float dx2, float dy2, float dx3, float dy3)
+            {
+                float cx1 = pos.X + dx1;
+                float cy1 = pos.Y + dy1;
+                float cx2 = cx1 + dx2;
+                float cy2 = cy1 + dy2;
+                pos.X = cx2 + dx3;
+                pos.Y = cy2 + dy3;
+
+                Vertex(
+                    VertexType.Cubic, (int)pos.X, (int)pos.Y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
+            }
+        }
+
         public static int CloseShape(
-            Span<Vertex> vertices, int num_vertices, int was_off, int start_off,
+            Span<Vertex> vertices, ref int numVertices, int wasOff, int startOff,
             int sx, int sy, int scx, int scy, int cx, int cy)
         {
-            if (start_off != 0)
+            if (startOff != 0)
             {
-                if (was_off != 0)
-                    vertices[num_vertices++].Set(
+                if (wasOff != 0)
+                    vertices[numVertices++].Set(
                         VertexType.Curve, (cx + scx) >> 1, (cy + scy) >> 1, cx, cy);
 
-                vertices[num_vertices++].Set(VertexType.Curve, sx, sy, scx, scy);
+                vertices[numVertices++].Set(VertexType.Curve, sx, sy, scx, scy);
             }
             else
             {
-                if (was_off != 0)
-                    vertices[num_vertices++].Set(VertexType.Curve, sx, sy, cx, cy);
+                if (wasOff != 0)
+                    vertices[numVertices++].Set(VertexType.Curve, sx, sy, cx, cy);
                 else
-                    vertices[num_vertices++].Set(VertexType.Line, sx, sy, 0, 0);
+                    vertices[numVertices++].Set(VertexType.Line, sx, sy, 0, 0);
             }
 
-            return num_vertices;
-        }
-
-        public static void TrackVertex(ref CharStringContext c, int x, int y)
-        {
-            if (c.started == 0)
-            {
-                c.max.X = x;
-                c.max.Y = y;
-                c.min.X = x;
-                c.min.Y = y;
-            }
-            else
-            {
-                if (x > c.max.X)
-                    c.max.X = x;
-                if (y > c.max.Y)
-                    c.max.Y = y;
-
-                if (x < c.min.X)
-                    c.min.X = x;
-                if (y < c.min.Y)
-                    c.min.Y = y;
-            }
-            c.started = 1;
-        }
-
-        public static void CsContextV(
-            ref CharStringContext c, VertexType type,
-            int x, int y, int cx, int cy, int cx1, int cy1)
-        {
-            if (c.bounds != 0)
-            {
-                TrackVertex(ref c, x, y);
-                if (type == VertexType.Cubic)
-                {
-                    TrackVertex(ref c, cx, cy);
-                    TrackVertex(ref c, cx1, cy1);
-                }
-            }
-            else
-            {
-                c.pvertices[c.num_vertices].Set(type, x, y, cx, cy);
-                c.pvertices[c.num_vertices].cx1 = (short)cx1;
-                c.pvertices[c.num_vertices].cy1 = (short)cy1;
-            }
-
-            c.num_vertices++;
-        }
-
-        public static void CsContext_CloseShape(ref CharStringContext ctx)
-        {
-            if ((ctx.firstPos.X != ctx.pos.X) || (ctx.firstPos.Y != ctx.pos.Y))
-                CsContextV(
-                    ref ctx, VertexType.Line,
-                    (int)ctx.firstPos.X, (int)ctx.firstPos.Y, 0, 0, 0, 0);
-        }
-
-        public static void CsContext_RMoveTo(ref CharStringContext ctx, float dx, float dy)
-        {
-            CsContext_CloseShape(ref ctx);
-            ctx.firstPos.X = ctx.pos.X += dx;
-            ctx.firstPos.Y = ctx.pos.Y += dy;
-            CsContextV(
-                ref ctx, VertexType.Move, (int)ctx.pos.X, (int)ctx.pos.Y, 0, 0, 0, 0);
-        }
-
-        public static void CsContext_RLineTo(ref CharStringContext ctx, float dx, float dy)
-        {
-            ctx.pos.X += dx;
-            ctx.pos.Y += dy;
-            CsContextV(
-                ref ctx, VertexType.Line, (int)ctx.pos.X, (int)ctx.pos.Y, 0, 0, 0, 0);
-        }
-
-        public static void CsContext_RCCurveTo(
-            ref CharStringContext ctx,
-            float dx1, float dy1, float dx2, float dy2, float dx3, float dy3)
-        {
-            float cx1 = ctx.pos.X + dx1;
-            float cy1 = ctx.pos.Y + dy1;
-            float cx2 = cx1 + dx2;
-            float cy2 = cy1 + dy2;
-            ctx.pos.X = cx2 + dx3;
-            ctx.pos.Y = cy2 + dy3;
-
-            CsContextV(
-                ref ctx, VertexType.Cubic,
-                (int)ctx.pos.X, (int)ctx.pos.Y, (int)cx1, (int)cy1, (int)cx2, (int)cy2);
+            return numVertices;
         }
     }
 }

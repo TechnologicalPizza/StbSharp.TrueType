@@ -125,19 +125,6 @@ namespace StbSharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct CharStringContext
-        {
-            public int bounds;
-            public int started;
-            public Vector2 firstPos;
-            public Vector2 pos;
-            public IntPoint min;
-            public IntPoint max;
-            public Vertex[] pvertices;
-            public int num_vertices;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
         public struct Edge
         {
             public Vector2 p0;
