@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace StbSharp
@@ -28,7 +29,9 @@ namespace StbSharp
         public static int RunCharString(
             FontInfo info, int glyphIndex, ref CharStringContext c)
         {
-            var subrs = info.subrs;
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             int in_header = 1;
             int maskbits = 0;
             int subr_stack_height = 0;
@@ -38,11 +41,14 @@ namespace StbSharp
             int b0 = 0;
             int has_subrs = 0;
             int clear_stack = 0;
+            float f = 0;
+            var subrs = info.subrs;
+
             Span<float> s = stackalloc float[48];
             var subr_stack = new Buffer[10];
-            float f = 0;
+
             var b = CffIndexGet(info.charstrings, glyphIndex);
-            while (b.cursor < b.size)
+            while (b.Cursor < b.Size)
             {
                 i = 0;
                 clear_stack = 1;
@@ -230,7 +236,7 @@ namespace StbSharp
                         {
                             if (has_subrs == 0)
                             {
-                                if (info.fdselect.size != 0)
+                                if (info.fdselect.Size != 0)
                                     subrs = CidGetGlyphSubRs(info, glyphIndex);
                                 has_subrs = 1;
                             }
@@ -245,9 +251,9 @@ namespace StbSharp
 
                         subr_stack[subr_stack_height++] = b;
                         b = GetSubr(b0 == 0x0A ? subrs : info.gsubrs, v);
-                        if (b.size == 0)
+                        if (b.Size == 0)
                             return 0;
-                        b.cursor = 0;
+                        b.Cursor = 0;
                         clear_stack = 0;
                         break;
 

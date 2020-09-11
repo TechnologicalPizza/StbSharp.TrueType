@@ -32,14 +32,14 @@ namespace StbSharp
             {
                 TesselateCurve(
                     points, ref num_points,
-                    x0, y0, 
-                    (x0 + x1) / 2f, (y0 + y1) / 2f, 
-                    mx, my, 
+                    x0, y0,
+                    (x0 + x1) / 2f, (y0 + y1) / 2f,
+                    mx, my,
                     objspace_flatness_squared, n + 1);
 
                 TesselateCurve(
-                    points, ref num_points, 
-                    mx, my, 
+                    points, ref num_points,
+                    mx, my,
                     (x1 + x2) / 2f, (y1 + y2) / 2f,
                     x2, y2,
                     objspace_flatness_squared, n + 1);

@@ -7,7 +7,7 @@ namespace StbSharp
         public static bool GetGlyphBox(
             FontInfo info, int glyphIndex, out Rect glyphBox)
         {
-            if (info.cff.size != 0)
+            if (info.cff.Size != 0)
             {
                 return GetGlyphInfoT2(info, glyphIndex, out glyphBox) != 0;
             }
@@ -56,7 +56,7 @@ namespace StbSharp
 
         public static int GetGlyphShape(FontInfo info, int glyphIndex, out Vertex[]? pvertices)
         {
-            if (info.cff.size == 0)
+            if (info.cff.Size == 0)
                 return GetGlyphShapeTT(info, glyphIndex, out pvertices);
             else
                 return GetGlyphShapeT2(info, glyphIndex, out pvertices);
@@ -64,7 +64,7 @@ namespace StbSharp
 
         public static bool IsGlyphEmpty(FontInfo info, int glyphIndex)
         {
-            if (info.cff.size != 0)
+            if (info.cff.Size != 0)
                 return GetGlyphInfoT2(info, glyphIndex, out _) == 0;
 
             int g = GetGlyphOffset(info, glyphIndex);

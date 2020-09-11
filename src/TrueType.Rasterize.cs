@@ -213,7 +213,9 @@ namespace StbSharp
             for (int i = 0; i < windings.Length; i++)
                 winding_sum += windings[i];
 
-            var e = new Edge[winding_sum + 1];
+            int edgeCount = winding_sum + 1;
+            int totalEdgeBytes = edgeCount * Unsafe.SizeOf<Edge>();
+            var e = totalEdgeBytes <= 2048 ? stackalloc Edge[edgeCount] : new Edge[edgeCount];
 
             float y_scale_inv = invert ? -scale.Y : scale.Y;
             int vsubsample = 1;

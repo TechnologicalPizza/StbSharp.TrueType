@@ -8,36 +8,31 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Buffer
         {
-            public static Buffer Empty { get; } = EmptyWithLength(0);
+            public static Buffer Empty => default;
 
-            public ReadOnlyMemory<byte> data;
-            public int size;
-            public int cursor;
+            public ReadOnlyMemory<byte> Data;
+            public int Cursor;
 
-            public Buffer(ReadOnlyMemory<byte> data, int size)
+            public int Size => Data.Length;
+
+            public Buffer(ReadOnlyMemory<byte> data)
             {
-                this.data = data;
-                this.size = size;
-                cursor = 0;
-            }
-
-            public static Buffer EmptyWithLength(int length)
-            {
-                return new Buffer(ReadOnlyMemory<byte>.Empty, length);
+                Data = data;
+                Cursor = 0;
             }
 
             public byte PeekByte()
             {
-                if (cursor >= size)
+                if (Cursor >= Size)
                     return 0;
-                return data.Span[cursor];
+                return Data.Span[Cursor];
             }
 
             public byte GetByte()
             {
-                if (cursor >= size)
+                if (Cursor >= Size)
                     return 0;
-                return data.Span[cursor++];
+                return Data.Span[Cursor++];
             }
 
             [CLSCompliant(false)]
@@ -51,23 +46,17 @@ namespace StbSharp
 
             public void Seek(int o)
             {
-                cursor = ((o > size) || (o < 0)) ? size : o;
+                Cursor = ((o > Size) || (o < 0)) ? Size : o;
             }
 
             public void Skip(int o)
             {
-                Seek(cursor + o);
+                Seek(Cursor + o);
             }
 
             public Buffer Slice(int start, int length)
             {
-                Buffer r = Empty;
-                if ((start < 0) || (length < 0) || (start > size) || (length > (size - start)))
-                    return r;
-
-                r.data = data.Slice(start);
-                r.size = length;
-                return r;
+                return new Buffer(Data.Slice(start, length));
             }
         }
     }

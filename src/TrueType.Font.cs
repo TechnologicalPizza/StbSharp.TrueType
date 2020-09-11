@@ -89,7 +89,7 @@ namespace StbSharp
             DictGetInts(ref fontdict, 18, tmp);
 
             if (tmp[0] == 0 || tmp[1] == 0)
-                return Buffer.EmptyWithLength(9);
+                return Buffer.Empty;
 
             pdict = cff.Slice((int)tmp[1], (int)tmp[0]);
 
@@ -144,7 +144,8 @@ namespace StbSharp
 
                 info.fontdicts = Buffer.Empty;
                 info.fdselect = Buffer.Empty;
-                info.cff = new Buffer(fontData.Slice(cff), 512 * 1024 * 1024);
+                info.cff = new Buffer(fontData.Slice(cff));
+                
                 var b = info.cff;
                 b.Skip(2);
                 b.Seek(b.GetByte());
@@ -168,7 +169,7 @@ namespace StbSharp
 
                     b.Seek((int)fdarrayoff);
                     info.fontdicts = CffGetIndex(ref b);
-                    info.fdselect = b.Slice((int)fdselectoff, (int)(b.size - fdselectoff));
+                    info.fdselect = b.Slice((int)fdselectoff, (int)(b.Size - fdselectoff));
                 }
 
                 b.Seek((int)charstrings);
@@ -185,7 +186,7 @@ namespace StbSharp
 
             int numTables = ReadUInt16(data.Slice(cmap + 2));
             info.index_map = 0;
-            for (int i = 0; i < numTables; ++i)
+            for (int i = 0; i < numTables; i++)
             {
                 int encoding_record = cmap + 4 + 8 * i;
                 var pId = (FontPlatformID)ReadUInt16(data.Slice(encoding_record));

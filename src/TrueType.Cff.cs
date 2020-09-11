@@ -6,7 +6,7 @@ namespace StbSharp
     {
         public static Buffer CffGetIndex(ref Buffer b)
         {
-            int start = b.cursor;
+            int start = b.Cursor;
             int count = (int)b.Get(2);
             if (count != 0)
             {
@@ -14,7 +14,7 @@ namespace StbSharp
                 b.Skip(offsize * count);
                 b.Skip((int)(b.Get(offsize) - 1));
             }
-            return b.Slice(start, b.cursor - start);
+            return b.Slice(start, b.Cursor - start);
         }
 
         public static uint CffInt(ref Buffer b)
@@ -39,7 +39,7 @@ namespace StbSharp
             if (b0 == 30)
             {
                 b.Skip(1);
-                while (b.cursor < b.size)
+                while (b.Cursor < b.Size)
                 {
                     int v = b.GetByte();
                     if (((v & 0xF) == 0xF) || ((v >> 4) == 0xF))
@@ -72,13 +72,13 @@ namespace StbSharp
         public static Buffer DictGet(ref Buffer b, int key)
         {
             b.Seek(0);
-            while (b.cursor < b.size)
+            while (b.Cursor < b.Size)
             {
-                int start = b.cursor;
+                int start = b.Cursor;
                 while (b.PeekByte() >= 28)
                     CffSkipOperand(ref b);
 
-                int end = b.cursor;
+                int end = b.Cursor;
                 int op = b.GetByte();
                 if (op == 12)
                     op = b.GetByte() | 0x100;
@@ -92,7 +92,7 @@ namespace StbSharp
             ref Buffer b, int key, Span<uint> dst)
         {
             var operands = DictGet(ref b, key);
-            for (int i = 0; (i < dst.Length) && (operands.cursor < operands.size); i++)
+            for (int i = 0; (i < dst.Length) && (operands.Cursor < operands.Size); i++)
                 dst[i] = CffInt(ref operands);
         }
     }
