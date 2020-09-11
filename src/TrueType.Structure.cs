@@ -32,7 +32,7 @@ namespace StbSharp
         public class PackContext
         {
             public IntPoint oversample;
-            public StbRectPack.RPContext pack_info;
+            public RPContext pack_info;
             public bool skip_missing;
             public int padding;
             public int stride_in_bytes;
