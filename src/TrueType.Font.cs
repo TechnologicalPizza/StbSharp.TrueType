@@ -113,14 +113,15 @@ namespace StbSharp
             info.cff = Buffer.Empty;
 
             var data = fontData.Span;
-            int cmap = (int)FindTable(data, fontIndex, "cmap");
-            info.loca = (int)FindTable(data, fontIndex, "loca");
-            info.head = (int)FindTable(data, fontIndex, "head");
-            info.glyf = (int)FindTable(data, fontIndex, "glyf");
-            info.hhea = (int)FindTable(data, fontIndex, "hhea");
-            info.hmtx = (int)FindTable(data, fontIndex, "hmtx");
-            info.kern = (int)FindTable(data, fontIndex, "kern");
-            info.gpos = (int)FindTable(data, fontIndex, "GPOS");
+            int cmap = (int)(FindTable(data, fontIndex, "cmap").GetValueOrDefault());
+            info.loca = (int)(FindTable(data, fontIndex, "loca").GetValueOrDefault());
+            info.head = (int)(FindTable(data, fontIndex, "head").GetValueOrDefault());
+            info.glyf = (int)(FindTable(data, fontIndex, "glyf").GetValueOrDefault());
+            info.hhea = (int)(FindTable(data, fontIndex, "hhea").GetValueOrDefault());
+            info.hmtx = (int)(FindTable(data, fontIndex, "hmtx").GetValueOrDefault());
+            info.kern = (int)(FindTable(data, fontIndex, "kern").GetValueOrDefault());
+            info.gpos = (int)(FindTable(data, fontIndex, "GPOS").GetValueOrDefault());
+
             if ((cmap == 0) ||
                 (info.head == 0) ||
                 (info.hhea == 0) ||
@@ -138,7 +139,7 @@ namespace StbSharp
                 uint charstrings = 0;
                 uint fdarrayoff = 0;
                 uint fdselectoff = 0;
-                int cff = (int)FindTable(data, fontIndex, "CFF ");
+                int cff = (int)(FindTable(data, fontIndex, "CFF ").GetValueOrDefault());
                 if (cff == 0)
                     return false;
 
@@ -176,7 +177,7 @@ namespace StbSharp
                 info.charstrings = CffGetIndex(ref b);
             }
 
-            int t = (int)FindTable(data, fontIndex, "maxp");
+            int t = (int)(FindTable(data, fontIndex, "maxp").GetValueOrDefault());
             if (t != 0)
                 info.numGlyphs = ReadUInt16(data.Slice(t + 4));
             else

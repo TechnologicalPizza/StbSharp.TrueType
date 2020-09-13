@@ -7,6 +7,9 @@ namespace StbSharp
         public static bool GetGlyphBox(
             FontInfo info, int glyphIndex, out Rect glyphBox)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             if (info.cff.Size != 0)
             {
                 return GetGlyphInfoT2(info, glyphIndex, out glyphBox) != 0;
@@ -32,6 +35,9 @@ namespace StbSharp
 
         public static int GetGlyphOffset(FontInfo info, int glyphIndex)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             if (glyphIndex >= info.numGlyphs)
                 return -1;
 
@@ -56,6 +62,9 @@ namespace StbSharp
 
         public static int GetGlyphShape(FontInfo info, int glyphIndex, out Vertex[]? pvertices)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             if (info.cff.Size == 0)
                 return GetGlyphShapeTT(info, glyphIndex, out pvertices);
             else
@@ -64,6 +73,9 @@ namespace StbSharp
 
         public static bool IsGlyphEmpty(FontInfo info, int glyphIndex)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             if (info.cff.Size != 0)
                 return GetGlyphInfoT2(info, glyphIndex, out _) == 0;
 
@@ -95,6 +107,9 @@ namespace StbSharp
         public static void GetGlyphHMetrics(
             FontInfo info, int glyphIndex, out int advanceWidth, out int leftSideBearing)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             ushort numOfLongHMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
             if (glyphIndex < numOfLongHMetrics)
             {

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
@@ -7,6 +8,9 @@ namespace StbSharp
         public static void GetFontVMetrics(
             FontInfo info, out int ascent, out int descent, out int lineGap)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             var data = info.data.Span.Slice(info.hhea);
             ascent = ReadInt16(data.Slice(4));
             descent = ReadInt16(data.Slice(6));
@@ -16,8 +20,11 @@ namespace StbSharp
         public static bool GetFontVMetricsOS2(
             FontInfo info, out int typoAscent, out int typoDescent, out int typoLineGap)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             var data = info.data.Span;
-            int table = (int)FindTable(data, info.fontindex, "OS/2");
+            int table = (int)(FindTable(data, info.fontindex, "OS/2").GetValueOrDefault());
             if (table == 0)
             {
                 typoAscent = 0;
@@ -35,6 +42,9 @@ namespace StbSharp
 
         public static void GetFontBoundingBox(FontInfo info, out Vector2 p0, out Vector2 p1)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             var head = info.data.Span.Slice(info.head);
             p0.X = ReadInt16(head.Slice(36));
             p0.Y = ReadInt16(head.Slice(38));
@@ -44,6 +54,9 @@ namespace StbSharp
 
         public static float ScaleForPixelHeight(FontInfo info, float height)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             var data = info.data.Span.Slice(info.hhea);
             int fheight = ReadInt16(data.Slice(4)) - ReadInt16(data.Slice(6));
             return height / fheight;
@@ -51,6 +64,9 @@ namespace StbSharp
 
         public static float ScaleForMappingEmToPixels(FontInfo info, float pixels)
         {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
             int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
             return pixels / unitsPerEm;
         }
