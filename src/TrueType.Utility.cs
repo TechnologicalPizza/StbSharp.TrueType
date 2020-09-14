@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace StbSharp
@@ -9,26 +10,26 @@ namespace StbSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort ReadUInt16(ReadOnlySpan<byte> p)
         {
-            return (ushort)(p[0] * 256 + p[1]);
+            return BinaryPrimitives.ReadUInt16BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static short ReadInt16(ReadOnlySpan<byte> p)
         {
-            return (short)(p[0] * 256 + p[1]);
+            return BinaryPrimitives.ReadInt16BigEndian(p);
         }
 
         [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ReadUInt32(ReadOnlySpan<byte> p)
         {
-            return (uint)((p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]);
+            return BinaryPrimitives.ReadUInt32BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int ReadInt32(ReadOnlySpan<byte> p)
         {
-            return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3];
+            return BinaryPrimitives.ReadInt32BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
