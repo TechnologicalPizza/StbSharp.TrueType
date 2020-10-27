@@ -24,7 +24,7 @@ namespace StbSharp
                 throw new ArgumentNullException(nameof(info));
 
             var data = info.data.Span;
-            int table = (int)(FindTable(data, info.fontindex, "OS/2").GetValueOrDefault());
+            int table = (int)FindTable(data, info.fontindex, "OS/2").GetValueOrDefault();
             if (table == 0)
             {
                 typoAscent = 0;
