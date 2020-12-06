@@ -25,10 +25,10 @@ namespace StbSharp
 
                 var data = info.data.Span;
                 glyphBox = Rect.FromEdgePoints(
-                    tlX: ReadInt16(data.Slice(g + 2)),
-                    tlY: ReadInt16(data.Slice(g + 4)),
-                    brX: ReadInt16(data.Slice(g + 6)),
-                    brY: ReadInt16(data.Slice(g + 8)));
+                    tlX: ReadInt16(data[(g + 2)..]),
+                    tlY: ReadInt16(data[(g + 4)..]),
+                    brX: ReadInt16(data[(g + 6)..]),
+                    brY: ReadInt16(data[(g + 8)..]));
                 return true;
             }
         }
@@ -46,16 +46,16 @@ namespace StbSharp
 
             int g1;
             int g2;
-            var locaData = info.data.Span.Slice(info.loca);
+            var locaData = info.data.Span[info.loca..];
             if (info.indexToLocFormat == 0)
             {
-                g1 = info.glyf + ReadUInt16(locaData.Slice(glyphIndex * 2)) * 2;
-                g2 = info.glyf + ReadUInt16(locaData.Slice(glyphIndex * 2 + 2)) * 2;
+                g1 = info.glyf + ReadUInt16(locaData[(glyphIndex * 2)..]) * 2;
+                g2 = info.glyf + ReadUInt16(locaData[(glyphIndex * 2 + 2)..]) * 2;
             }
             else
             {
-                g1 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyphIndex * 4)));
-                g2 = (int)(info.glyf + ReadUInt32(locaData.Slice(glyphIndex * 4 + 4)));
+                g1 = (int)(info.glyf + ReadUInt32(locaData[(glyphIndex * 4)..]));
+                g2 = (int)(info.glyf + ReadUInt32(locaData[(glyphIndex * 4 + 4)..]));
             }
             return g1 == g2 ? -1 : g1;
         }
@@ -83,7 +83,7 @@ namespace StbSharp
             if (g < 0)
                 return true;
 
-            short numberOfContours = ReadInt16(info.data.Span.Slice(g));
+            short numberOfContours = ReadInt16(info.data.Span[g..]);
             return numberOfContours == 0;
         }
 
@@ -110,19 +110,19 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            ushort numOfLongHMetrics = ReadUInt16(info.data.Span.Slice(info.hhea + 34));
+            ushort numOfLongHMetrics = ReadUInt16(info.data.Span[(info.hhea + 34)..]);
             if (glyphIndex < numOfLongHMetrics)
             {
-                advanceWidth = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex));
-                leftSideBearing = ReadInt16(info.data.Span.Slice(info.hmtx + 4 * glyphIndex + 2));
+                advanceWidth = ReadInt16(info.data.Span[(info.hmtx + 4 * glyphIndex)..]);
+                leftSideBearing = ReadInt16(info.data.Span[(info.hmtx + 4 * glyphIndex + 2)..]);
             }
             else
             {
-                advanceWidth = ReadInt16(info.data.Span.Slice(
-                    info.hmtx + 4 * (numOfLongHMetrics - 1)));
+                advanceWidth = ReadInt16(info.data.Span[
+                    (info.hmtx + 4 * (numOfLongHMetrics - 1))..]);
 
-                leftSideBearing = ReadInt16(info.data.Span.Slice(
-                    info.hmtx + 4 * numOfLongHMetrics + 2 * (glyphIndex - numOfLongHMetrics)));
+                leftSideBearing = ReadInt16(info.data.Span[
+                    (info.hmtx + 4 * numOfLongHMetrics + 2 * (glyphIndex - numOfLongHMetrics))..]);
             }
         }
 
@@ -146,26 +146,26 @@ namespace StbSharp
             if (info.kern == 0)
                 return null;
 
-            var data = info.data.Span.Slice(info.kern);
-            if (ReadUInt16(data.Slice(2)) < 1)
+            var data = info.data.Span[info.kern..];
+            if (ReadUInt16(data[2..]) < 1)
                 return null;
-            if (ReadUInt16(data.Slice(8)) != 1)
+            if (ReadUInt16(data[8..]) != 1)
                 return null;
 
             int l = 0;
-            int r = ReadUInt16(data.Slice(10)) - 1;
+            int r = ReadUInt16(data[10..]) - 1;
             uint needle = (uint)(glyph1 << 16 | glyph2);
 
             while (l <= r)
             {
                 int m = (l + r) / 2;
-                uint straw = ReadUInt32(data.Slice(18 + (m * 6)));
+                uint straw = ReadUInt32(data[(18 + (m * 6))..]);
                 if (needle < straw)
                     r = m - 1;
                 else if (needle > straw)
                     l = m + 1;
                 else
-                    return ReadInt16(data.Slice(22 + (m * 6)));
+                    return ReadInt16(data[(22 + (m * 6))..]);
             }
 
             return null;
@@ -178,16 +178,16 @@ namespace StbSharp
             {
                 case 1:
                 {
-                    ushort glyphCount = ReadUInt16(coverageTable.Slice(2));
+                    ushort glyphCount = ReadUInt16(coverageTable[2..]);
                     int l = 0;
                     int r = glyphCount - 1;
                     int needle = glyph;
 
                     while (l <= r)
                     {
-                        var glyphArray = coverageTable.Slice(4);
+                        var glyphArray = coverageTable[4..];
                         int m = (l + r) >> 1;
-                        ushort glyphID = ReadUInt16(glyphArray.Slice(2 * m));
+                        ushort glyphID = ReadUInt16(glyphArray[(2 * m)..]);
                         int straw = glyphID;
 
                         if (needle < straw)
@@ -202,8 +202,8 @@ namespace StbSharp
 
                 case 2:
                 {
-                    ushort rangeCount = ReadUInt16(coverageTable.Slice(2));
-                    var rangeArray = coverageTable.Slice(4);
+                    ushort rangeCount = ReadUInt16(coverageTable[2..]);
+                    var rangeArray = coverageTable[4..];
                     int l = 0;
                     int r = rangeCount - 1;
                     int needle = glyph;
@@ -211,9 +211,9 @@ namespace StbSharp
                     while (l <= r)
                     {
                         int m = (l + r) >> 1;
-                        var rangeRecord = rangeArray.Slice(6 * m);
+                        var rangeRecord = rangeArray[(6 * m)..];
                         int strawStart = ReadUInt16(rangeRecord);
-                        int strawEnd = ReadUInt16(rangeRecord.Slice(2));
+                        int strawEnd = ReadUInt16(rangeRecord[2..]);
 
                         if (needle < strawStart)
                             r = m - 1;
@@ -221,7 +221,7 @@ namespace StbSharp
                             l = m + 1;
                         else
                         {
-                            ushort startCoverageIndex = ReadUInt16(rangeRecord.Slice(4));
+                            ushort startCoverageIndex = ReadUInt16(rangeRecord[4..]);
                             return startCoverageIndex + glyph - strawStart;
                         }
                     }
@@ -239,11 +239,11 @@ namespace StbSharp
             {
                 case 1:
                 {
-                    ushort startGlyphID = ReadUInt16(classDefTable.Slice(2));
-                    ushort glyphCount = ReadUInt16(classDefTable.Slice(4));
-                    var classDef1ValueArray = classDefTable.Slice(6);
+                    ushort startGlyphID = ReadUInt16(classDefTable[2..]);
+                    ushort glyphCount = ReadUInt16(classDefTable[4..]);
+                    var classDef1ValueArray = classDefTable[6..];
                     if ((glyph >= startGlyphID) && (glyph < (startGlyphID + glyphCount)))
-                        return ReadUInt16(classDef1ValueArray.Slice(2 * (glyph - startGlyphID)));
+                        return ReadUInt16(classDef1ValueArray[(2 * (glyph - startGlyphID))..]);
 
                     //classDefTable = classDef1ValueArray.Slice(2 * glyphCount);
                 }
@@ -251,23 +251,23 @@ namespace StbSharp
 
                 case 2:
                 {
-                    ushort classRangeCount = ReadUInt16(classDefTable.Slice(2));
-                    var classRangeRecords = classDefTable.Slice(4);
+                    ushort classRangeCount = ReadUInt16(classDefTable[2..]);
+                    var classRangeRecords = classDefTable[4..];
                     int l = 0;
                     int r = classRangeCount - 1;
                     int needle = glyph;
                     while (l <= r)
                     {
                         int m = (l + r) >> 1;
-                        var classRangeRecord = classRangeRecords.Slice(6 * m);
+                        var classRangeRecord = classRangeRecords[(6 * m)..];
                         int strawStart = ReadUInt16(classRangeRecord);
-                        int strawEnd = ReadUInt16(classRangeRecord.Slice(2));
+                        int strawEnd = ReadUInt16(classRangeRecord[2..]);
                         if (needle < strawStart)
                             r = m - 1;
                         else if (needle > strawEnd)
                             l = m + 1;
                         else
-                            return ReadUInt16(classRangeRecord.Slice(4));
+                            return ReadUInt16(classRangeRecord[4..]);
                     }
 
                     //classDefTable = classRangeRecords.Slice(6 * classRangeCount);
@@ -285,33 +285,33 @@ namespace StbSharp
             if (info.gpos == 0)
                 return null;
 
-            var data = info.data.Span.Slice(info.gpos);
+            var data = info.data.Span[info.gpos..];
             if (ReadUInt16(data) != 1)
                 return null;
-            if (ReadUInt16(data.Slice(2)) != 0)
+            if (ReadUInt16(data[2..]) != 0)
                 return null;
 
-            ushort lookupListOffset = ReadUInt16(data.Slice(8));
-            var lookupList = data.Slice(lookupListOffset);
+            ushort lookupListOffset = ReadUInt16(data[8..]);
+            var lookupList = data[lookupListOffset..];
             ushort lookupCount = ReadUInt16(lookupList);
             var lookupOffsets = lookupList.Slice(sizeof(ushort), lookupCount * sizeof(ushort));
 
             for (int i = 0; i < lookupOffsets.Length; i += sizeof(ushort))
             {
-                ushort lookupOffset = ReadUInt16(lookupOffsets.Slice(i));
-                var lookupTable = lookupList.Slice(lookupOffset);
+                ushort lookupOffset = ReadUInt16(lookupOffsets[i..]);
+                var lookupTable = lookupList[lookupOffset..];
                 ushort lookupType = ReadUInt16(lookupTable);
                 if (lookupType == 2)
                 {
-                    ushort subTableCount = ReadUInt16(lookupTable.Slice(4));
+                    ushort subTableCount = ReadUInt16(lookupTable[4..]);
                     var subTableOffsets = lookupTable.Slice(6, subTableCount * sizeof(ushort));
 
                     for (int sti = 0; sti < subTableOffsets.Length; sti += sizeof(ushort))
                     {
-                        ushort subtableOffset = ReadUInt16(subTableOffsets.Slice(sti));
-                        var table = lookupTable.Slice(subtableOffset);
-                        ushort coverageOffset = ReadUInt16(table.Slice(2));
-                        int coverageIndex = GetCoverageIndex(table.Slice(coverageOffset), glyph1);
+                        ushort subtableOffset = ReadUInt16(subTableOffsets[sti..]);
+                        var table = lookupTable[subtableOffset..];
+                        ushort coverageOffset = ReadUInt16(table[2..]);
+                        int coverageIndex = GetCoverageIndex(table[coverageOffset..], glyph1);
                         if (coverageIndex == (-1))
                             continue;
 
@@ -320,14 +320,14 @@ namespace StbSharp
                         {
                             case 1:
                             {
-                                ushort valueFormat1 = ReadUInt16(table.Slice(4));
-                                ushort valueFormat2 = ReadUInt16(table.Slice(6));
+                                ushort valueFormat1 = ReadUInt16(table[4..]);
+                                ushort valueFormat2 = ReadUInt16(table[6..]);
                                 int valueRecordPairSizeInBytes = 2;
-                                ReadUInt16(table.Slice(8)); // pairSetCount
-                                ushort pairPosOffset = ReadUInt16(table.Slice(10 + 2 * coverageIndex));
-                                var pairValueTable = table.Slice(pairPosOffset);
+                                ReadUInt16(table[8..]); // pairSetCount
+                                ushort pairPosOffset = ReadUInt16(table[(10 + 2 * coverageIndex)..]);
+                                var pairValueTable = table[pairPosOffset..];
                                 ushort pairValueCount = ReadUInt16(pairValueTable);
-                                var pairValueArray = pairValueTable.Slice(2);
+                                var pairValueArray = pairValueTable[2..];
 
                                 if (valueFormat1 != 4)
                                     return 0;
@@ -341,7 +341,7 @@ namespace StbSharp
                                 while (l <= r)
                                 {
                                     int m = (l + r) / 2;
-                                    var pairValue = pairValueArray.Slice((2 + valueRecordPairSizeInBytes) * m);
+                                    var pairValue = pairValueArray[((2 + valueRecordPairSizeInBytes) * m)..];
                                     ushort secondGlyph = ReadUInt16(pairValue);
                                     int straw = secondGlyph;
 
@@ -351,7 +351,7 @@ namespace StbSharp
                                         l = m + 1;
                                     else
                                     {
-                                        short xAdvance = ReadInt16(pairValue.Slice(2));
+                                        short xAdvance = ReadInt16(pairValue[2..]);
                                         return xAdvance;
                                     }
                                 }
@@ -360,14 +360,14 @@ namespace StbSharp
 
                             case 2:
                             {
-                                ushort valueFormat1 = ReadUInt16(table.Slice(4));
-                                ushort valueFormat2 = ReadUInt16(table.Slice(6));
-                                ushort classDef1Offset = ReadUInt16(table.Slice(8));
-                                ushort classDef2Offset = ReadUInt16(table.Slice(10));
-                                int glyph1class = GetGlyphClass(table.Slice(classDef1Offset), glyph1);
-                                int glyph2class = GetGlyphClass(table.Slice(classDef2Offset), glyph2);
-                                ushort class1Count = ReadUInt16(table.Slice(12));
-                                ushort class2Count = ReadUInt16(table.Slice(14));
+                                ushort valueFormat1 = ReadUInt16(table[4..]);
+                                ushort valueFormat2 = ReadUInt16(table[6..]);
+                                ushort classDef1Offset = ReadUInt16(table[8..]);
+                                ushort classDef2Offset = ReadUInt16(table[10..]);
+                                int glyph1class = GetGlyphClass(table[classDef1Offset..], glyph1);
+                                int glyph2class = GetGlyphClass(table[classDef2Offset..], glyph2);
+                                ushort class1Count = ReadUInt16(table[12..]);
+                                ushort class2Count = ReadUInt16(table[14..]);
 
                                 if (valueFormat1 != 4)
                                     return 0;
@@ -377,9 +377,9 @@ namespace StbSharp
                                 if ((glyph1class >= 0) && (glyph1class < class1Count) &&
                                      (glyph2class >= 0) && (glyph2class < class2Count))
                                 {
-                                    var class1Records = table.Slice(16);
-                                    var class2Records = class1Records.Slice(2 * glyph1class * class2Count);
-                                    short xAdvance = ReadInt16(class2Records.Slice(2 * glyph2class));
+                                    var class1Records = table[16..];
+                                    var class2Records = class1Records[(2 * glyph1class * class2Count)..];
+                                    short xAdvance = ReadInt16(class2Records[(2 * glyph2class)..]);
                                     return xAdvance;
                                 }
                             }

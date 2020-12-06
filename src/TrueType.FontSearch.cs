@@ -11,20 +11,20 @@ namespace StbSharp
 
             var data = info.data.Span;
             int index_map = info.index_map;
-            ushort format = ReadUInt16(data.Slice(index_map + 0));
+            ushort format = ReadUInt16(data[(index_map + 0)..]);
             if (format == 0)
             {
-                int bytes = ReadUInt16(data.Slice(index_map + 2));
+                int bytes = ReadUInt16(data[(index_map + 2)..]);
                 if (unicodeCodepoint < (bytes - 6))
-                    return data.Slice(index_map + 6 + unicodeCodepoint)[0];
+                    return data[(index_map + 6 + unicodeCodepoint)..][0];
                 return default;
             }
             else if (format == 6)
             {
-                int first = ReadUInt16(data.Slice(index_map + 6));
-                int count = ReadUInt16(data.Slice(index_map + 8));
+                int first = ReadUInt16(data[(index_map + 6)..]);
+                int count = ReadUInt16(data[(index_map + 8)..]);
                 if (unicodeCodepoint >= first && unicodeCodepoint < (first + count))
-                    return ReadUInt16(data.Slice(index_map + 10 + (unicodeCodepoint - first) * 2));
+                    return ReadUInt16(data[(index_map + 10 + (unicodeCodepoint - first) * 2)..]);
                 return default;
             }
             else if (format == 2)
@@ -33,51 +33,51 @@ namespace StbSharp
             }
             else if (format == 4)
             {
-                ushort segcount = (ushort)(ReadUInt16(data.Slice(index_map + 6)) >> 1);
-                ushort searchRange = (ushort)(ReadUInt16(data.Slice(index_map + 8)) >> 1);
-                ushort entrySelector = ReadUInt16(data.Slice(index_map + 10));
-                ushort rangeShift = (ushort)(ReadUInt16(data.Slice(index_map + 12)) >> 1);
+                ushort segcount = (ushort)(ReadUInt16(data[(index_map + 6)..]) >> 1);
+                ushort searchRange = (ushort)(ReadUInt16(data[(index_map + 8)..]) >> 1);
+                ushort entrySelector = ReadUInt16(data[(index_map + 10)..]);
+                ushort rangeShift = (ushort)(ReadUInt16(data[(index_map + 12)..]) >> 1);
                 int endCount = index_map + 14;
                 int search = endCount;
                 if (unicodeCodepoint > 0xffff)
                     return default;
-                if (unicodeCodepoint >= ReadUInt16(data.Slice(search + rangeShift * 2)))
+                if (unicodeCodepoint >= ReadUInt16(data[(search + rangeShift * 2)..]))
                     search += rangeShift * 2;
                 search -= 2;
 
                 while (entrySelector != 0)
                 {
                     searchRange >>= 1;
-                    ushort end = ReadUInt16(data.Slice(search + searchRange * 2));
+                    ushort end = ReadUInt16(data[(search + searchRange * 2)..]);
                     if (unicodeCodepoint > end)
                         search += searchRange * 2;
                     --entrySelector;
                 }
                 search += 2;
                 ushort item = (ushort)((search - endCount) >> 1);
-                ushort start = ReadUInt16(data.Slice(index_map + 14 + segcount * 2 + 2 + 2 * item));
+                ushort start = ReadUInt16(data[(index_map + 14 + segcount * 2 + 2 + 2 * item)..]);
                 if (unicodeCodepoint < start)
                     return default;
 
-                ushort offset = ReadUInt16(data.Slice(index_map + 14 + segcount * 6 + 2 + 2 * item));
+                ushort offset = ReadUInt16(data[(index_map + 14 + segcount * 6 + 2 + 2 * item)..]);
                 if (offset == 0)
                 {
                     return (ushort)(unicodeCodepoint + ReadInt16(
-                        data.Slice(index_map + 14 + segcount * 4 + 2 + 2 * item)));
+                        data[(index_map + 14 + segcount * 4 + 2 + 2 * item)..]));
                 }
-                return ReadUInt16(data.Slice(
-                    offset + (unicodeCodepoint - start) * 2 + index_map + 14 + segcount * 6 + 2 + 2 * item));
+                return ReadUInt16(data[
+                    (offset + (unicodeCodepoint - start) * 2 + index_map + 14 + segcount * 6 + 2 + 2 * item)..]);
             }
             else if ((format == 12) || (format == 13))
             {
-                uint ngroups = ReadUInt32(data.Slice(index_map + 12));
+                uint ngroups = ReadUInt32(data[(index_map + 12)..]);
                 int low = 0;
                 int high = (int)ngroups;
                 while (low < high)
                 {
                     int mid = low + ((high - low) >> 1);
-                    uint start_char = ReadUInt32(data.Slice(index_map + 16 + mid * 12));
-                    uint end_char = ReadUInt32(data.Slice(index_map + 16 + mid * 12 + 4));
+                    uint start_char = ReadUInt32(data[(index_map + 16 + mid * 12)..]);
+                    uint end_char = ReadUInt32(data[(index_map + 16 + mid * 12 + 4)..]);
 
                     if (((uint)unicodeCodepoint) < start_char)
                         high = mid;
@@ -85,7 +85,7 @@ namespace StbSharp
                         low = mid + 1;
                     else
                     {
-                        uint start_glyph = ReadUInt32(data.Slice(index_map + 16 + mid * 12 + 8));
+                        uint start_glyph = ReadUInt32(data[(index_map + 16 + mid * 12 + 8)..]);
                         if (format == 12)
                             return (int)(start_glyph + unicodeCodepoint - start_char);
                         else
@@ -105,17 +105,17 @@ namespace StbSharp
             if (tag.Length != 4)
                 throw new ArgumentException("", nameof(tag));
 
-            int num_tables = ReadUInt16(data.Slice(fontstart + 4));
+            int num_tables = ReadUInt16(data[(fontstart + 4)..]);
             int tabledir = fontstart + 12;
             for (int i = 0; i < num_tables; i++)
             {
                 int loc = tabledir + 16 * i;
-                var slice = data.Slice(loc);
+                var slice = data[loc..];
                 if (slice[0] == tag[0] &&
                     slice[1] == tag[1] &&
                     slice[2] == tag[2] &&
                     slice[3] == tag[3])
-                    return ReadUInt32(data.Slice(loc + 8));
+                    return ReadUInt32(data[(loc + 8)..]);
             }
 
             return default;
@@ -139,38 +139,38 @@ namespace StbSharp
             ReadOnlySpan<byte> fontData, int nameTable,
             ReadOnlySpan<byte> name, int targetId, int nextId)
         {
-            int count = ReadUInt16(fontData.Slice(nameTable + 2));
-            int stringOffset = nameTable + ReadUInt16(fontData.Slice(nameTable + 4));
+            int count = ReadUInt16(fontData[(nameTable + 2)..]);
+            int stringOffset = nameTable + ReadUInt16(fontData[(nameTable + 4)..]);
 
             for (int i = 0; i < count; i++)
             {
                 int loc = nameTable + 6 + 12 * i;
-                int id = ReadUInt16(fontData.Slice(loc + 6));
+                int id = ReadUInt16(fontData[(loc + 6)..]);
                 if (id == targetId)
                 {
-                    int platform = ReadUInt16(fontData.Slice(loc + 0));
-                    int encoding = ReadUInt16(fontData.Slice(loc + 2));
-                    int language = ReadUInt16(fontData.Slice(loc + 4));
+                    int platform = ReadUInt16(fontData[(loc + 0)..]);
+                    int encoding = ReadUInt16(fontData[(loc + 2)..]);
+                    int language = ReadUInt16(fontData[(loc + 4)..]);
 
                     if (platform == 0 ||
                         (platform == 3 && encoding == 1) ||
                         (platform == 3 && encoding == 10))
                     {
-                        int slen = ReadUInt16(fontData.Slice(loc + 8));
-                        int off = ReadUInt16(fontData.Slice(loc + 10));
+                        int slen = ReadUInt16(fontData[(loc + 8)..]);
+                        int off = ReadUInt16(fontData[(loc + 10)..]);
                         int matchLength = BigEndianComparePrefixUtf8To16(
                             name, fontData.Slice(stringOffset + off, slen));
 
                         if (matchLength >= 0)
                         {
                             if ((i + 1) < count &&
-                                ReadUInt16(fontData.Slice(loc + 12 + 6)) == nextId &&
-                                ReadUInt16(fontData.Slice(+loc + 12)) == platform &&
-                                ReadUInt16(fontData.Slice(+loc + 12 + 2)) == encoding &&
-                                ReadUInt16(fontData.Slice(+loc + 12 + 4)) == language)
+                                ReadUInt16(fontData[(loc + 12 + 6)..]) == nextId &&
+                                ReadUInt16(fontData[(+loc + 12)..]) == platform &&
+                                ReadUInt16(fontData[(+loc + 12 + 2)..]) == encoding &&
+                                ReadUInt16(fontData[(+loc + 12 + 4)..]) == language)
                             {
-                                slen = ReadUInt16(fontData.Slice(+loc + 12 + 8));
-                                off = ReadUInt16(fontData.Slice(+loc + 12 + 10));
+                                slen = ReadUInt16(fontData[(+loc + 12 + 8)..]);
+                                off = ReadUInt16(fontData[(+loc + 12 + 10)..]);
                                 if (slen == 0)
                                 {
                                     if (matchLength == name.Length)
@@ -214,18 +214,18 @@ namespace StbSharp
             }
             int nm = (int)nameTable.GetValueOrDefault();
 
-            int count = ReadUInt16(fc.Slice(nm + 2));
-            int stringOffset = nm + ReadUInt16(fc.Slice(nm + 4));
+            int count = ReadUInt16(fc[(nm + 2)..]);
+            int stringOffset = nm + ReadUInt16(fc[(nm + 4)..]);
             for (int i = 0; i < count; i++)
             {
                 int loc = nm + 6 + 12 * i;
-                if (platformID == ReadUInt16(fc.Slice(loc + 0)) &&
-                    encodingID == ReadUInt16(fc.Slice(loc + 2)) &&
-                    languageID == ReadUInt16(fc.Slice(loc + 4)) &&
-                    nameID == ReadUInt16(fc.Slice(loc + 6)))
+                if (platformID == ReadUInt16(fc[(loc + 0)..]) &&
+                    encodingID == ReadUInt16(fc[(loc + 2)..]) &&
+                    languageID == ReadUInt16(fc[(loc + 4)..]) &&
+                    nameID == ReadUInt16(fc[(loc + 6)..]))
                 {
-                    length = ReadUInt16(fc.Slice(loc + 8));
-                    return fc.Slice(stringOffset + ReadUInt16(fc.Slice(loc + 10)));
+                    length = ReadUInt16(fc[(loc + 8)..]);
+                    return fc[(stringOffset + ReadUInt16(fc[(loc + 10)..]))..];
                 }
             }
 
@@ -236,7 +236,7 @@ namespace StbSharp
         public static bool Match(
             ReadOnlySpan<byte> fontData, int offset, ReadOnlySpan<byte> name, int flags)
         {
-            if (!IsFont(fontData.Slice(offset)))
+            if (!IsFont(fontData[offset..]))
                 return false;
 
             if (flags != 0)
@@ -245,7 +245,7 @@ namespace StbSharp
                 if (!hd.HasValue)
                     return false;
 
-                if ((ReadUInt16(fontData.Slice((int)hd.GetValueOrDefault() + 44)) & 7) != (flags & 7))
+                if ((ReadUInt16(fontData[((int)hd.GetValueOrDefault() + 44)..]) & 7) != (flags & 7))
                     return false;
             }
 
@@ -306,7 +306,7 @@ namespace StbSharp
                     if (utf8[i++] != 0x80 + ((c) & 0x3f))
                         return -1;
 
-                    utf16 = utf16.Slice(2);
+                    utf16 = utf16[2..];
                 }
                 else if ((ch >= 0xdc00) && (ch < 0xe000))
                 {
@@ -324,7 +324,7 @@ namespace StbSharp
                         return -1;
                 }
 
-                utf16 = utf16.Slice(2);
+                utf16 = utf16[2..];
             }
             return i;
         }

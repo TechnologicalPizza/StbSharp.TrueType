@@ -12,7 +12,7 @@ namespace StbSharp
                 int t = (int)FindTable(data, info.fontindex, "SVG ").GetValueOrDefault();
                 if (t != 0)
                 {
-                    int offset = (int)ReadUInt32(data.Slice(t + 2));
+                    int offset = (int)ReadUInt32(data[(t + 2)..]);
                     info.svg = t + offset;
                 }
                 else
@@ -25,16 +25,16 @@ namespace StbSharp
 
         private static ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
         {
-            var svg_doc_list = info.data.Slice(GetSvgIndex(info));
+            var svg_doc_list = info.data[GetSvgIndex(info)..];
             int numEntries = ReadUInt16(svg_doc_list.Span);
-            var svg_docs = svg_doc_list.Slice(2);
+            var svg_docs = svg_doc_list[2..];
 
             for (int i = 0; i < numEntries; i++)
             {
-                var svg_doc = svg_docs.Slice(12 * i);
+                var svg_doc = svg_docs[(12 * i)..];
                 var svg_doc_data = svg_doc.Span;
                 if ((glyph >= ReadUInt16(svg_doc_data)) &&
-                    (glyph <= ReadUInt16(svg_doc_data.Slice(2))))
+                    (glyph <= ReadUInt16(svg_doc_data[2..])))
                     return svg_doc;
             }
             return default;
@@ -48,8 +48,8 @@ namespace StbSharp
                 if (!svg_doc.IsEmpty)
                 {
                     var svg_doc_data = svg_doc.Span;
-                    int start = info.svg + (int)ReadUInt32(svg_doc_data.Slice(4));
-                    int length = (int)ReadUInt32(svg_doc_data.Slice(8));
+                    int start = info.svg + (int)ReadUInt32(svg_doc_data[4..]);
+                    int length = (int)ReadUInt32(svg_doc_data[8..]);
                     return info.data.Slice(start, length);
                 }
             }

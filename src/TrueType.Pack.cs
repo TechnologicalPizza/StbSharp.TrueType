@@ -140,7 +140,7 @@ namespace StbSharp
                         r.w -= pad;
                         r.h -= pad;
 
-                        var pixelSlice = pixels.Slice(r.x + r.y * spc.stride_in_bytes);
+                        var pixelSlice = pixels[(r.x + r.y * spc.stride_in_bytes)..];
                         MakeGlyphBitmapSubpixel(
                             info, pixelSlice,
                             r.w - spc.oversample.X + 1, r.h - spc.oversample.Y + 1, spc.stride_in_bytes,

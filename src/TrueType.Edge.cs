@@ -328,12 +328,12 @@ namespace StbSharp
                 if (j < (n - i))
                 {
                     SortEdgesQuickSort(p, j);
-                    p = p.Slice(i);
+                    p = p[i..];
                     n -= i;
                 }
                 else
                 {
-                    SortEdgesQuickSort(p.Slice(i), n - i);
+                    SortEdgesQuickSort(p[i..], n - i);
                     n = j;
                 }
             }

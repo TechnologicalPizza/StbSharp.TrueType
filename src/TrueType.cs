@@ -90,7 +90,7 @@ namespace StbSharp
                     pixels[i] = (byte)(total / kernel_width);
                 }
 
-                pixels = pixels.Slice(stride_in_bytes);
+                pixels = pixels[stride_in_bytes..];
             }
         }
 
@@ -160,7 +160,7 @@ namespace StbSharp
                     pixels[i * stride_in_bytes] = (byte)(total / kernel_width);
                 }
 
-                pixels = pixels.Slice(1);
+                pixels = pixels[1..];
             }
         }
 

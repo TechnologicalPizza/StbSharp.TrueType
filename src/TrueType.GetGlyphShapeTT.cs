@@ -17,12 +17,12 @@ namespace StbSharp
             Vertex[]? vertices = null;
             int numVertices = 0;
             var data = info.data.Span;
-            short numberOfContours = ReadInt16(data.Slice(g));
+            short numberOfContours = ReadInt16(data[g..]);
             if (numberOfContours > 0)
             {
-                var endPtsOfContours = data.Slice(g + 10);
-                int ins = ReadUInt16(data.Slice(g + 10 + numberOfContours * 2));
-                int n = 1 + ReadUInt16(endPtsOfContours.Slice(numberOfContours * 2 - 2));
+                var endPtsOfContours = data[(g + 10)..];
+                int ins = ReadUInt16(data[(g + 10 + numberOfContours * 2)..]);
+                int n = 1 + ReadUInt16(endPtsOfContours[(numberOfContours * 2 - 2)..]);
                 int m = n + 2 * numberOfContours;
                 vertices = new Vertex[m];
 
@@ -43,19 +43,19 @@ namespace StbSharp
                 int flagcount = 0;
                 int off = m - n;
                 var offVertices = vertices.AsSpan(off);
-                var points = data.Slice(g + 10 + numberOfContours * 2 + 2 + ins);
+                var points = data[(g + 10 + numberOfContours * 2 + 2 + ins)..];
 
                 for (i = 0; i < n; ++i)
                 {
                     if (flagcount == 0)
                     {
                         flags = points[0];
-                        points = points.Slice(1);
+                        points = points[1..];
 
                         if ((flags & 8) != 0)
                         {
                             flagcount = points[0];
-                            points = points.Slice(1);
+                            points = points[1..];
                         }
                     }
                     else
@@ -71,7 +71,7 @@ namespace StbSharp
                     if ((flags & 2) != 0)
                     {
                         short dx = points[0];
-                        points = points.Slice(1);
+                        points = points[1..];
                         x += (flags & 16) != 0 ? dx : -dx;
                     }
                     else
@@ -79,7 +79,7 @@ namespace StbSharp
                         if ((flags & 16) == 0)
                         {
                             x += (short)(points[0] * 256 + points[1]);
-                            points = points.Slice(2);
+                            points = points[2..];
                         }
                     }
 
@@ -93,7 +93,7 @@ namespace StbSharp
                     if ((flags & 4) != 0)
                     {
                         short dy = points[0];
-                        points = points.Slice(1);
+                        points = points[1..];
                         y += (flags & 32) != 0 ? dy : -dy;
                     }
                     else
@@ -101,7 +101,7 @@ namespace StbSharp
                         if ((flags & 32) == 0)
                         {
                             y += (short)(points[0] * 256 + points[1]);
-                            points = points.Slice(2);
+                            points = points[2..];
                         }
                     }
 
@@ -149,7 +149,7 @@ namespace StbSharp
 
                         vertices[numVertices++].Set(VertexType.Move, sx, sy, 0, 0);
                         was_off = 0;
-                        next_move = 1 + ReadUInt16(endPtsOfContours.Slice(j * 2));
+                        next_move = 1 + ReadUInt16(endPtsOfContours[(j * 2)..]);
                         ++j;
                     }
                     else
@@ -182,7 +182,7 @@ namespace StbSharp
             else if (numberOfContours < 0)
             {
                 int more = 1;
-                var comp = data.Slice(g + 10);
+                var comp = data[(g + 10)..];
                 numVertices = 0;
                 vertices = null;
                 Span<float> matrix = stackalloc float[6];
@@ -200,52 +200,52 @@ namespace StbSharp
                     float m = 0;
                     float n = 0;
                     ushort flags = (ushort)ReadInt16(comp);
-                    comp = comp.Slice(2);
+                    comp = comp[2..];
                     ushort gidx = (ushort)ReadInt16(comp);
-                    comp = comp.Slice(2);
+                    comp = comp[2..];
 
                     if ((flags & 2) != 0)
                     {
                         if ((flags & 1) != 0)
                         {
                             matrix[4] = ReadInt16(comp);
-                            comp = comp.Slice(2);
+                            comp = comp[2..];
                             matrix[5] = ReadInt16(comp);
-                            comp = comp.Slice(2);
+                            comp = comp[2..];
                         }
                         else
                         {
                             matrix[4] = (sbyte)comp[0];
-                            comp = comp.Slice(1);
+                            comp = comp[1..];
                             matrix[5] = (sbyte)comp[0];
-                            comp = comp.Slice(1);
+                            comp = comp[1..];
                         }
                     }
 
                     if ((flags & (1 << 3)) != 0)
                     {
                         matrix[0] = matrix[3] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                         matrix[1] = matrix[2] = 0f;
                     }
                     else if ((flags & (1 << 6)) != 0)
                     {
                         matrix[0] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                         matrix[1] = matrix[2] = 0f;
                         matrix[3] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                     }
                     else if ((flags & (1 << 7)) != 0)
                     {
                         matrix[0] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                         matrix[1] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                         matrix[2] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                         matrix[3] = ReadInt16(comp) / 16384f;
-                        comp = comp.Slice(2);
+                        comp = comp[2..];
                     }
 
                     m = MathF.Sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1]);

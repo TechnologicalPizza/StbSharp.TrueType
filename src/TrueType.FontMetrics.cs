@@ -11,10 +11,10 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var data = info.data.Span.Slice(info.hhea);
-            ascent = ReadInt16(data.Slice(4));
-            descent = ReadInt16(data.Slice(6));
-            lineGap = ReadInt16(data.Slice(8));
+            var data = info.data.Span[info.hhea..];
+            ascent = ReadInt16(data[4..]);
+            descent = ReadInt16(data[6..]);
+            lineGap = ReadInt16(data[8..]);
         }
 
         public static bool GetFontVMetricsOS2(
@@ -33,10 +33,10 @@ namespace StbSharp
                 return false;
             }
 
-            var tableData = data.Slice(table);
-            typoAscent = ReadInt16(tableData.Slice(68));
-            typoDescent = ReadInt16(tableData.Slice(70));
-            typoLineGap = ReadInt16(tableData.Slice(72));
+            var tableData = data[table..];
+            typoAscent = ReadInt16(tableData[68..]);
+            typoDescent = ReadInt16(tableData[70..]);
+            typoLineGap = ReadInt16(tableData[72..]);
             return true;
         }
 
@@ -45,11 +45,11 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var head = info.data.Span.Slice(info.head);
-            p0.X = ReadInt16(head.Slice(36));
-            p0.Y = ReadInt16(head.Slice(38));
-            p1.X = ReadInt16(head.Slice(40));
-            p1.Y = ReadInt16(head.Slice(42));
+            var head = info.data.Span[info.head..];
+            p0.X = ReadInt16(head[36..]);
+            p0.Y = ReadInt16(head[38..]);
+            p1.X = ReadInt16(head[40..]);
+            p1.Y = ReadInt16(head[42..]);
         }
 
         public static float ScaleForPixelHeight(FontInfo info, float height)
@@ -57,8 +57,8 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var data = info.data.Span.Slice(info.hhea);
-            int fheight = ReadInt16(data.Slice(4)) - ReadInt16(data.Slice(6));
+            var data = info.data.Span[info.hhea..];
+            int fheight = ReadInt16(data[4..]) - ReadInt16(data[6..]);
             return height / fheight;
         }
 
@@ -67,7 +67,7 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            int unitsPerEm = ReadUInt16(info.data.Span.Slice(info.head + 18));
+            int unitsPerEm = ReadUInt16(info.data.Span[(info.head + 18)..]);
             return pixels / unitsPerEm;
         }
     }

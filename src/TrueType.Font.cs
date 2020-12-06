@@ -50,13 +50,13 @@ namespace StbSharp
                 fontData[2] == "ttcf"[2] &&
                 fontData[3] == "ttcf"[3])
             {
-                if ((ReadUInt32(fontData.Slice(4)) == 0x00010000) ||
-                    (ReadUInt32(fontData.Slice(4)) == 0x00020000))
+                if ((ReadUInt32(fontData[4..]) == 0x00010000) ||
+                    (ReadUInt32(fontData[4..]) == 0x00020000))
                 {
-                    int n = ReadInt32(fontData.Slice(8));
+                    int n = ReadInt32(fontData[8..]);
                     if (index >= n)
                         return -1;
-                    return (int)ReadUInt32(fontData.Slice(12 + index * 4));
+                    return (int)ReadUInt32(fontData[(12 + index * 4)..]);
                 }
             }
 
@@ -73,9 +73,9 @@ namespace StbSharp
                 fontData[2] == "ttcf"[2] &&
                 fontData[3] == "ttcf"[3])
             {
-                uint x = ReadUInt32(fontData.Slice(4));
+                uint x = ReadUInt32(fontData[4..]);
                 if (x == 0x00010000 || x == 0x00020000)
-                    return ReadInt32(fontData.Slice(8));
+                    return ReadInt32(fontData[8..]);
             }
 
             return 0;
@@ -145,7 +145,7 @@ namespace StbSharp
 
                 info.fontdicts = Buffer.Empty;
                 info.fdselect = Buffer.Empty;
-                info.cff = new Buffer(fontData.Slice(cff));
+                info.cff = new Buffer(fontData[cff..]);
                 
                 var b = info.cff;
                 b.Skip(2);
@@ -179,33 +179,33 @@ namespace StbSharp
 
             int t = (int)FindTable(data, fontIndex, "maxp").GetValueOrDefault();
             if (t != 0)
-                info.numGlyphs = ReadUInt16(data.Slice(t + 4));
+                info.numGlyphs = ReadUInt16(data[(t + 4)..]);
             else
                 info.numGlyphs = 0xffff;
 
             info.svg = -1;
 
-            int numTables = ReadUInt16(data.Slice(cmap + 2));
+            int numTables = ReadUInt16(data[(cmap + 2)..]);
             info.index_map = 0;
             for (int i = 0; i < numTables; i++)
             {
                 int encoding_record = cmap + 4 + 8 * i;
-                var pId = (FontPlatformID)ReadUInt16(data.Slice(encoding_record));
+                var pId = (FontPlatformID)ReadUInt16(data[encoding_record..]);
                 switch (pId)
                 {
                     case FontPlatformID.Microsoft:
-                        var msEid = (FontMicrosoftEncodingID)ReadUInt16(data.Slice(encoding_record + 2));
+                        var msEid = (FontMicrosoftEncodingID)ReadUInt16(data[(encoding_record + 2)..]);
                         switch (msEid)
                         {
                             case FontMicrosoftEncodingID.UnicodeBmp:
                             case FontMicrosoftEncodingID.UnicodeFull:
-                                info.index_map = (int)(cmap + ReadUInt32(data.Slice(encoding_record + 4)));
+                                info.index_map = (int)(cmap + ReadUInt32(data[(encoding_record + 4)..]));
                                 break;
                         }
                         break;
 
                     case FontPlatformID.Unicode:
-                        info.index_map = (int)(cmap + ReadUInt32(data.Slice(encoding_record + 4)));
+                        info.index_map = (int)(cmap + ReadUInt32(data[(encoding_record + 4)..]));
                         break;
                 }
             }
@@ -213,7 +213,7 @@ namespace StbSharp
             if (info.index_map == 0)
                 return false;
 
-            info.indexToLocFormat = ReadUInt16(data.Slice(info.head + 50));
+            info.indexToLocFormat = ReadUInt16(data[(info.head + 50)..]);
             return true;
         }
 
@@ -257,19 +257,19 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var data = info.data.Span.Slice(info.kern);
+            var data = info.data.Span[info.kern..];
 
             // we only look at the first table. it must be 'horizontal' and format 0.
             if (info.kern == 0)
                 return 0;
 
-            if (ReadUInt16(data.Slice(2)) < 1) // number of tables, need at least 1
+            if (ReadUInt16(data[2..]) < 1) // number of tables, need at least 1
                 return 0;
 
-            if (ReadUInt16(data.Slice(8)) != 1) // horizontal flag must be set in format
+            if (ReadUInt16(data[8..]) != 1) // horizontal flag must be set in format
                 return 0;
 
-            return ReadUInt16(data.Slice(10));
+            return ReadUInt16(data[10..]);
         }
 
         public static int GetKerningTable(FontInfo info, Span<KerningEntry> destination)
@@ -278,15 +278,15 @@ namespace StbSharp
             if (length == 0)
                 return 0;
 
-            var data = info.data.Span.Slice(info.kern);
+            var data = info.data.Span[info.kern..];
             if (destination.Length > length)
                 destination = destination.Slice(0, length);
 
             for (int i = 0; i < destination.Length; i++)
             {
-                destination[i].glyph1 = ReadUInt16(data.Slice(18 + (i * 6)));
-                destination[i].glyph2 = ReadUInt16(data.Slice(20 + (i * 6)));
-                destination[i].advance = ReadInt16(data.Slice(22 + (i * 6)));
+                destination[i].glyph1 = ReadUInt16(data[(18 + (i * 6))..]);
+                destination[i].glyph2 = ReadUInt16(data[(20 + (i * 6))..]);
+                destination[i].advance = ReadInt16(data[(22 + (i * 6))..]);
             }
 
             return destination.Length;

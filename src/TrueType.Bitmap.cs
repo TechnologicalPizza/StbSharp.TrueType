@@ -188,7 +188,7 @@ namespace StbSharp
                 if ((y + glyphBox.H + 1) >= ph)
                     return -i;
 
-                var pixelsSlice = pixels.Slice(x + y * pw);
+                var pixelsSlice = pixels[(x + y * pw)..];
                 MakeGlyphBitmap(
                     info, pixelsSlice, glyphBox.W, glyphBox.H, pw, scale, IntPoint.Zero, g);
 

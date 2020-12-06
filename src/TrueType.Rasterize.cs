@@ -117,7 +117,7 @@ namespace StbSharp
                 : new float[result.w * 2 + 1];
 
             var scanline = scanlineBuffer.Slice(0, result.w);
-            var scanline_fill = scanlineBuffer.Slice(result.w);
+            var scanline_fill = scanlineBuffer[result.w..];
 
             float offY = offset.Y;
             e[n].p0.Y = offset.Y + result.h + 1;
@@ -171,14 +171,14 @@ namespace StbSharp
                     }
                     ie++;
                 }
-                e = e.Slice(ie);
+                e = e[ie..];
 
                 if (active != null)
                     FillActiveEdges(scanline, scanline_fill, active, scan_y_top);
 
                 // TODO: output pixel rows instead
-                var pixel_row = result.pixels.Slice(
-                    (bmpY + pixelOffset.Y) * result.stride + pixelOffset.X);
+                var pixel_row = result.pixels[
+                    ((bmpY + pixelOffset.Y) * result.stride + pixelOffset.X)..];
 
                 // TODO: vectorize
                 float sum = 0f;
@@ -223,7 +223,7 @@ namespace StbSharp
             int n = 0;
             for (int i = 0; i < windings.Length; ++i)
             {
-                var p = pts.Slice(m);
+                var p = pts[m..];
                 m += windings[i];
                 int j = windings[i] - 1;
 
