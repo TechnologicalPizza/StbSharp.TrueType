@@ -197,8 +197,8 @@ namespace StbSharp
                         var msEid = (FontMicrosoftEncodingID)ReadUInt16(data.Slice(encoding_record + 2));
                         switch (msEid)
                         {
-                            case FontMicrosoftEncodingID.Unicode_BMP:
-                            case FontMicrosoftEncodingID.Unicode_Full:
+                            case FontMicrosoftEncodingID.UnicodeBmp:
+                            case FontMicrosoftEncodingID.UnicodeFull:
                                 info.index_map = (int)(cmap + ReadUInt32(data.Slice(encoding_record + 4)));
                                 break;
                         }

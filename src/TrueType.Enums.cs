@@ -21,19 +21,19 @@ namespace StbSharp
 
         public enum FontUnicodeEncodingID
         {
-            Unicode_1_0 = 0,
-            Unicode_1_1 = 1,
+            Unicode1_0 = 0,
+            Unicode1_1 = 1,
             ISO_10646 = 2,
-            Unicode_2_0_BMP = 3,
-            Unicode_2_0_Full = 4
+            Unicode2_0_Bmp = 3,
+            Unicode2_0_Full = 4
         }
 
         public enum FontMicrosoftEncodingID
         {
             Symbol = 0,
-            Unicode_BMP = 1,
+            UnicodeBmp = 1,
             ShiftJIS = 2,
-            Unicode_Full = 10
+            UnicodeFull = 10
         }
 
         public enum FontMacEncodingID
