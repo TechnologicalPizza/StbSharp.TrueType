@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
@@ -6,9 +7,9 @@ namespace StbSharp
     {
         public static void GetBakedQuad(
             in BakedChar chardata, int pw, int ph,
-            ref float xpos, float ypos, bool opengl_fillrule, out AlignedQuad q)
+            ref float xpos, float ypos, bool openglFillrule, out AlignedQuad q)
         {
-            float d3d_bias = opengl_fillrule ? 0 : -0.5f;
+            float d3d_bias = openglFillrule ? 0 : -0.5f;
             float ipw = 1f / pw;
             float iph = 1f / ph;
             int round_x = (int)Math.Floor(xpos + chardata.off.X + 0.5f);
@@ -24,62 +25,63 @@ namespace StbSharp
             xpos += chardata.xadvance;
         }
 
+        [SkipLocalsInit]
         public static void HorizontalPrefilter(
-            Span<byte> pixels, int w, int h, int stride_in_bytes, int kernel_width)
+            Span<byte> pixels, int w, int h, int byteStride, int kernelWidth)
         {
             Span<byte> buffer = stackalloc byte[8];
-            int safe_w = w - kernel_width;
+            int safeWidth = w - kernelWidth;
 
             for (int j = 0; j < h; ++j)
             {
                 int i = 0;
                 uint total = 0;
-                buffer.Slice(0, kernel_width).Fill(0);
+                buffer.Slice(0, kernelWidth).Fill(0);
 
-                switch (kernel_width)
+                switch (kernelWidth)
                 {
                     case 2:
-                        for (i = 0; i <= safe_w; ++i)
+                        for (i = 0; i <= safeWidth; ++i)
                         {
                             total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i];
+                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
                             pixels[i] = (byte)(total / 2);
                         }
                         break;
 
                     case 3:
-                        for (i = 0; i <= safe_w; ++i)
+                        for (i = 0; i <= safeWidth; ++i)
                         {
                             total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i];
+                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
                             pixels[i] = (byte)(total / 3);
                         }
                         break;
 
                     case 4:
-                        for (i = 0; i <= safe_w; ++i)
+                        for (i = 0; i <= safeWidth; ++i)
                         {
                             total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i];
+                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
                             pixels[i] = (byte)(total / 4);
                         }
                         break;
 
                     case 5:
-                        for (i = 0; i <= safe_w; ++i)
+                        for (i = 0; i <= safeWidth; ++i)
                         {
                             total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i];
+                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
                             pixels[i] = (byte)(total / 5);
                         }
                         break;
 
                     default:
-                        for (i = 0; i <= safe_w; ++i)
+                        for (i = 0; i <= safeWidth; ++i)
                         {
                             total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / kernel_width);
+                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
+                            pixels[i] = (byte)(total / kernelWidth);
                         }
                         break;
                 }
@@ -87,77 +89,78 @@ namespace StbSharp
                 for (; i < w; ++i)
                 {
                     total -= buffer[i & (8 - 1)];
-                    pixels[i] = (byte)(total / kernel_width);
+                    pixels[i] = (byte)(total / kernelWidth);
                 }
 
-                pixels = pixels[stride_in_bytes..];
+                pixels = pixels[byteStride..];
             }
         }
 
+        [SkipLocalsInit]
         public static void VerticalPrefilter(
-            Span<byte> pixels, int w, int h, int stride_in_bytes, int kernel_width)
+            Span<byte> pixels, int w, int h, int byteStride, int kernelWidth)
         {
             Span<byte> buffer = stackalloc byte[8];
-            int safe_h = h - kernel_width;
+            int safeWidth = h - kernelWidth;
 
             for (int j = 0; j < w; ++j)
             {
-                int i = 0;
+                int x = 0;
                 uint total = 0;
-                buffer.Slice(0, kernel_width).Fill(0);
+                buffer.Slice(0, kernelWidth).Fill(0);
 
-                switch (kernel_width)
+                switch (kernelWidth)
                 {
                     case 2:
-                        for (i = 0; i <= safe_h; ++i)
+                        for (x = 0; x <= safeWidth; ++x)
                         {
-                            total += (uint)(pixels[i * stride_in_bytes] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i * stride_in_bytes];
-                            pixels[i * stride_in_bytes] = (byte)(total / 2);
+                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
+                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
+                            pixels[x * byteStride] = (byte)(total / 2);
                         }
                         break;
 
                     case 3:
-                        for (i = 0; i <= safe_h; ++i)
+                        for (x = 0; x <= safeWidth; ++x)
                         {
-                            total += (uint)(pixels[i * stride_in_bytes] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i * stride_in_bytes];
-                            pixels[i * stride_in_bytes] = (byte)(total / 3);
+                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
+                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
+                            pixels[x * byteStride] = (byte)(total / 3);
                         }
                         break;
 
                     case 4:
-                        for (i = 0; i <= safe_h; ++i)
+                        for (x = 0; x <= safeWidth; ++x)
                         {
-                            total += (uint)(pixels[i * stride_in_bytes] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i * stride_in_bytes];
-                            pixels[i * stride_in_bytes] = (byte)(total / 4);
+                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
+                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
+                            pixels[x * byteStride] = (byte)(total / 4);
                         }
                         break;
 
                     case 5:
-                        for (i = 0; i <= safe_h; ++i)
+                        for (x = 0; x <= safeWidth; ++x)
                         {
-                            total += (uint)(pixels[i * stride_in_bytes] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i * stride_in_bytes];
-                            pixels[i * stride_in_bytes] = (byte)(total / 5);
+                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
+                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
+                            pixels[x * byteStride] = (byte)(total / 5);
                         }
                         break;
 
                     default:
-                        for (i = 0; i <= safe_h; ++i)
+                        for (x = 0; x <= safeWidth; ++x)
                         {
-                            total += (uint)(pixels[i * stride_in_bytes] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernel_width) & (8 - 1)] = pixels[i * stride_in_bytes];
-                            pixels[i * stride_in_bytes] = (byte)(total / kernel_width);
+                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
+                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
+                            pixels[x * byteStride] = (byte)(total / kernelWidth);
                         }
                         break;
                 }
 
-                for (; i < h; ++i)
+                for (; x < h; ++x)
                 {
-                    total -= buffer[i & (8 - 1)];
-                    pixels[i * stride_in_bytes] = (byte)(total / kernel_width);
+                    total -= buffer[x & (8 - 1)];
+                    pixels[x * byteStride] = (byte)(total / kernelWidth);
                 }
 
                 pixels = pixels[1..];

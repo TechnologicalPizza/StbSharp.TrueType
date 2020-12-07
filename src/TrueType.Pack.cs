@@ -65,43 +65,55 @@ namespace StbSharp
         }
 
         public static int PackPrepare(
-            PackContext spc, bool skipMissing, int pw, int ph, int byteStride, int padding)
+            PackContext context, bool skipMissing, int pw, int ph, int byteStride, int padding)
         {
-            spc.width = pw;
-            spc.height = ph;
-            spc.pack_info = new RPContext();
-            spc.padding = padding;
-            spc.stride_in_bytes = byteStride != 0 ? byteStride : pw;
-            spc.oversample.X = 1;
-            spc.oversample.Y = 1;
-            spc.skip_missing = skipMissing;
-            spc.pack_info.Init(pw - padding, ph - padding);
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            context.width = pw;
+            context.height = ph;
+            context.pack_info = new RPContext();
+            context.padding = padding;
+            context.stride_in_bytes = byteStride != 0 ? byteStride : pw;
+            context.oversample.X = 1;
+            context.oversample.Y = 1;
+            context.skip_missing = skipMissing;
+            context.pack_info.Init(pw - padding, ph - padding);
             return 1;
         }
 
-        public static void PackSetOversampling(PackContext spc, IntPoint oversample)
+        public static void PackSetOversampling(PackContext context, IntPoint oversample)
         {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
             if (oversample.X <= 8)
-                spc.oversample.X = oversample.X;
+                context.oversample.X = oversample.X;
             if (oversample.Y <= 8)
-                spc.oversample.Y = oversample.Y;
+                context.oversample.Y = oversample.Y;
         }
 
-        public static void PackSetSkipMissingCodepoints(PackContext spc, bool skip)
+        public static void PackSetSkipMissingCodepoints(PackContext context, bool skip)
         {
-            spc.skip_missing = skip;
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
+            context.skip_missing = skip;
         }
 
         public static bool PackFontRangesRenderIntoRects(
-            PackContext spc,
+            PackContext context,
             FontInfo info,
             Span<byte> pixels,
             ReadOnlySpan<PackRange> ranges,
             Span<RPRect> rects)
         {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
             bool return_value = true;
-            int old_h_over = spc.oversample.X;
-            int old_v_over = spc.oversample.Y;
+            int old_h_over = context.oversample.X;
+            int old_v_over = context.oversample.Y;
             int k = 0;
             int j = 0;
             int i = 0;
@@ -118,38 +130,40 @@ namespace StbSharp
                 float recip_v = 0;
                 float sub_x = 0;
                 float sub_y = 0;
-                spc.oversample.X = ranges[i].oversample_x;
-                spc.oversample.Y = ranges[i].oversample_y;
-                recip_h = 1f / spc.oversample.X;
-                recip_v = 1f / spc.oversample.Y;
-                sub_x = OversampleShift(spc.oversample.X);
-                sub_y = OversampleShift(spc.oversample.Y);
+                context.oversample.X = ranges[i].oversample_x;
+                context.oversample.Y = ranges[i].oversample_y;
+                recip_h = 1f / context.oversample.X;
+                recip_v = 1f / context.oversample.Y;
+                sub_x = OversampleShift(context.oversample.X);
+                sub_y = OversampleShift(context.oversample.Y);
 
                 for (j = 0; j < charData.Length; ++j)
                 {
                     ref RPRect r = ref rects[k];
                     if (r.was_packed && r.w != 0 && r.h != 0)
                     {
-                        int codepoint = ranges[i].array_of_unicode_codepoints == null
-                            ? ranges[i].first_unicode_codepoint_in_range + j
-                            : ranges[i].array_of_unicode_codepoints[j];
+                        int[]? codepointArray = ranges[i].array_of_unicode_codepoints;
+                        int codepoint = codepointArray != null
+                            ? codepointArray[j]
+                            : ranges[i].first_unicode_codepoint_in_range + j;
+
                         int glyph = FindGlyphIndex(info, codepoint);
-                        int pad = spc.padding;
+                        int pad = context.padding;
                         r.x += pad;
                         r.y += pad;
                         r.w -= pad;
                         r.h -= pad;
 
-                        var pixelSlice = pixels[(r.x + r.y * spc.stride_in_bytes)..];
+                        var pixelSlice = pixels[(r.x + r.y * context.stride_in_bytes)..];
                         MakeGlyphBitmapSubpixel(
                             info, pixelSlice,
-                            r.w - spc.oversample.X + 1, r.h - spc.oversample.Y + 1, spc.stride_in_bytes,
-                            scale * spc.oversample, Vector2.Zero, IntPoint.Zero, glyph);
+                            r.w - context.oversample.X + 1, r.h - context.oversample.Y + 1, context.stride_in_bytes,
+                            scale * context.oversample, Vector2.Zero, IntPoint.Zero, glyph);
 
-                        if (spc.oversample.X > 1)
-                            HorizontalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.X);
-                        if (spc.oversample.Y > 1)
-                            VerticalPrefilter(pixelSlice, r.w, r.h, spc.stride_in_bytes, spc.oversample.Y);
+                        if (context.oversample.X > 1)
+                            HorizontalPrefilter(pixelSlice, r.w, r.h, context.stride_in_bytes, context.oversample.X);
+                        if (context.oversample.Y > 1)
+                            VerticalPrefilter(pixelSlice, r.w, r.h, context.stride_in_bytes, context.oversample.Y);
 
                         charData[j].x0 = (ushort)(short)r.x;
                         charData[j].y0 = (ushort)(short)r.y;
@@ -158,7 +172,7 @@ namespace StbSharp
 
                         GetGlyphHMetrics(info, glyph, out int advance, out _);
                         GetGlyphBitmapBox(
-                            info, glyph, scale * spc.oversample, out var glyphBox);
+                            info, glyph, scale * context.oversample, out var glyphBox);
 
                         charData[j].xadvance = scale.X * advance;
                         charData[j].offset0.X = glyphBox.X * recip_h + sub_x;
@@ -169,7 +183,7 @@ namespace StbSharp
                         if (glyph == 0)
                             missing_glyph = j;
                     }
-                    else if (spc.skip_missing)
+                    else if (context.skip_missing)
                     {
                         return_value = false;
                     }
@@ -185,15 +199,18 @@ namespace StbSharp
                 }
             }
 
-            spc.oversample.X = old_h_over;
-            spc.oversample.Y = old_v_over;
+            context.oversample.X = old_h_over;
+            context.oversample.Y = old_v_over;
             return return_value;
         }
 
         public static int PackFontRangesGatherRects(
-            PackContext spc, FontInfo info,
+            PackContext context, FontInfo info,
             Span<PackRange> ranges, Span<RPRect> rects)
         {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
             int k = 0;
             bool missing_glyph_added = false;
 
@@ -204,27 +221,28 @@ namespace StbSharp
                     ? ScaleForPixelHeight(info, fh)
                     : ScaleForMappingEmToPixels(info, -fh));
 
-                ranges[i].oversample_x = (byte)spc.oversample.X;
-                ranges[i].oversample_y = (byte)spc.oversample.Y;
+                ranges[i].oversample_x = (byte)context.oversample.X;
+                ranges[i].oversample_y = (byte)context.oversample.Y;
 
                 for (int j = 0; j < ranges[i].chardata_for_range.Length; ++j)
                 {
-                    int codepoint = ranges[i].array_of_unicode_codepoints == null
-                        ? ranges[i].first_unicode_codepoint_in_range + j
-                        : ranges[i].array_of_unicode_codepoints[j];
+                    int[]? codepointArray = ranges[i].array_of_unicode_codepoints;
+                    int codepoint = codepointArray != null
+                        ? codepointArray[j]
+                        : ranges[i].first_unicode_codepoint_in_range + j;
 
                     int glyph = FindGlyphIndex(info, codepoint);
-                    if (glyph == 0 && (spc.skip_missing || missing_glyph_added))
+                    if (glyph == 0 && (context.skip_missing || missing_glyph_added))
                     {
                         rects[k].w = rects[k].h = 0;
                     }
                     else
                     {
                         GetGlyphBitmapBoxSubpixel(
-                            info, glyph, scale * spc.oversample, Vector2.Zero, out var glyphBox);
+                            info, glyph, scale * context.oversample, Vector2.Zero, out var glyphBox);
 
-                        rects[k].w = glyphBox.W + spc.padding + spc.oversample.X - 1;
-                        rects[k].h = glyphBox.H + spc.padding + spc.oversample.Y - 1;
+                        rects[k].w = glyphBox.W + context.padding + context.oversample.X - 1;
+                        rects[k].h = glyphBox.H + context.padding + context.oversample.Y - 1;
 
                         if (glyph == 0)
                             missing_glyph_added = true;
@@ -236,11 +254,14 @@ namespace StbSharp
         }
 
         public static bool PackFontRanges(
-            PackContext spc,
+            PackContext context,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontData,
             Span<PackRange> ranges)
         {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+
             int count = 0;
             for (int i = 0; i < ranges.Length; ++i)
             {
@@ -257,15 +278,15 @@ namespace StbSharp
 
             var rectBuffer = new RPRect[count];
             var rects = rectBuffer.AsSpan(0, count);
-            int packedCount = PackFontRangesGatherRects(spc, info, ranges, rects);
+            int packedCount = PackFontRangesGatherRects(context, info, ranges, rects);
             rects = rects.Slice(0, packedCount);
 
-            spc.pack_info.PackRects(rects);
-            return PackFontRangesRenderIntoRects(spc, info, pixels, ranges, rects);
+            context.pack_info.PackRects(rects);
+            return PackFontRangesRenderIntoRects(context, info, pixels, ranges, rects);
         }
 
         public static bool PackFontRange(
-            PackContext spc,
+            PackContext context,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontdata,
             float fontSize,
@@ -279,7 +300,7 @@ namespace StbSharp
             range.font_size = fontSize;
 
             // todo: remove this array alloc
-            return PackFontRanges(spc, pixels, fontdata, new PackRange[] { range });
+            return PackFontRanges(context, pixels, fontdata, new PackRange[] { range });
         }
 
         public static void GetScaledFontVMetrics(

@@ -17,6 +17,7 @@ namespace StbSharp
             return b.Slice(start, b.Cursor - start);
         }
 
+        [CLSCompliant(false)]
         public static uint CffInt(ref Buffer b)
         {
             int b0 = b.GetByte();
@@ -88,6 +89,7 @@ namespace StbSharp
             return b.Slice(0, 0);
         }
 
+        [CLSCompliant(false)]
         public static void DictGetInts(
             ref Buffer b, int key, Span<uint> dst)
         {
