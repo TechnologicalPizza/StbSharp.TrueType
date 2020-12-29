@@ -39,7 +39,7 @@ namespace StbSharp
             offset = glyphBox.Position;
             scale.Y = -scale.Y;
 
-            int num_verts = GetGlyphShape(info, glyph, out Vertex[] src_verts);
+            int num_verts = GetGlyphShape(info, glyph, out Vertex[]? src_verts);
             var vertices = src_verts.AsSpan(0, num_verts);
 
             int precomputeSize = vertices.Length * sizeof(float);

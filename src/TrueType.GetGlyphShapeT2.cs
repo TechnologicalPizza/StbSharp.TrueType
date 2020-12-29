@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
@@ -26,6 +27,7 @@ namespace StbSharp
             return 0;
         }
 
+        [SkipLocalsInit]
         public static int RunCharString(
             FontInfo info, int glyphIndex, ref CharStringContext c)
         {

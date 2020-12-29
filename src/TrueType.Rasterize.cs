@@ -107,12 +107,13 @@ namespace StbSharp
                 scale, shift, offset, pixelOffset, invert);
         }
 
+        [SkipLocalsInit]
         public static void RasterizeSortedEdges(
             Bitmap result, Span<Edge> e, int n, Vector2 offset, IntPoint pixelOffset)
         {
-            const int HalfMaxScanlineStack = 512;
+            const int MaxScanlineStack = 1024;
 
-            Span<float> scanlineBuffer = result.w <= HalfMaxScanlineStack
+            Span<float> scanlineBuffer = result.w * 2 <= MaxScanlineStack
                 ? stackalloc float[result.w * 2 + 1]
                 : new float[result.w * 2 + 1];
 

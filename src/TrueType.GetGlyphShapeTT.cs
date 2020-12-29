@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace StbSharp
 {
     public partial class TrueType
     {
+        [SkipLocalsInit]
         public static int GetGlyphShapeTT(FontInfo info, int glyph_index, out Vertex[]? pvertices)
         {
             int g = GetGlyphOffset(info, glyph_index);
