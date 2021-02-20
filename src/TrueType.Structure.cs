@@ -15,18 +15,17 @@ namespace StbSharp
             public Buffer fontdicts;
             public Buffer gsubrs;
             public Buffer subrs;
-            public int fontindex;
-            public int glyf;
-            public int gpos;
-            public int svg;
-            public int head;
-            public int hhea;
-            public int hmtx;
-            public int index_map;
+            public int? glyf;
+            public int? gpos;
+            public int? svg;
+            public int? head;
+            public int? hhea;
+            public int? hmtx;
+            public int? index_map;
             public int indexToLocFormat;
-            public int kern;
-            public int loca;
-            public int numGlyphs;
+            public int? kern;
+            public int? loca;
+            public int? numGlyphs;
         }
 
         public class PackContext
@@ -69,8 +68,8 @@ namespace StbSharp
             public ushort x1;
             public ushort y1;
 
-            public Vector2 offset0;
             public float xadvance;
+            public Vector2 offset0;
             public Vector2 offset1;
         }
 
@@ -118,10 +117,18 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public ref struct Bitmap
         {
-            public int w;
-            public int h;
-            public int stride;
-            public Span<byte> pixels;
+            public Span<byte> Pixels { get; }
+            public int Width { get; }
+            public int Height { get; }
+            public int ByteStride { get; }
+
+            public Bitmap(Span<byte> pixels, int width, int height, int stride)
+            {
+                Pixels = pixels;
+                Width = width;
+                Height = height;
+                ByteStride = stride;
+            }
         }
 
         [StructLayout(LayoutKind.Sequential)]

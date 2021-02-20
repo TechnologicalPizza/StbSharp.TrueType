@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace StbSharp
@@ -8,6 +7,9 @@ namespace StbSharp
     {
         public static bool IsFont(ReadOnlySpan<byte> fontData)
         {
+            if (fontData.Length < 4)
+                return false;
+
             if (fontData[0] == '1' &&
                 fontData[1] == 0 &&
                 fontData[2] == 0 &&
@@ -41,10 +43,13 @@ namespace StbSharp
             return false;
         }
 
-        public static int GetFontOffset(ReadOnlySpan<byte> fontData, int index)
+        public static int GetFontOffset(ReadOnlySpan<byte> fontData)
         {
             if (IsFont(fontData))
-                return index == 0 ? 0 : -1;
+                return 0;
+
+            if (fontData.Length < 4)
+                return -1;
 
             if (fontData[0] == "ttcf"[0] &&
                 fontData[1] == "ttcf"[1] &&
@@ -55,9 +60,10 @@ namespace StbSharp
                     (ReadUInt32(fontData[4..]) == 0x00020000))
                 {
                     int n = ReadInt32(fontData[8..]);
-                    if (index >= n)
+                    if (n <= 0)
                         return -1;
-                    return (int)ReadUInt32(fontData[(12 + index * 4)..]);
+                    
+                    return (int)ReadUInt32(fontData[12..]);
                 }
             }
 
@@ -85,7 +91,7 @@ namespace StbSharp
         public static Buffer GetSubRs(Buffer cff, Buffer fontdict)
         {
             Span<uint> tmp = stackalloc uint[2] { 0, 0 };
-            
+
             var pdict = new Buffer();
             DictGetInts(ref fontdict, 18, tmp);
 
@@ -104,29 +110,28 @@ namespace StbSharp
         }
 
         public static bool InitFont(
-            FontInfo info, ReadOnlyMemory<byte> fontData, int fontIndex)
+            FontInfo info, ReadOnlyMemory<byte> fontData)
         {
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
             info.data = fontData;
-            info.fontindex = fontIndex;
             info.cff = Buffer.Empty;
 
-            var data = fontData.Span;
-            int cmap = (int)FindTable(data, fontIndex, "cmap").GetValueOrDefault();
-            info.loca = (int)FindTable(data, fontIndex, "loca").GetValueOrDefault();
-            info.head = (int)FindTable(data, fontIndex, "head").GetValueOrDefault();
-            info.glyf = (int)FindTable(data, fontIndex, "glyf").GetValueOrDefault();
-            info.hhea = (int)FindTable(data, fontIndex, "hhea").GetValueOrDefault();
-            info.hmtx = (int)FindTable(data, fontIndex, "hmtx").GetValueOrDefault();
-            info.kern = (int)FindTable(data, fontIndex, "kern").GetValueOrDefault();
-            info.gpos = (int)FindTable(data, fontIndex, "GPOS").GetValueOrDefault();
+            ReadOnlySpan<byte> data = fontData.Span;
+            int? cmap = FindTable(data, "cmap");
+            info.loca = FindTable(data, "loca");
+            info.head = FindTable(data, "head");
+            info.glyf = FindTable(data, "glyf");
+            info.hhea = FindTable(data, "hhea");
+            info.hmtx = FindTable(data, "hmtx");
+            info.kern = FindTable(data, "kern");
+            info.gpos = FindTable(data, "GPOS");
 
-            if ((cmap == 0) ||
-                (info.head == 0) ||
-                (info.hhea == 0) ||
-                (info.hmtx == 0))
+            if ((cmap == null) ||
+                (info.head == null) ||
+                (info.hhea == null) ||
+                (info.hmtx == null))
                 return false;
 
             if (info.glyf != 0)
@@ -140,14 +145,14 @@ namespace StbSharp
                 uint charstrings = 0;
                 uint fdarrayoff = 0;
                 uint fdselectoff = 0;
-                int cff = (int)FindTable(data, fontIndex, "CFF ").GetValueOrDefault();
-                if (cff == 0)
+                int? cff = FindTable(data, "CFF ");
+                if (cff == null)
                     return false;
 
                 info.fontdicts = Buffer.Empty;
                 info.fdselect = Buffer.Empty;
-                info.cff = new Buffer(fontData[cff..]);
-                
+                info.cff = new Buffer(fontData[cff.GetValueOrDefault()..]);
+
                 var b = info.cff;
                 b.Skip(2);
                 b.Seek(b.GetByte());
@@ -156,8 +161,8 @@ namespace StbSharp
                 var topdict = CffIndexGet(topdictIndex, 0);
                 CffGetIndex(ref b);
                 info.gsubrs = CffGetIndex(ref b);
-                DictGetInts(ref topdict, 17, MemoryMarshal.CreateSpan(ref charstrings, 1));
-                DictGetInts(ref topdict, 0x100 | 6, MemoryMarshal.CreateSpan(ref cstype, 1));
+                DictGetInts(ref topdict, 0x000 | 17, MemoryMarshal.CreateSpan(ref charstrings, 1));
+                DictGetInts(ref topdict, 0x100 | 06, MemoryMarshal.CreateSpan(ref cstype, 1));
                 DictGetInts(ref topdict, 0x100 | 36, MemoryMarshal.CreateSpan(ref fdarrayoff, 1));
                 DictGetInts(ref topdict, 0x100 | 37, MemoryMarshal.CreateSpan(ref fdselectoff, 1));
                 info.subrs = GetSubRs(b, topdict);
@@ -178,19 +183,17 @@ namespace StbSharp
                 info.charstrings = CffGetIndex(ref b);
             }
 
-            int t = (int)FindTable(data, fontIndex, "maxp").GetValueOrDefault();
-            if (t != 0)
-                info.numGlyphs = ReadUInt16(data[(t + 4)..]);
-            else
-                info.numGlyphs = 0xffff;
+            int? t = FindTable(data, "maxp");
+            if (t != null)
+                info.numGlyphs = ReadUInt16(data[(t.GetValueOrDefault() + 4)..]);
 
             info.svg = -1;
 
-            int numTables = ReadUInt16(data[(cmap + 2)..]);
+            int numTables = ReadUInt16(data[(cmap.GetValueOrDefault() + 2)..]);
             info.index_map = 0;
             for (int i = 0; i < numTables; i++)
             {
-                int encoding_record = cmap + 4 + 8 * i;
+                int encoding_record = cmap.GetValueOrDefault() + 4 + 8 * i;
                 var pId = (FontPlatformID)ReadUInt16(data[encoding_record..]);
                 switch (pId)
                 {
@@ -200,21 +203,26 @@ namespace StbSharp
                         {
                             case FontMicrosoftEncodingID.UnicodeBmp:
                             case FontMicrosoftEncodingID.UnicodeFull:
-                                info.index_map = (int)(cmap + ReadUInt32(data[(encoding_record + 4)..]));
+                                info.index_map = (int)(cmap.GetValueOrDefault() + ReadUInt32(data[(encoding_record + 4)..]));
+                                break;
+
+                            case FontMicrosoftEncodingID.Symbol:
+
                                 break;
                         }
                         break;
 
                     case FontPlatformID.Unicode:
-                        info.index_map = (int)(cmap + ReadUInt32(data[(encoding_record + 4)..]));
+                        info.index_map = (int)(cmap.GetValueOrDefault() + ReadUInt32(data[(encoding_record + 4)..]));
                         break;
                 }
             }
 
+            info.indexToLocFormat = ReadUInt16(data[(info.head.GetValueOrDefault() + 50)..]);
+
             if (info.index_map == 0)
                 return false;
 
-            info.indexToLocFormat = ReadUInt16(data[(info.head + 50)..]);
             return true;
         }
 
@@ -258,7 +266,10 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var data = info.data.Span[info.kern..];
+            if (info.kern == null)
+                return 0;
+
+            ReadOnlySpan<byte> data = info.data.Span[info.kern.GetValueOrDefault()..];
 
             // we only look at the first table. it must be 'horizontal' and format 0.
             if (info.kern == 0)
@@ -279,7 +290,10 @@ namespace StbSharp
             if (length == 0)
                 return 0;
 
-            var data = info.data.Span[info.kern..];
+            if (info.kern == null)
+                return 0;
+
+            ReadOnlySpan<byte> data = info.data.Span[info.kern.GetValueOrDefault()..];
             if (destination.Length > length)
                 destination = destination.Slice(0, length);
 

@@ -6,7 +6,6 @@ namespace StbSharp
 {
     public partial class TrueType
     {
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort ReadUInt16(ReadOnlySpan<byte> p)
         {
@@ -19,7 +18,6 @@ namespace StbSharp
             return BinaryPrimitives.ReadInt16BigEndian(p);
         }
 
-        [CLSCompliant(false)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static uint ReadUInt32(ReadOnlySpan<byte> p)
         {
@@ -35,13 +33,13 @@ namespace StbSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float CubeRoot(float x)
         {
-            if (x < 0)
+            if (float.IsNegative(x))
                 return -MathF.Pow(-x, 1 / 3f);
             else
                 return MathF.Pow(x, 1 / 3f);
         }
 
-        public static int SolveCubic(float a, float b, float c, Span<float> r)
+        public static int SolveCubic(float a, float b, float c, out float r0, out float r1, out float r2)
         {
             float p = b - a * a / 3;
             float p3 = p * p * p;
@@ -57,7 +55,9 @@ namespace StbSharp
                 u = CubeRoot(u);
                 v = CubeRoot(v);
 
-                r[0] = s + u + v;
+                r0 = s + u + v;
+                Unsafe.SkipInit(out r1);
+                Unsafe.SkipInit(out r2);
                 return 1;
             }
             else
@@ -67,9 +67,9 @@ namespace StbSharp
                 float m = MathF.Cos(v);
                 float n = MathF.Cos(v - MathF.PI / 2) * 1.732050808f;
 
-                r[0] = s + u * 2 * m;
-                r[1] = s - u * (m + n);
-                r[2] = s - u * (m - n);
+                r0 = s + u * 2 * m;
+                r1 = s + u * (-m - n);
+                r2 = s + u * (-m + n);
                 return 3;
             }
         }

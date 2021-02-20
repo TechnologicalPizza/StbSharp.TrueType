@@ -6,8 +6,8 @@ namespace StbSharp
     public partial class TrueType
     {
         public static int RayIntersectBezier(
-            in Vector2 ray, in Vector2 orig,
-            in Vector2 q0, in Vector2 q1, in Vector2 q2,
+            Vector2 ray, Vector2 orig,
+            Vector2 q0, Vector2 q1, Vector2 q2,
             out Vector2 hit1, out Vector2 hit2)
         {
             float q0perp = q0.Y * ray.X - q0.X * ray.Y;
@@ -54,13 +54,12 @@ namespace StbSharp
             }
             else
             {
-                float rcp_len2 = 1 / (ray.X * ray.X + ray.Y * ray.Y);
-                float rayn_x = ray.X * rcp_len2;
-                float rayn_y = ray.Y * rcp_len2;
-                float q0d = q0.X * rayn_x + q0.Y * rayn_y;
-                float q1d = q1.X * rayn_x + q1.Y * rayn_y;
-                float q2d = q2.X * rayn_x + q2.Y * rayn_y;
-                float rod = orig.X * rayn_x + orig.Y * rayn_y;
+                float rcp_len2 = 1f / ray.LengthSquared();
+                Vector2 rayn = ray * rcp_len2;
+                float q0d = (q0 * rayn).LengthSquared();
+                float q1d = (q1 * rayn).LengthSquared();
+                float q2d = (q2 * rayn).LengthSquared();
+                float rod = (orig * rayn).LengthSquared();
                 float q10d = q1d - q0d;
                 float q20d = q2d - q0d;
                 float q0rd = q0d - rod;
@@ -80,8 +79,7 @@ namespace StbSharp
             }
         }
 
-        public static int ComputeCrossingsX(
-            Vector2 point, ReadOnlySpan<Vertex> vertices)
+        public static int ComputeCrossingsX(Vector2 point, ReadOnlySpan<Vertex> vertices)
         {
             Vector2 origin = point;
             Vector2 ray = new Vector2(1, 0);
@@ -97,67 +95,74 @@ namespace StbSharp
             Vector2 q1;
             Vector2 q2;
 
-            for (int i = 0; i < vertices.Length; ++i)
+            for (int i = 1; i < vertices.Length; i++)
             {
+                ref readonly Vertex pvertex = ref vertices[i - 1];
                 ref readonly Vertex vertex = ref vertices[i];
+
                 if (vertex.type == VertexType.Line)
                 {
-                    var pos0 = new Vector2(vertices[i - 1].X, vertices[i - 1].Y);
-                    var pos1 = new Vector2(vertex.X, vertex.Y);
+                    short p0x = pvertex.X;
+                    short p0y = pvertex.Y;
+                    short p1x = vertex.X;
+                    short p1y = vertex.Y;
 
-                    if ((point.Y > (pos0.Y < pos1.Y ? pos0.Y : pos1.Y)) &&
-                        (point.Y < (pos0.Y < pos1.Y ? pos1.Y : pos0.Y)) &&
-                        (point.X > (pos0.X < pos1.X ? pos0.X : pos1.X)))
+                    if ((point.Y > (p0y < p1y ? p0y : p1y)) &&
+                        (point.Y < (p0y < p1y ? p1y : p0y)) &&
+                        (point.X > (p0x < p1x ? p0x : p1x)))
                     {
-                        float x_inter = (point.Y - pos0.Y) / (pos1.Y - pos0.Y) * (pos1.X - pos0.X) + pos0.X;
+                        float x_inter = (point.Y - p0y) / (p1y - p0y) * (p1x - p0x) + p0x;
                         if (x_inter < point.X)
-                            winding += (pos0.Y < pos1.Y) ? 1 : -1;
+                            winding += (p0y < p1y) ? 1 : -1;
                     }
                 }
-
-                if (vertices[i].type == VertexType.Curve)
+                else if (vertex.type == VertexType.Curve)
                 {
-                    var pos0 = new Vector2(vertices[i - 1].X, vertices[i - 1].Y);
-                    var pos1 = new Vector2(vertex.cx, vertex.cy);
-                    var pos2 = new Vector2(vertex.X, vertex.Y);
-                    float ax = pos0.X < (pos1.X < pos2.X ? pos1.X : pos2.X) ? pos0.X : (pos1.X < pos2.X ? pos1.X : pos2.X);
-                    float ay = pos0.Y < (pos1.Y < pos2.Y ? pos1.Y : pos2.Y) ? pos0.Y : (pos1.Y < pos2.Y ? pos1.Y : pos2.Y);
-                    float by = pos0.Y < (pos1.Y < pos2.Y ? pos2.Y : pos1.Y) ? (pos1.Y < pos2.Y ? pos2.Y : pos1.Y) : pos0.Y;
+                    short p0x = pvertex.X;
+                    short p0y = pvertex.Y;
+                    short p1x = vertex.cx;
+                    short p1y = vertex.cy;
+                    short p2x = vertex.X;
+                    short p2y = vertex.Y;
+                    short ax = p0x < (p1x < p2x ? p1x : p2x) ? p0x : (p1x < p2x ? p1x : p2x);
+                    short ay = p0y < (p1y < p2y ? p1y : p2y) ? p0y : (p1y < p2y ? p1y : p2y);
+                    short by = p0y < (p1y < p2y ? p2y : p1y) ? (p1y < p2y ? p2y : p1y) : p0y;
 
                     if ((point.Y > ay) &&
                         (point.Y < by) &&
                         (point.X > ax))
                     {
-                        q0 = pos0;
-                        q1 = pos1;
-                        q2 = pos2;
+                        q0 = new Vector2(p0x, p0y);
+                        q1 = new Vector2(p1x, p1y);
+                        q2 = new Vector2(p2x, p2y);
 
                         if (q0 == q1 || q1 == q2)
                         {
-                            pos0 = new Vector2(vertices[i - 1].X, vertices[i - 1].Y);
-                            pos1 = new Vector2(vertex.X, vertex.Y);
-
-                            if ((point.Y > (pos0.Y < pos1.Y ? pos0.Y : pos1.Y)) &&
-                                (point.Y < (pos0.Y < pos1.Y ? pos1.Y : pos0.Y)) &&
-                                (point.X > (pos0.X < pos1.X ? pos0.X : pos1.X)))
+                            if ((point.Y > (p0y < p2y ? p0y : p2y)) &&
+                                (point.Y < (p0y < p2y ? p2y : p0y)) &&
+                                (point.X > (p0x < p2x ? p0x : p2x)))
                             {
-                                float x_inter = (point.Y - pos0.Y) / (pos1.Y - pos0.Y) * (pos1.X - pos0.X) + pos0.X;
+                                float x_inter = (point.Y - p0y) / (p2y - p0y) * (p2x - p0x) + p0x;
                                 if (x_inter < point.X)
-                                    winding += (pos0.Y < pos1.Y) ? 1 : -1;
+                                    winding += (p0y < p2y) ? 1 : -1;
                             }
                         }
                         else
                         {
                             int num_hits = RayIntersectBezier(
-                                ray, origin, q0, q1, q2, out var hit1, out var hit2);
+                                ray, origin, q0, q1, q2, out Vector2 hit1, out Vector2 hit2);
 
                             if (num_hits >= 1)
+                            {
                                 if (hit1.X < 0)
                                     winding += hit1.Y < 0 ? -1 : 1;
+                            }
 
                             if (num_hits >= 2)
+                            {
                                 if (hit2.X < 0)
                                     winding += hit2.Y < 0 ? -1 : 1;
+                            }
                         }
                     }
                 }

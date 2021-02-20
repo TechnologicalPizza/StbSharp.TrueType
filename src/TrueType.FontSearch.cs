@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace StbSharp
 {
@@ -9,8 +11,12 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            var data = info.data.Span;
-            int index_map = info.index_map;
+            if (info.index_map == null)
+                return default;
+
+            ReadOnlySpan<byte> data = info.data.Span;
+            int index_map = info.index_map.GetValueOrDefault();
+
             ushort format = ReadUInt16(data[(index_map + 0)..]);
             if (format == 0)
             {
@@ -99,102 +105,159 @@ namespace StbSharp
             return default;
         }
 
-        [CLSCompliant(false)]
-        public static uint? FindTable(ReadOnlySpan<byte> data, int fontstart, ReadOnlySpan<char> tag)
+        public static int? FindTable(ReadOnlySpan<byte> data, ReadOnlySpan<char> tag)
         {
             if (tag.Length != 4)
                 throw new ArgumentException("", nameof(tag));
+            if (data.Length < 6)
+                return null;
 
-            int num_tables = ReadUInt16(data[(fontstart + 4)..]);
-            int tabledir = fontstart + 12;
+            int num_tables = ReadUInt16(data[4..]);
+            int tabledir = 12;
             for (int i = 0; i < num_tables; i++)
             {
                 int loc = tabledir + 16 * i;
-                var slice = data[loc..];
+                ReadOnlySpan<byte> slice = data.Slice(loc, 4);
                 if (slice[0] == tag[0] &&
                     slice[1] == tag[1] &&
                     slice[2] == tag[2] &&
                     slice[3] == tag[3])
-                    return ReadUInt32(data[(loc + 8)..]);
+                {
+                    return (int)ReadUInt32(data[(loc + 8)..]);
+                }
             }
 
             return default;
         }
 
         public static int FindMatchingFont(
-            ReadOnlySpan<byte> fontData, ReadOnlySpan<byte> nameUtf8, int flags)
+            ReadOnlyMemory<byte> fontData, ReadOnlySpan<byte> nameUtf8, int flags)
         {
             for (int i = 0; ; i++)
             {
-                int off = GetFontOffset(fontData, i);
+                int off = GetFontOffset(fontData.Span[i..]);
                 if (off < 0)
                     return off;
 
-                if (Match(fontData, off, nameUtf8, flags))
+                if (Match(fontData[off..], nameUtf8, flags))
                     return off;
             }
         }
 
-        public static bool MatchPair(
-            ReadOnlySpan<byte> fontData, int nameTable,
-            ReadOnlySpan<byte> name, int targetId, int nextId)
+        public static bool MatchPair<TEnumerator>(
+            TEnumerator nameEnumerator, ReadOnlySpan<byte> name, ReadOnlySpan<int> nameIds)
+            where TEnumerator : IEnumerator<FontName>
         {
-            int count = ReadUInt16(fontData[(nameTable + 2)..]);
-            int stringOffset = nameTable + ReadUInt16(fontData[(nameTable + 4)..]);
-
-            for (int i = 0; i < count; i++)
+            while (nameEnumerator.MoveNext())
             {
-                int loc = nameTable + 6 + 12 * i;
-                int id = ReadUInt16(fontData[(loc + 6)..]);
-                if (id == targetId)
+                FontName fontName = nameEnumerator.Current;
+                if (!nameIds.Contains(fontName.NameID))
+                    continue;
+
+                if (fontName.PlatformID == FontPlatformID.Unicode ||
+                    (fontName.PlatformID == FontPlatformID.Microsoft && fontName.EncodingID == 1) ||
+                    (fontName.PlatformID == FontPlatformID.Microsoft && fontName.EncodingID == 10))
                 {
-                    int platform = ReadUInt16(fontData[(loc + 0)..]);
-                    int encoding = ReadUInt16(fontData[(loc + 2)..]);
-                    int language = ReadUInt16(fontData[(loc + 4)..]);
-
-                    if (platform == 0 ||
-                        (platform == 3 && encoding == 1) ||
-                        (platform == 3 && encoding == 10))
-                    {
-                        int slen = ReadUInt16(fontData[(loc + 8)..]);
-                        int off = ReadUInt16(fontData[(loc + 10)..]);
-                        int matchLength = BigEndianComparePrefixUtf8To16(
-                            name, fontData.Slice(stringOffset + off, slen));
-
-                        if (matchLength >= 0)
-                        {
-                            if ((i + 1) < count &&
-                                ReadUInt16(fontData[(loc + 12 + 6)..]) == nextId &&
-                                ReadUInt16(fontData[(+loc + 12)..]) == platform &&
-                                ReadUInt16(fontData[(+loc + 12 + 2)..]) == encoding &&
-                                ReadUInt16(fontData[(+loc + 12 + 4)..]) == language)
-                            {
-                                slen = ReadUInt16(fontData[(+loc + 12 + 8)..]);
-                                off = ReadUInt16(fontData[(+loc + 12 + 10)..]);
-                                if (slen == 0)
-                                {
-                                    if (matchLength == name.Length)
-                                        return true;
-                                }
-                                else if ((matchLength < name.Length) && (name[matchLength] == ' '))
-                                {
-                                    matchLength++;
-                                    if (BigEndianCompareUtf8To16(
-                                        name[matchLength..name.Length],
-                                        fontData.Slice(stringOffset + off, slen)))
-                                        return true;
-                                }
-                            }
-                            else
-                            {
-                                if (matchLength == name.Length)
-                                    return true;
-                            }
-                        }
-                    }
+                    int matchLength = BigEndianComparePrefixUtf8To16(name, fontName.Name.Span);
+                    if (matchLength == name.Length)
+                        return true;
                 }
             }
             return false;
+        }
+
+        public struct FontName
+        {
+            public FontPlatformID PlatformID { get; }
+            public int EncodingID { get; }
+            public int LanguageID { get; }
+            public int NameID { get; }
+            public ReadOnlyMemory<byte> Name { get; }
+
+            public FontName(FontPlatformID platformID, int encodingID, int languageID, int nameID, ReadOnlyMemory<byte> name)
+            {
+                PlatformID = platformID;
+                EncodingID = encodingID;
+                LanguageID = languageID;
+                NameID = nameID;
+                Name = name;
+            }
+        }
+
+        public struct FontNameEnumerator : IEnumerator<FontName>
+        {
+            private int _index;
+            private int _tableOffset;
+
+            public ReadOnlyMemory<byte> FontData { get; }
+            public int Count { get; }
+            public int StringOffset { get; }
+
+            public FontPlatformID PlatformID { get; private set; }
+            public int EncodingID { get; private set; }
+            public int LanguageID { get; private set; }
+            public int NameID { get; private set; }
+            public Range Range { get; private set; }
+
+            public FontName Current => new FontName(PlatformID, EncodingID, LanguageID, NameID, FontData[Range]);
+            object IEnumerator.Current => Current;
+
+            public FontNameEnumerator(ReadOnlyMemory<byte> fontData) : this()
+            {
+                FontData = fontData;
+
+                ReadOnlySpan<byte> data = FontData.Span;
+                int? nameTable = FindTable(data, "name");
+                if (nameTable == null)
+                    return;
+
+                _tableOffset = nameTable.GetValueOrDefault();
+                Count = ReadUInt16(data[(_tableOffset + 2)..]);
+                StringOffset = _tableOffset + ReadUInt16(data[(_tableOffset + 4)..]);
+            }
+
+            public bool MoveNext()
+            {
+                if (_index < Count)
+                {
+                    ReadOnlySpan<byte> data = FontData.Span;
+                    int loc = _tableOffset + 6 + 12 * _index;
+                    PlatformID = (FontPlatformID)ReadUInt16(data[(loc + 0)..]);
+                    EncodingID = ReadUInt16(data[(loc + 2)..]);
+                    LanguageID = ReadUInt16(data[(loc + 4)..]);
+                    NameID = ReadUInt16(data[(loc + 6)..]);
+
+                    int length = ReadUInt16(data[(loc + 8)..]);
+                    int start = StringOffset + ReadUInt16(data[(loc + 10)..]);
+                    Range = new Range(start, start + length);
+
+                    _index++;
+                    return true;
+                }
+                return false;
+            }
+
+            public FontNameEnumerator GetEnumerator()
+            {
+                return this;
+            }
+
+            public void Reset()
+            {
+                _index = 0;
+            }
+
+            public void Dispose()
+            {
+            }
+        }
+
+        public static FontNameEnumerator EnumerateFontNames(FontInfo font)
+        {
+            if (font == null)
+                throw new ArgumentNullException(nameof(font));
+
+            return new FontNameEnumerator(font.data);
         }
 
         public static ReadOnlySpan<byte> GetFontName(
@@ -205,14 +268,13 @@ namespace StbSharp
                 throw new ArgumentNullException(nameof(font));
 
             var fc = font.data.Span;
-            int offset = font.fontindex;
-            uint? nameTable = FindTable(fc, offset, "name");
+            int? nameTable = FindTable(fc, "name");
             if (!nameTable.HasValue)
             {
                 length = 0;
                 return default;
             }
-            int nm = (int)nameTable.GetValueOrDefault();
+            int nm = nameTable.GetValueOrDefault();
 
             int count = ReadUInt16(fc[(nm + 2)..]);
             int stringOffset = nm + ReadUInt16(fc[(nm + 4)..]);
@@ -234,37 +296,31 @@ namespace StbSharp
         }
 
         public static bool Match(
-            ReadOnlySpan<byte> fontData, int offset, ReadOnlySpan<byte> name, int flags)
+            ReadOnlyMemory<byte> fontData, ReadOnlySpan<byte> name, int flags)
         {
-            if (!IsFont(fontData[offset..]))
+            ReadOnlySpan<byte> data = fontData.Span;
+
+            if (!IsFont(data))
                 return false;
 
             if (flags != 0)
             {
-                uint? hd = FindTable(fontData, offset, "head");
-                if (!hd.HasValue)
+                int? hd = FindTable(data, "head");
+                if (hd == null)
                     return false;
 
-                if ((ReadUInt16(fontData[((int)hd.GetValueOrDefault() + 44)..]) & 7) != (flags & 7))
+                if ((ReadUInt16(data[(hd.GetValueOrDefault() + 44)..]) & 7) != (flags & 7))
                     return false;
             }
 
-            uint? nameTable = FindTable(fontData, offset, "name");
-            if (!nameTable.HasValue)
-                return false;
-            int nm = (int)nameTable.GetValueOrDefault();
-
+            var names = new FontNameEnumerator(fontData);
             if (flags != 0)
             {
-                return MatchPair(fontData, nm, name, 16, -1)
-                    || MatchPair(fontData, nm, name, 1, -1)
-                    || MatchPair(fontData, nm, name, 3, -1);
+                return MatchPair(names, name, stackalloc int[] { 1, 3, 16 });
             }
             else
             {
-                return MatchPair(fontData, nm, name, 16, 17)
-                    || MatchPair(fontData, nm, name, 1, 2) 
-                    || MatchPair(fontData, nm, name, 3, -1);
+                return MatchPair(names, name, stackalloc int[] { 1, 2, 3, 16, 17 });
             }
         }
 

@@ -12,8 +12,10 @@ namespace StbSharp
         {
             int n = 0;
             for (int i = 0; i < vertices.Length; i++)
+            {
                 if (vertices[i].type == VertexType.Move)
                     n++;
+            }
 
             contourCount = n;
             if (n == 0)
@@ -30,8 +32,13 @@ namespace StbSharp
             int start = 0;
             for (int pass = 0; pass < 2; pass++)
             {
+                ref Vector2 pointDst = ref Unsafe.NullRef<Vector2>();
+
                 if (pass == 1)
+                {
                     points = new Vector2[num_points];
+                    pointDst = ref points[0];
+                }
 
                 var pos = Vector2.Zero;
                 num_points = 0;
@@ -48,18 +55,18 @@ namespace StbSharp
                             start = num_points;
                             pos.X = vertex.X;
                             pos.Y = vertex.Y;
-                            AddPoint(points, num_points++, pos.X, pos.Y);
+                            AddPoint(ref pointDst, num_points++, pos.X, pos.Y);
                             break;
 
                         case VertexType.Line:
                             pos.X = vertex.X;
                             pos.Y = vertex.Y;
-                            AddPoint(points, num_points++, pos.X, pos.Y);
+                            AddPoint(ref pointDst, num_points++, pos.X, pos.Y);
                             break;
 
                         case VertexType.Curve:
                             TesselateCurve(
-                                points, ref num_points,
+                                ref pointDst, ref num_points,
                                 pos.X, pos.Y,
                                 vertex.cx, vertex.cy,
                                 vertex.X, vertex.Y,
@@ -70,7 +77,7 @@ namespace StbSharp
 
                         case VertexType.Cubic:
                             TesselateCubic(
-                                points, ref num_points,
+                                ref pointDst, ref num_points,
                                 pos.X, pos.Y,
                                 vertex.cx, vertex.cy,
                                 vertex.cx1, vertex.cy1,
@@ -113,20 +120,21 @@ namespace StbSharp
         {
             const int MaxScanlineStack = 1024;
 
-            Span<float> scanlineBuffer = result.w * 2 <= MaxScanlineStack
-                ? stackalloc float[result.w * 2 + 1]
-                : new float[result.w * 2 + 1];
+            int fullScanlineLength = result.Width * 2 + 1;
+            Span<float> scanlineBuffer = fullScanlineLength <= MaxScanlineStack
+                ? stackalloc float[fullScanlineLength]
+                : new float[fullScanlineLength];
 
-            var scanline = scanlineBuffer.Slice(0, result.w);
-            var scanline_fill = scanlineBuffer[result.w..];
+            var scanline = scanlineBuffer.Slice(0, result.Width);
+            var scanline_fill = scanlineBuffer.Slice(scanline.Length, result.Width + 1);
 
             float offY = offset.Y;
-            e[n].p0.Y = offset.Y + result.h + 1;
+            e[n].p0.Y = offset.Y + result.Height + 1;
 
             ActiveEdge? active = null;
 
             int bmpY = 0;
-            while (bmpY < result.h)
+            while (bmpY < result.Height)
             {
                 scanlineBuffer.Clear();
 
@@ -175,22 +183,20 @@ namespace StbSharp
                 e = e[ie..];
 
                 if (active != null)
-                    FillActiveEdges(scanline, scanline_fill, active, scan_y_top);
+                    FillActiveEdges(ref scanline[0], ref scanline_fill[0], scanline.Length, active, scan_y_top);
 
                 // TODO: output pixel rows instead
-                var pixel_row = result.pixels[
-                    ((bmpY + pixelOffset.Y) * result.stride + pixelOffset.X)..];
+                Span<byte> pixel_row = result.Pixels[
+                    ((bmpY + pixelOffset.Y) * result.ByteStride + pixelOffset.X)..];
 
-                // TODO: vectorize
+                // TODO: vectorize?
                 float sum = 0f;
                 for (int x = 0; x < scanline.Length; x++)
                 {
                     sum += scanline_fill[x];
                     float k = scanline[x] + sum;
                     k = Math.Abs(k) * byte.MaxValue;
-                    if (k > 255)
-                        k = 255;
-                    pixel_row[x] = (byte)k;
+                    pixel_row[x] = k > 255 ? (byte)255 : (byte)k;
                 }
 
                 step = active;
@@ -207,7 +213,7 @@ namespace StbSharp
         }
 
         public static void Rasterize(
-            Bitmap result, ReadOnlySpan<Vector2> pts, ReadOnlySpan<int> windings,
+            Bitmap result, ReadOnlySpan<Vector2> points, ReadOnlySpan<int> windings,
             Vector2 scale, Vector2 shift, Vector2 offset, IntPoint pixelOffset, bool invert)
         {
             int winding_sum = 0;
@@ -216,7 +222,7 @@ namespace StbSharp
 
             int edgeCount = winding_sum + 1;
             int totalEdgeBytes = edgeCount * Unsafe.SizeOf<Edge>();
-            var e = totalEdgeBytes <= 4096 ? stackalloc Edge[edgeCount] : new Edge[edgeCount];
+            Span<Edge> e = totalEdgeBytes <= 4096 ? stackalloc Edge[edgeCount] : new Edge[edgeCount];
 
             float y_scale_inv = invert ? -scale.Y : scale.Y;
             int vsubsample = 1;
@@ -224,7 +230,7 @@ namespace StbSharp
             int n = 0;
             for (int i = 0; i < windings.Length; ++i)
             {
-                var p = pts[m..];
+                ReadOnlySpan<Vector2> p = points[m..];
                 m += windings[i];
                 int j = windings[i] - 1;
 
@@ -257,7 +263,7 @@ namespace StbSharp
                 }
             }
 
-            SortEdges(e, n);
+            SortEdges(e.Slice(0, n));
             RasterizeSortedEdges(result, e, n, offset, pixelOffset);
         }
     }

@@ -4,35 +4,41 @@ namespace StbSharp
 {
     public partial class TrueType
     {
-        public static int GetSvgIndex(FontInfo info)
+        public static int? GetSvgIndex(FontInfo info)
         {
-            if (info.svg < 0)
+            if (info.svg != null)
+                return info.svg;
+
+            ReadOnlySpan<byte> data = info.data.Span;
+            int? t = FindTable(data, "SVG ");
+            if (t != null)
             {
-                var data = info.data.Span;
-                int t = (int)FindTable(data, info.fontindex, "SVG ").GetValueOrDefault();
-                if (t != 0)
-                {
-                    int offset = (int)ReadUInt32(data[(t + 2)..]);
-                    info.svg = t + offset;
-                }
-                else
-                {
-                    info.svg = 0;
-                }
+                int tv = t.GetValueOrDefault();
+                int offset = (int)ReadUInt32(data[(tv + 2)..]);
+                info.svg = tv + offset;
+            }
+            else
+            {
+                info.svg = 0;
             }
             return info.svg;
         }
 
         private static ReadOnlyMemory<byte> FindSVGDoc(FontInfo info, int glyph)
         {
-            var svg_doc_list = info.data[GetSvgIndex(info)..];
+            int? index = GetSvgIndex(info);
+            if (index == null)
+                return default;
+
+            ReadOnlyMemory<byte> svg_doc_list = info.data[index.GetValueOrDefault()..];
             int numEntries = ReadUInt16(svg_doc_list.Span);
-            var svg_docs = svg_doc_list[2..];
+            ReadOnlyMemory<byte> svg_docs = svg_doc_list[2..];
 
             for (int i = 0; i < numEntries; i++)
             {
-                var svg_doc = svg_docs[(12 * i)..];
-                var svg_doc_data = svg_doc.Span;
+                ReadOnlyMemory<byte> svg_doc = svg_docs[(12 * i)..];
+                ReadOnlySpan<byte> svg_doc_data = svg_doc.Span;
+
                 if ((glyph >= ReadUInt16(svg_doc_data)) &&
                     (glyph <= ReadUInt16(svg_doc_data[2..])))
                     return svg_doc;
@@ -42,18 +48,17 @@ namespace StbSharp
 
         private static ReadOnlyMemory<byte> GetGlyphSVG(FontInfo info, int glyph)
         {
-            if (info.svg != 0)
-            {
-                var svg_doc = FindSVGDoc(info, glyph);
-                if (!svg_doc.IsEmpty)
-                {
-                    var svg_doc_data = svg_doc.Span;
-                    int start = info.svg + (int)ReadUInt32(svg_doc_data[4..]);
-                    int length = (int)ReadUInt32(svg_doc_data[8..]);
-                    return info.data.Slice(start, length);
-                }
-            }
-            return default;
+            if (info.svg == null)
+                return default;
+
+            ReadOnlyMemory<byte> svg_doc = FindSVGDoc(info, glyph);
+            if (svg_doc.IsEmpty)
+                return default;
+
+            ReadOnlySpan<byte> svg_doc_data = svg_doc.Span;
+            int start = (int)(info.svg + ReadUInt32(svg_doc_data[4..]));
+            int length = (int)ReadUInt32(svg_doc_data[8..]);
+            return info.data.Slice(start, length);
         }
 
         private static ReadOnlyMemory<byte> GetCodepointSVG(FontInfo info, int unicode_codepoint)

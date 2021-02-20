@@ -12,8 +12,8 @@ namespace StbSharp
             float d3d_bias = openglFillrule ? 0 : -0.5f;
             float ipw = 1f / pw;
             float iph = 1f / ph;
-            int round_x = (int)Math.Floor(xpos + chardata.off.X + 0.5f);
-            int round_y = (int)Math.Floor(ypos + chardata.off.Y + 0.5f);
+            int round_x = (int)MathF.Floor(xpos + chardata.off.X + 0.5f);
+            int round_y = (int)MathF.Floor(ypos + chardata.off.Y + 0.5f);
             q.pos0.X = round_x + d3d_bias;
             q.pos0.Y = round_y + d3d_bias;
             q.pos1.X = round_x + chardata.x1 - chardata.x0 + d3d_bias;
@@ -26,141 +26,98 @@ namespace StbSharp
         }
 
         [SkipLocalsInit]
-        public static void HorizontalPrefilter(
-            Span<byte> pixels, int w, int h, int byteStride, int kernelWidth)
+        public static void HorizontalPrefilter(Bitmap bitmap, int kernelWidth)
         {
-            Span<byte> buffer = stackalloc byte[8];
-            int safeWidth = w - kernelWidth;
-
-            for (int j = 0; j < h; ++j)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static int BatchFilter(
+                ref uint total, Span<byte> span, Span<byte> buffer, int kernelWidth)
             {
-                int i = 0;
+                int x;
+                for (x = 0; x < span.Length; x++)
+                {
+                    total += (uint)(span[x] - buffer[x & (8 - 1)]);
+                    buffer[(x + kernelWidth) & (8 - 1)] = span[x];
+                    span[x] = (byte)(total / kernelWidth);
+                }
+                return x;
+            }
+
+            if (kernelWidth > 8)
+                throw new ArgumentOutOfRangeException(nameof(kernelWidth));
+
+            Span<byte> buffer = stackalloc byte[8];
+            int safeWidth = bitmap.Width - kernelWidth;
+
+            int stride = bitmap.ByteStride;
+            Span<byte> pixels = bitmap.Pixels;
+
+            for (int j = 0; j < bitmap.Height; j++)
+            {
                 uint total = 0;
-                buffer.Slice(0, kernelWidth).Fill(0);
+                buffer.Slice(0, kernelWidth).Clear();
+                Span<byte> span = pixels.Slice(0, safeWidth + 1);
 
-                switch (kernelWidth)
+                int x = kernelWidth switch
                 {
-                    case 2:
-                        for (i = 0; i <= safeWidth; ++i)
-                        {
-                            total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / 2);
-                        }
-                        break;
+                    2 => BatchFilter(ref total, span, buffer, 2),
+                    4 => BatchFilter(ref total, span, buffer, 4),
+                    8 => BatchFilter(ref total, span, buffer, 8),
+                    _ => BatchFilter(ref total, span, buffer, kernelWidth),
+                };
 
-                    case 3:
-                        for (i = 0; i <= safeWidth; ++i)
-                        {
-                            total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / 3);
-                        }
-                        break;
-
-                    case 4:
-                        for (i = 0; i <= safeWidth; ++i)
-                        {
-                            total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / 4);
-                        }
-                        break;
-
-                    case 5:
-                        for (i = 0; i <= safeWidth; ++i)
-                        {
-                            total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / 5);
-                        }
-                        break;
-
-                    default:
-                        for (i = 0; i <= safeWidth; ++i)
-                        {
-                            total += (uint)(pixels[i] - buffer[i & (8 - 1)]);
-                            buffer[(i + kernelWidth) & (8 - 1)] = pixels[i];
-                            pixels[i] = (byte)(total / kernelWidth);
-                        }
-                        break;
+                for (; x < bitmap.Width; x++)
+                {
+                    total -= buffer[x & (8 - 1)];
+                    pixels[x] = (byte)(total / kernelWidth);
                 }
 
-                for (; i < w; ++i)
-                {
-                    total -= buffer[i & (8 - 1)];
-                    pixels[i] = (byte)(total / kernelWidth);
-                }
-
-                pixels = pixels[byteStride..];
+                pixels = pixels[stride..];
             }
         }
 
         [SkipLocalsInit]
-        public static void VerticalPrefilter(
-            Span<byte> pixels, int w, int h, int byteStride, int kernelWidth)
+        public static void VerticalPrefilter(Bitmap bitmap, int kernelWidth)
         {
-            Span<byte> buffer = stackalloc byte[8];
-            int safeWidth = h - kernelWidth;
-
-            for (int j = 0; j < w; ++j)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static int BatchFilter(
+                ref uint total, Span<byte> pixels, Span<byte> buffer, int safeHeight, int stride, int kernelWidth)
             {
-                int x = 0;
-                uint total = 0;
-                buffer.Slice(0, kernelWidth).Fill(0);
-
-                switch (kernelWidth)
+                int y;
+                for (y = 0; y <= safeHeight; y++)
                 {
-                    case 2:
-                        for (x = 0; x <= safeWidth; ++x)
-                        {
-                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
-                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
-                            pixels[x * byteStride] = (byte)(total / 2);
-                        }
-                        break;
-
-                    case 3:
-                        for (x = 0; x <= safeWidth; ++x)
-                        {
-                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
-                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
-                            pixels[x * byteStride] = (byte)(total / 3);
-                        }
-                        break;
-
-                    case 4:
-                        for (x = 0; x <= safeWidth; ++x)
-                        {
-                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
-                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
-                            pixels[x * byteStride] = (byte)(total / 4);
-                        }
-                        break;
-
-                    case 5:
-                        for (x = 0; x <= safeWidth; ++x)
-                        {
-                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
-                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
-                            pixels[x * byteStride] = (byte)(total / 5);
-                        }
-                        break;
-
-                    default:
-                        for (x = 0; x <= safeWidth; ++x)
-                        {
-                            total += (uint)(pixels[x * byteStride] - buffer[x & (8 - 1)]);
-                            buffer[(x + kernelWidth) & (8 - 1)] = pixels[x * byteStride];
-                            pixels[x * byteStride] = (byte)(total / kernelWidth);
-                        }
-                        break;
+                    total += (uint)(pixels[y * stride] - buffer[y & (8 - 1)]);
+                    buffer[(y + kernelWidth) & (8 - 1)] = pixels[y * stride];
+                    pixels[y * stride] = (byte)(total / kernelWidth);
                 }
+                return y;
+            }
 
-                for (; x < h; ++x)
+            if (kernelWidth > 8)
+                throw new ArgumentOutOfRangeException(nameof(kernelWidth));
+
+            Span<byte> buffer = stackalloc byte[8];
+            int safeHeight = bitmap.Height - kernelWidth;
+
+            int stride = bitmap.ByteStride;
+            Span<byte> pixels = bitmap.Pixels;
+
+            for (int j = 0; j < bitmap.Width; j++)
+            {
+                uint total = 0;
+                buffer.Slice(0, kernelWidth).Clear();
+
+                int x = kernelWidth switch
+                {
+                    2 => BatchFilter(ref total, pixels, buffer, safeHeight, stride, 2),
+                    4 => BatchFilter(ref total, pixels, buffer, safeHeight, stride, 4),
+                    8 => BatchFilter(ref total, pixels, buffer, safeHeight, stride, 8),
+                    _ => BatchFilter(ref total, pixels, buffer, safeHeight, stride, kernelWidth),
+                };
+
+                for (; x < bitmap.Height; x++)
                 {
                     total -= buffer[x & (8 - 1)];
-                    pixels[x * byteStride] = (byte)(total / kernelWidth);
+                    pixels[x * stride] = (byte)(total / kernelWidth);
                 }
 
                 pixels = pixels[1..];

@@ -44,18 +44,24 @@ namespace StbSharp
             if (info.indexToLocFormat >= 2)
                 return -1;
 
+            if (info.loca == null ||
+                info.glyf == null)
+                return -1;
+
+            ReadOnlySpan<byte> locaData = info.data.Span[info.loca.GetValueOrDefault()..];
+            int glyf = info.glyf.GetValueOrDefault();
+
             int g1;
             int g2;
-            var locaData = info.data.Span[info.loca..];
             if (info.indexToLocFormat == 0)
             {
-                g1 = info.glyf + ReadUInt16(locaData[(glyphIndex * 2)..]) * 2;
-                g2 = info.glyf + ReadUInt16(locaData[(glyphIndex * 2 + 2)..]) * 2;
+                g1 = glyf + ReadUInt16(locaData[(glyphIndex * 2)..]) * 2;
+                g2 = glyf + ReadUInt16(locaData[(glyphIndex * 2 + 2)..]) * 2;
             }
             else
             {
-                g1 = (int)(info.glyf + ReadUInt32(locaData[(glyphIndex * 4)..]));
-                g2 = (int)(info.glyf + ReadUInt32(locaData[(glyphIndex * 4 + 4)..]));
+                g1 = (int)(glyf + ReadUInt32(locaData[(glyphIndex * 4)..]));
+                g2 = (int)(glyf + ReadUInt32(locaData[(glyphIndex * 4 + 4)..]));
             }
             return g1 == g2 ? -1 : g1;
         }
@@ -110,19 +116,26 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            ushort numOfLongHMetrics = ReadUInt16(info.data.Span[(info.hhea + 34)..]);
+            if (info.hhea == null ||
+                info.hmtx == null)
+            {
+                advanceWidth = 0;
+                leftSideBearing = 0;
+                return;
+            }
+
+            ReadOnlySpan<byte> data = info.data.Span;
+            int hmtx = info.hmtx.GetValueOrDefault();
+            ushort numOfLongHMetrics = ReadUInt16(data[(info.hhea.GetValueOrDefault() + 34)..]);
             if (glyphIndex < numOfLongHMetrics)
             {
-                advanceWidth = ReadInt16(info.data.Span[(info.hmtx + 4 * glyphIndex)..]);
-                leftSideBearing = ReadInt16(info.data.Span[(info.hmtx + 4 * glyphIndex + 2)..]);
+                advanceWidth = ReadInt16(data[(hmtx + 4 * glyphIndex)..]);
+                leftSideBearing = ReadInt16(data[(hmtx + 4 * glyphIndex + 2)..]);
             }
             else
             {
-                advanceWidth = ReadInt16(info.data.Span[
-                    (info.hmtx + 4 * (numOfLongHMetrics - 1))..]);
-
-                leftSideBearing = ReadInt16(info.data.Span[
-                    (info.hmtx + 4 * numOfLongHMetrics + 2 * (glyphIndex - numOfLongHMetrics))..]);
+                advanceWidth = ReadInt16(data[(hmtx + 4 * (numOfLongHMetrics - 1))..]);
+                leftSideBearing = ReadInt16(data[(hmtx + 4 * numOfLongHMetrics + 2 * (glyphIndex - numOfLongHMetrics))..]);
             }
         }
 
@@ -143,10 +156,10 @@ namespace StbSharp
         {
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
-            if (info.kern == 0)
+            if (info.kern == null)
                 return null;
 
-            var data = info.data.Span[info.kern..];
+            ReadOnlySpan<byte> data = info.data.Span[info.kern.GetValueOrDefault()..];
             if (ReadUInt16(data[2..]) < 1)
                 return null;
             if (ReadUInt16(data[8..]) != 1)
@@ -282,10 +295,10 @@ namespace StbSharp
         {
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
-            if (info.gpos == 0)
+            if (info.gpos == null)
                 return null;
 
-            var data = info.data.Span[info.gpos..];
+            ReadOnlySpan<byte> data = info.data.Span[info.gpos.GetValueOrDefault()..];
             if (ReadUInt16(data) != 1)
                 return null;
             if (ReadUInt16(data[2..]) != 0)

@@ -35,7 +35,6 @@ namespace StbSharp
                 return Data.Span[Cursor++];
             }
 
-            [CLSCompliant(false)]
             public uint Get(int n)
             {
                 uint v = 0;

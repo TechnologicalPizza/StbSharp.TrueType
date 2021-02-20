@@ -155,20 +155,25 @@ namespace StbSharp
                         r.h -= pad;
 
                         var pixelSlice = pixels[(r.x + r.y * context.stride_in_bytes)..];
-                        MakeGlyphBitmapSubpixel(
-                            info, pixelSlice,
-                            r.w - context.oversample.X + 1, r.h - context.oversample.Y + 1, context.stride_in_bytes,
-                            scale * context.oversample, Vector2.Zero, IntPoint.Zero, glyph);
+                        var glyphBmp = new Bitmap(
+                            pixelSlice,
+                            r.w - context.oversample.X + 1,
+                            r.h - context.oversample.Y + 1,
+                            context.stride_in_bytes);
 
+                        MakeGlyphBitmap(
+                            info, glyphBmp, scale * context.oversample, Vector2.Zero, IntPoint.Zero, glyph);
+
+                        var filterBmp = new Bitmap(pixelSlice, r.w, r.h, context.stride_in_bytes);
                         if (context.oversample.X > 1)
-                            HorizontalPrefilter(pixelSlice, r.w, r.h, context.stride_in_bytes, context.oversample.X);
+                            HorizontalPrefilter(filterBmp, context.oversample.X);
                         if (context.oversample.Y > 1)
-                            VerticalPrefilter(pixelSlice, r.w, r.h, context.stride_in_bytes, context.oversample.Y);
+                            VerticalPrefilter(filterBmp, context.oversample.Y);
 
-                        charData[j].x0 = (ushort)(short)r.x;
-                        charData[j].y0 = (ushort)(short)r.y;
-                        charData[j].x1 = (ushort)(short)(r.x + r.w);
-                        charData[j].y1 = (ushort)(short)(r.y + r.h);
+                        charData[j].x0 = (ushort)r.x;
+                        charData[j].y0 = (ushort)r.y;
+                        charData[j].x1 = (ushort)(r.x + r.w);
+                        charData[j].y1 = (ushort)(r.y + r.h);
 
                         GetGlyphHMetrics(info, glyph, out int advance, out _);
                         GetGlyphBitmapBox(
@@ -273,7 +278,7 @@ namespace StbSharp
             }
 
             var info = new FontInfo();
-            if (!InitFont(info, fontData, GetFontOffset(fontData.Span, 0)))
+            if (!InitFont(info, fontData[GetFontOffset(fontData.Span)..]))
                 return false;
 
             var rectBuffer = new RPRect[count];
@@ -304,12 +309,11 @@ namespace StbSharp
         }
 
         public static void GetScaledFontVMetrics(
-            ReadOnlyMemory<byte> fontData, int index, float size,
+            ReadOnlyMemory<byte> fontData, float size,
             out float ascent, out float descent, out float lineGap)
         {
             var info = new FontInfo();
-            InitFont(info, fontData, GetFontOffset(fontData.Span, index));
-
+            InitFont(info, fontData[GetFontOffset(fontData.Span)..]);
             float scale = size > 0
                 ? ScaleForPixelHeight(info, size)
                 : ScaleForMappingEmToPixels(info, -size);
