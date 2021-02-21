@@ -104,6 +104,7 @@ namespace StbSharp
         public static bool PackFontRangesRenderIntoRects(
             PackContext context,
             FontInfo info,
+            float pixelFlatness,
             Span<byte> pixels,
             ReadOnlySpan<PackRange> ranges,
             Span<RPRect> rects)
@@ -162,7 +163,7 @@ namespace StbSharp
                             context.stride_in_bytes);
 
                         MakeGlyphBitmap(
-                            info, glyphBmp, scale * context.oversample, Vector2.Zero, IntPoint.Zero, glyph);
+                            info, glyphBmp, pixelFlatness, scale * context.oversample, Vector2.Zero, IntPoint.Zero, glyph);
 
                         var filterBmp = new Bitmap(pixelSlice, r.w, r.h, context.stride_in_bytes);
                         if (context.oversample.X > 1)
@@ -260,6 +261,7 @@ namespace StbSharp
 
         public static bool PackFontRanges(
             PackContext context,
+            float pixelFlatness,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontData,
             Span<PackRange> ranges)
@@ -287,13 +289,14 @@ namespace StbSharp
             rects = rects.Slice(0, packedCount);
 
             context.pack_info.PackRects(rects);
-            return PackFontRangesRenderIntoRects(context, info, pixels, ranges, rects);
+            return PackFontRangesRenderIntoRects(context, info, pixelFlatness, pixels, ranges, rects);
         }
 
         public static bool PackFontRange(
             PackContext context,
             Span<byte> pixels,
             ReadOnlyMemory<byte> fontdata,
+            float pixelFlatness,
             float fontSize,
             int firstUnicodeCodepointInRange,
             Memory<PackedChar> chardataForRange)
@@ -304,8 +307,7 @@ namespace StbSharp
             range.chardata_for_range = chardataForRange;
             range.font_size = fontSize;
 
-            // todo: remove this array alloc
-            return PackFontRanges(context, pixels, fontdata, new PackRange[] { range });
+            return PackFontRanges(context, pixelFlatness, pixels, fontdata, new PackRange[] { range });
         }
 
         public static void GetScaledFontVMetrics(
