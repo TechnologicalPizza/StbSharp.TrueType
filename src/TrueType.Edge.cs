@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace StbSharp
@@ -60,11 +59,10 @@ namespace StbSharp
                 if ((x0 >= fx1) && (x1 >= fx1))
                     return 0;
 
-                return edir * (y1 - y0) * MathF.FusedMultiplyAdd(x0 - (x1 - x) + x, -0.5f, 1);
+                return edir * (y1 - y0) * MathF.FusedMultiplyAdd(x0 - x + (x1 - x), -0.5f, 1);
             }
         }
 
-        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void FillActiveEdges(
             ref float scanline, ref float scanlineFill, int scanlineLength,
@@ -91,12 +89,12 @@ namespace StbSharp
                             int x = (int)x0;
                             ref float sc = ref Unsafe.Add(ref scanline, x);
                             ref float scf = ref Unsafe.Add(ref scanlineFill, x + 1);
-                            sc += HandleClippedEdge(x0, edir, eey, esy, x0, yTop, x0, yBottom);
-                            scf += HandleClippedEdge(x0 + 1, edir, eey, esy, x0, yTop, x0, yBottom);
+                            sc += HandleClippedEdge(x, edir, eey, esy, x0, yTop, x0, yBottom);
+                            scf += HandleClippedEdge(x + 1, edir, eey, esy, x0, yTop, x0, yBottom);
                         }
                         else
                         {
-                            scanlineFill += edir * HandleClippedEdge(0, edir, eey, esy, x0, yTop, x0, yBottom);
+                            scanlineFill += HandleClippedEdge(0, edir, eey, esy, x0, yTop, x0, yBottom);
                         }
                     }
                 }

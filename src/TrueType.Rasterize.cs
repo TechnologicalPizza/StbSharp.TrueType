@@ -186,8 +186,9 @@ namespace StbSharp
                     FillActiveEdges(ref scanline[0], ref scanline_fill[0], scanline.Length, active, scan_y_top);
 
                 // TODO: output pixel rows instead
-                Span<byte> pixel_row = result.Pixels[
-                    ((bmpY + pixelOffset.Y) * result.ByteStride + pixelOffset.X)..];
+                Span<byte> pixel_row = result.Pixels.Slice(
+                    ((bmpY + pixelOffset.Y) * result.ByteStride + pixelOffset.X),
+                    scanline.Length);
 
                 // TODO: vectorize?
                 float sum = 0f;
@@ -196,7 +197,7 @@ namespace StbSharp
                     sum += scanline_fill[x];
                     float k = scanline[x] + sum;
                     k = Math.Abs(k) * byte.MaxValue;
-                    pixel_row[x] = k > 255 ? (byte)255 : (byte)k;
+                    pixel_row[x] = k > 255 ? 255 : (byte)k;
                 }
 
                 step = active;
