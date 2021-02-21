@@ -33,7 +33,7 @@ namespace StbSharp
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float CubeRoot(float x)
         {
-            if (float.IsNegative(x))
+            if (x < 0)
                 return -MathF.Pow(-x, 1 / 3f);
             else
                 return MathF.Pow(x, 1 / 3f);
