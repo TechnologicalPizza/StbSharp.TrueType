@@ -1,9 +1,47 @@
 ﻿using System;
+using System.Numerics;
 
 namespace StbSharp
 {
     public partial class TrueType
     {
+        public static bool CalculateGlyphBox(FontInfo info, int glyphIndex, out Rect glyphBox, float pixelFlatness = 0.35f)
+        {
+            int vcount = GetGlyphShape(info, glyphIndex, out Vertex[]? vertexArray);
+
+            Vector2[]? windings = FlattenCurves(
+                vertexArray.AsSpan(0, vcount), pixelFlatness,
+                out int[]? winding_lengths, out int winding_count);
+
+            float minX = float.MaxValue;
+            float maxX = float.MinValue;
+            float minY = float.MaxValue;
+            float maxY = float.MinValue;
+
+            if (windings == null)
+            {
+                glyphBox = default;
+                return false;
+            }
+
+            for (int i = 0; i < windings.Length; i++)
+            {
+                Vector2 point = windings[i];
+                if (point.X < minX)
+                    minX = point.X;
+                if (point.X > maxX)
+                    maxX = point.X;
+
+                if (point.Y < minY)
+                    minY = point.Y;
+                if (point.Y > maxY)
+                    maxY = point.Y;
+            }
+
+            glyphBox = Rect.FromEdgePoints(minX, minY, maxX, maxY);
+            return true;
+        }
+
         public static bool GetGlyphBox(
             FontInfo info, int glyphIndex, out Rect glyphBox)
         {
@@ -19,7 +57,7 @@ namespace StbSharp
                 int g = GetGlyphOffset(info, glyphIndex);
                 if (g < 0)
                 {
-                    glyphBox = Rect.Zero;
+                    glyphBox = default;
                     return false;
                 }
 
@@ -37,6 +75,8 @@ namespace StbSharp
         {
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
+
+            return 37;
 
             if (glyphIndex >= info.numGlyphs)
                 return -1;

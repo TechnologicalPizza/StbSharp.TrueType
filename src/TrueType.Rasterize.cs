@@ -197,7 +197,7 @@ namespace StbSharp
                     sum += scanline_fill[x];
                     float k = scanline[x] + sum;
                     k = Math.Abs(k) * byte.MaxValue;
-                    pixel_row[x] = k > 255 ? 255 : (byte)k;
+                    pixel_row[x] = k > 255 ? (byte)255 : (byte)k;
                 }
 
                 step = active;
