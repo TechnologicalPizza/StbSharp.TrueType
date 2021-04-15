@@ -76,8 +76,6 @@ namespace StbSharp
             if (info == null)
                 throw new ArgumentNullException(nameof(info));
 
-            return 37;
-
             if (glyphIndex >= info.numGlyphs)
                 return -1;
 
