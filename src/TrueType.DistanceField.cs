@@ -24,7 +24,7 @@ namespace StbSharp
             }
 
             GetGlyphBitmapBoxSubpixel(
-                info, glyph, scale, Vector2.Zero, out var glyphBox);
+                info, glyph, scale, Vector2.Zero, out IntRect glyphBox);
 
             if (glyphBox.W == 0 || glyphBox.Y == 0)
                 return null;
@@ -49,20 +49,20 @@ namespace StbSharp
             for (int i = 0, j = vertices.Length - 1; i < vertices.Length; j = i++)
             {
                 ref readonly Vertex vertex = ref vertices[i];
-                if (vertex.type == VertexType.Line)
+                if (vertex.Type == VertexType.Line)
                 {
                     ref readonly Vertex jvertex = ref vertices[j];
-                    Vector2 v0 = new Vector2(vertex.X, vertex.Y) * scale;
-                    Vector2 v1 = new Vector2(jvertex.X, jvertex.Y) * scale;
+                    Vector2 v0 = vertex.P * scale;
+                    Vector2 v1 = jvertex.P * scale;
                     float dist = Vector2.Distance(v0, v1);
                     precompute[i] = (dist == 0) ? 0f : 1f / dist;
                 }
-                else if (vertex.type == VertexType.Curve)
+                else if (vertex.Type == VertexType.Curve)
                 {
                     ref readonly Vertex jvertex = ref vertices[j];
-                    var pos2 = new Vector2(jvertex.X, jvertex.Y) * scale;
-                    var pos1 = new Vector2(vertex.cx, vertex.cy) * scale;
-                    var pos0 = new Vector2(vertex.X, vertex.Y) * scale;
+                    Vector2 pos2 = jvertex.P * scale;
+                    Vector2 pos1 = vertex.C0 * scale;
+                    Vector2 pos0 = vertex.P * scale;
 
                     Vector2 b = pos0 - pos1 * 2 + pos2;
                     float len2 = b.LengthSquared();
@@ -76,44 +76,38 @@ namespace StbSharp
                     precompute[i] = 0f;
                 }
             }
-
-            byte[] pixels = new byte[glyphBox.W * glyphBox.H];
-
-            Span<float> res = stackalloc float[3];
             precompute = precompute.Slice(0, vertices.Length);
 
-            IntPoint glyphBr = glyphBox.BottomRight;
-            for (int y = glyphBox.Y; y < glyphBr.Y; ++y)
+            byte[] pixels = new byte[glyphBox.W * glyphBox.H];
+            Span<float> res = stackalloc float[3];
+
+            for (int y = 0; y < glyphBox.H; y++)
             {
-                for (int x = glyphBox.X; x < glyphBr.X; ++x)
+                Span<byte> pixelSpan = pixels.AsSpan(y * glyphBox.W, glyphBox.W);
+                for (int x = 0; x < pixelSpan.Length; x++)
                 {
                     float val = 0;
                     float min_dist = 999999f;
-                    Vector2 s = new Vector2(x + 0.5f, y + 0.5f);
+                    Vector2 s = new(x + glyphBox.X + 0.5f, y + glyphBox.Y + 0.5f);
                     Vector2 gspace = s / scale;
                     int winding = ComputeCrossingsX(gspace, vertices);
-
-                    float sx = s.X;
-                    float sy = s.Y;
 
                     for (int i = 0; i < vertices.Length; i++)
                     {
                         ref readonly Vertex vertex = ref vertices[i];
 
-                        Vector2 v0 = new Vector2(vertex.X, vertex.Y) * scale;
-                        float x0 = v0.X;
-                        float y0 = v0.Y;
-
+                        Vector2 v0 = vertex.P * scale;
+                        
                         float dist2 = Vector2.DistanceSquared(v0, s);
                         if (dist2 < (min_dist * min_dist))
                             min_dist = MathF.Sqrt(dist2);
 
-                        if (vertex.type == VertexType.Line)
+                        if (vertex.Type == VertexType.Line)
                         {
                             ref readonly Vertex pvertex = ref vertices[i - 1];
-                            Vector2 k = new Vector2(pvertex.X, pvertex.Y) * scale;
+                            Vector2 k = pvertex.P * scale;
                             float dist = Math.Abs(
-                                (k.X - x0) * (y0 - sy) - (k.Y - y0) * (x0 - sx)) * precompute[i];
+                                (k.X - v0.X) * (v0.Y - s.Y) - (k.Y - v0.Y) * (v0.X - s.X)) * precompute[i];
 
                             if (dist < min_dist)
                             {
@@ -125,33 +119,31 @@ namespace StbSharp
                                     min_dist = dist;
                             }
                         }
-                        else if (vertex.type == VertexType.Curve)
+                        else if (vertex.Type == VertexType.Curve)
                         {
                             ref readonly Vertex pvertex = ref vertices[i - 1];
-                            Vector2 v2 = new Vector2(pvertex.X, pvertex.Y) * scale;
-                            Vector2 v1 = new Vector2(vertex.cx, vertex.cy) * scale;
-                            float x2 = pvertex.X * scale.X;
-                            float y2 = pvertex.Y * scale.Y;
-                            float x1 = vertex.cx * scale.X;
-                            float y1 = vertex.cy * scale.Y;
+                            Vector2 v2 = pvertex.P * scale;
+                            Vector2 v1 = vertex.C0 * scale;
+                            Vector2 b2 = pvertex.P * scale;
+                            Vector2 b1 = vertex.C0 * scale;
 
-                            float box_x0 = (x0 < x1 ? x0 : x1) < x2
-                                ? (x0 < x1 ? x0 : x1)
-                                : x2;
-                            float box_y0 = (y0 < y1 ? y0 : y1) < y2
-                                ? (y0 < y1 ? y0 : y1)
-                                : y2;
-                            float box_x1 = (x0 < x1 ? x1 : x0) < x2
-                                ? x2
-                                : (x0 < x1 ? x1 : x0);
-                            float box_y1 = (y0 < y1 ? y1 : y0) < y2
-                                ? y2
-                                : (y0 < y1 ? y1 : y0);
+                            float box_x0 = (v0.X < b1.X ? v0.X : b1.X) < b2.X
+                                ? (v0.X < b1.X ? v0.X : b1.X)
+                                : b2.X;
+                            float box_y0 = (v0.Y < b1.Y ? v0.Y : b1.Y) < b2.Y
+                                ? (v0.Y < b1.Y ? v0.Y : b1.Y)
+                                : b2.Y;
+                            float box_x1 = (v0.X < b1.X ? b1.X : v0.X) < b2.X
+                                ? b2.X
+                                : (v0.X < b1.X ? b1.X : v0.X);
+                            float box_y1 = (v0.Y < b1.Y ? b1.Y : v0.Y) < b2.Y
+                                ? b2.Y
+                                : (v0.Y < b1.Y ? b1.Y : v0.Y);
 
-                            if (sx > (box_x0 - min_dist) &&
-                                sx < (box_x1 + min_dist) &&
-                                sy > (box_y0 - min_dist) &&
-                                sy < (box_y1 + min_dist))
+                            if (s.X > (box_x0 - min_dist) &&
+                                s.X < (box_x1 + min_dist) &&
+                                s.Y > (box_y0 - min_dist) &&
+                                s.Y < (box_y1 + min_dist))
                             {
                                 int num = 0;
                                 Vector2 va = v1 - v0;
@@ -197,9 +189,7 @@ namespace StbSharp
                                 if ((num >= 1) && (t >= 0f) && (t <= 1f))
                                 {
                                     it = 1f - t;
-                                    Vector2 vp;
-                                    vp.X = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    vp.Y = it * it * y0 + 2 * t * it * y1 + t * t * y2;
+                                    Vector2 vp = it * it * v0 + 2 * t * it * b1 + t * t * b2;
                                     dist2 = Vector2.DistanceSquared(vp, s);
 
                                     if (dist2 < (min_dist * min_dist))
@@ -210,9 +200,7 @@ namespace StbSharp
                                 if ((num >= 2) && (t >= 0f) && (t <= 1f))
                                 {
                                     it = 1f - t;
-                                    Vector2 vp;
-                                    vp.X = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    vp.Y = it * it * y0 + 2 * t * it * y1 + t * t * y2;
+                                    Vector2 vp = it * it * v0 + 2 * t * it * b1 + t * t * b2;
                                     dist2 = Vector2.DistanceSquared(vp, s);
 
                                     if (dist2 < (min_dist * min_dist))
@@ -223,9 +211,7 @@ namespace StbSharp
                                 if ((num >= 3) && (t >= 0f) && (t <= 1f))
                                 {
                                     it = 1f - t;
-                                    Vector2 vp;
-                                    vp.X = it * it * x0 + 2 * t * it * x1 + t * t * x2;
-                                    vp.Y = it * it * y0 + 2 * t * it * y1 + t * t * y2;
+                                    Vector2 vp = it * it * v0 + 2 * t * it * b1 + t * t * b2;
                                     dist2 = Vector2.DistanceSquared(vp, s);
 
                                     if (dist2 < (min_dist * min_dist))
@@ -242,7 +228,8 @@ namespace StbSharp
                         val = 0f;
                     else if (val > 255)
                         val = 255;
-                    pixels[(y - glyphBox.Y) * glyphBox.W + (x - glyphBox.X)] = (byte)val;
+
+                    pixelSpan[x] = (byte)val;
                 }
             }
 

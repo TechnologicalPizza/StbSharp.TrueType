@@ -199,7 +199,7 @@ namespace StbSharp
             public int NameID { get; private set; }
             public Range Range { get; private set; }
 
-            public FontName Current => new FontName(PlatformID, EncodingID, LanguageID, NameID, FontData[Range]);
+            public FontName Current => new(PlatformID, EncodingID, LanguageID, NameID, FontData[Range]);
             object IEnumerator.Current => Current;
 
             public FontNameEnumerator(ReadOnlyMemory<byte> fontData) : this()

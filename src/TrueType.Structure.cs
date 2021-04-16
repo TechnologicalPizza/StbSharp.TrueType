@@ -95,22 +95,28 @@ namespace StbSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct Vertex
         {
-            public short X;
-            public short Y;
-            public short cx;
-            public short cy;
-            public short cx1;
-            public short cy1;
-            public VertexType type;
-            public byte padding;
+            public Vector2 P;
+            public Vector2 C0;
+            public Vector2 C1;
+            public VertexType Type;
+            private byte _padding;
 
             public void Set(VertexType type, int x, int y, int cx, int cy)
             {
-                X = (short)x;
-                Y = (short)y;
-                this.cx = (short)cx;
-                this.cy = (short)cy;
-                this.type = type;
+                P.X = x;
+                P.Y = y;
+                C0.X = cx;
+                C0.Y = cy;
+                Type = type;
+            }
+
+            public void Set(VertexType type, float x, float y, float cx, float cy)
+            {
+                P.X = (int)x;
+                P.Y = (int)y;
+                C0.X = (int)cx;
+                C0.Y = (int)cy;
+                Type = type;
             }
         }
 
@@ -162,7 +168,7 @@ namespace StbSharp
 
             public IntPoint Position
             {
-                readonly get => new IntPoint(X, Y);
+                readonly get => new(X, Y);
                 set
                 {
                     X = value.X;
@@ -170,7 +176,7 @@ namespace StbSharp
                 }
             }
 
-            public IntPoint BottomRight => new IntPoint(X + W, Y + H);
+            public IntPoint BottomRight => new(X + W, Y + H);
 
             public IntRect(int x, int y, int w, int h)
             {
@@ -207,7 +213,7 @@ namespace StbSharp
 
             public Vector2 Position
             {
-                readonly get => new Vector2(X, Y);
+                readonly get => new(X, Y);
                 set
                 {
                     X = value.X;
@@ -215,7 +221,7 @@ namespace StbSharp
                 }
             }
 
-            public Vector2 BottomRight => new Vector2(X + W, Y + H);
+            public Vector2 BottomRight => new(X + W, Y + H);
 
             public Rect(float x, float y, float w, float h)
             {

@@ -45,7 +45,7 @@ namespace StbSharp
             float p3 = p * p * p;
             float q = a * (2 * a * a - 9 * b) / 27 + c;
             float d = q * q + 4 * p3 / 27;
-            float s = -a / 3;
+            float s = a / -3;
 
             if (d >= 0)
             {
@@ -62,7 +62,7 @@ namespace StbSharp
             }
             else
             {
-                float u = MathF.Sqrt(-p / 3);
+                float u = MathF.Sqrt(p / -3);
                 float v = MathF.Acos(-MathF.Sqrt(-27 / p3) * q / 2) / 3;
                 float m = MathF.Cos(v);
                 float n = MathF.Cos(v - MathF.PI / 2) * 1.732050808f;

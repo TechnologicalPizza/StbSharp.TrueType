@@ -56,9 +56,10 @@ namespace StbSharp
                 }
                 else
                 {
-                    pvertices[num_vertices].Set(type, x, y, cx, cy);
-                    pvertices[num_vertices].cx1 = (short)cx1;
-                    pvertices[num_vertices].cy1 = (short)cy1;
+                    ref Vertex vertex = ref pvertices[num_vertices];
+                    vertex.Set(type, x, y, cx, cy);
+                    vertex.C1.X = cx1;
+                    vertex.C1.Y = cy1;
                 }
 
                 num_vertices++;
@@ -102,14 +103,15 @@ namespace StbSharp
 
         public static int CloseShape(
             Span<Vertex> vertices, ref int numVertices, int wasOff, int startOff,
-            int sx, int sy, int scx, int scy, int cx, int cy)
+            float sx, float sy, float scx, float scy, float cx, float cy)
         {
             if (startOff != 0)
             {
                 if (wasOff != 0)
+                {
                     vertices[numVertices++].Set(
-                        VertexType.Curve, (cx + scx) >> 1, (cy + scy) >> 1, cx, cy);
-
+                        VertexType.Curve, (cx + scx) / 2f, (cy + scy) / 2f, cx, cy);
+                }
                 vertices[numVertices++].Set(VertexType.Curve, sx, sy, scx, scy);
             }
             else

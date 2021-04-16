@@ -13,7 +13,7 @@ namespace StbSharp
             int n = 0;
             for (int i = 0; i < vertices.Length; i++)
             {
-                if (vertices[i].type == VertexType.Move)
+                if (vertices[i].Type == VertexType.Move)
                     n++;
             }
 
@@ -46,21 +46,19 @@ namespace StbSharp
                 for (int i = 0; i < vertices.Length; ++i)
                 {
                     ref readonly Vertex vertex = ref vertices[i];
-                    switch (vertex.type)
+                    switch (vertex.Type)
                     {
                         case VertexType.Move:
                             if (n >= 0)
                                 contourLengths[n] = num_points - start;
                             n++;
                             start = num_points;
-                            pos.X = vertex.X;
-                            pos.Y = vertex.Y;
+                            pos = vertex.P;
                             AddPoint(ref pointDst, num_points++, pos.X, pos.Y);
                             break;
 
                         case VertexType.Line:
-                            pos.X = vertex.X;
-                            pos.Y = vertex.Y;
+                            pos = vertex.P;
                             AddPoint(ref pointDst, num_points++, pos.X, pos.Y);
                             break;
 
@@ -68,23 +66,21 @@ namespace StbSharp
                             TesselateCurve(
                                 ref pointDst, ref num_points,
                                 pos.X, pos.Y,
-                                vertex.cx, vertex.cy,
-                                vertex.X, vertex.Y,
+                                vertex.C0.X, vertex.C0.Y,
+                                vertex.P.X, vertex.P.Y,
                                 objspace_flatness_squared, 0);
-                            pos.X = vertex.X;
-                            pos.Y = vertex.Y;
+                            pos = vertex.P;
                             break;
 
                         case VertexType.Cubic:
                             TesselateCubic(
                                 ref pointDst, ref num_points,
                                 pos.X, pos.Y,
-                                vertex.cx, vertex.cy,
-                                vertex.cx1, vertex.cy1,
-                                vertex.X, vertex.Y,
+                                vertex.C0.X, vertex.C0.Y,
+                                vertex.C1.X, vertex.C1.Y,
+                                vertex.P.X, vertex.P.Y,
                                 objspace_flatness_squared, 0);
-                            pos.X = vertex.X;
-                            pos.Y = vertex.Y;
+                            pos = vertex.P;
                             break;
                     }
                 }
@@ -125,8 +121,8 @@ namespace StbSharp
                 ? stackalloc float[fullScanlineLength]
                 : new float[fullScanlineLength];
 
-            var scanline = scanlineBuffer.Slice(0, result.Width);
-            var scanline_fill = scanlineBuffer.Slice(scanline.Length, result.Width + 1);
+            ref float scanlineRef = ref scanlineBuffer[0];
+            ref float scanlineFillRef = ref scanlineBuffer[result.Width];
 
             float offY = offset.Y;
             e[n].p0.Y = offset.Y + result.Height + 1;
@@ -183,19 +179,19 @@ namespace StbSharp
                 e = e[ie..];
 
                 if (active != null)
-                    FillActiveEdges(ref scanline[0], ref scanline_fill[0], scanline.Length, active, scan_y_top);
+                    FillActiveEdges(ref scanlineRef, ref scanlineFillRef, result.Width, active, scan_y_top);
 
                 // TODO: output pixel rows instead
                 Span<byte> pixel_row = result.Pixels.Slice(
                     ((bmpY + pixelOffset.Y) * result.ByteStride + pixelOffset.X),
-                    scanline.Length);
+                    result.Width);
 
                 // TODO: vectorize?
                 float sum = 0f;
-                for (int x = 0; x < scanline.Length; x++)
+                for (int x = 0; x < result.Width; x++)
                 {
-                    sum += scanline_fill[x];
-                    float k = scanline[x] + sum;
+                    sum += Unsafe.Add(ref scanlineFillRef, x);
+                    float k = Unsafe.Add(ref scanlineRef, x) + sum;
                     k = Math.Abs(k) * byte.MaxValue;
                     pixel_row[x] = k > 255 ? (byte)255 : (byte)k;
                 }

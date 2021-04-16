@@ -28,25 +28,24 @@ namespace StbSharp
                 vertices = new Vertex[m];
 
                 byte flags = 0;
-                int i = 0;
                 int j = 0;
                 int was_off = 0;
                 int start_off = 0;
-                int x = 0;
-                int y = 0;
-                int cx = 0;
-                int cy = 0;
-                int sx = 0;
-                int sy = 0;
-                int scx = 0;
-                int scy = 0;
+                float x = 0;
+                float y = 0;
+                float cx = 0;
+                float cy = 0;
+                float sx = 0;
+                float sy = 0;
+                float scx = 0;
+                float scy = 0;
                 int next_move = 0;
                 int flagcount = 0;
                 int off = m - n;
-                var offVertices = vertices.AsSpan(off);
-                var points = data[(g + 10 + numberOfContours * 2 + 2 + ins)..];
+                Span<Vertex> offVertices = vertices.AsSpan(off, n);
+                ReadOnlySpan<byte> points = data[(g + 10 + numberOfContours * 2 + 2 + ins)..];
 
-                for (i = 0; i < n; ++i)
+                for (int i = 0; i < offVertices.Length; ++i)
                 {
                     if (flagcount == 0)
                     {
@@ -62,13 +61,13 @@ namespace StbSharp
                     else
                         --flagcount;
 
-                    offVertices[i].type = (VertexType)flags;
+                    offVertices[i].Type = (VertexType)flags;
                 }
 
                 x = 0;
-                for (i = 0; i < n; ++i)
+                for (int i = 0; i < offVertices.Length; i++)
                 {
-                    flags = (byte)offVertices[i].type;
+                    flags = (byte)offVertices[i].Type;
                     if ((flags & 2) != 0)
                     {
                         short dx = points[0];
@@ -84,13 +83,13 @@ namespace StbSharp
                         }
                     }
 
-                    offVertices[i].X = (short)x;
+                    offVertices[i].P.X = (short)x;
                 }
 
                 y = 0;
-                for (i = 0; i < n; ++i)
+                for (int i = 0; i < offVertices.Length; i++)
                 {
-                    flags = (byte)offVertices[i].type;
+                    flags = (byte)offVertices[i].Type;
                     if ((flags & 4) != 0)
                     {
                         short dy = points[0];
@@ -106,16 +105,16 @@ namespace StbSharp
                         }
                     }
 
-                    offVertices[i].Y = (short)y;
+                    offVertices[i].P.Y = y;
                 }
 
                 numVertices = 0;
                 sx = sy = cx = cy = scx = scy = 0;
-                for (i = 0; i < n; i++)
+                for (int i = 0; i < offVertices.Length; i++)
                 {
-                    flags = (byte)offVertices[i].type;
-                    x = offVertices[i].X;
-                    y = offVertices[i].Y;
+                    flags = (byte)offVertices[i].Type;
+                    x = offVertices[i].P.X;
+                    y = offVertices[i].P.Y;
                     if (next_move == i)
                     {
                         if (i != 0)
@@ -130,15 +129,15 @@ namespace StbSharp
                         {
                             scx = x;
                             scy = y;
-                            if (((int)offVertices[i + 1].type & 1) == 0)
+                            if (((int)offVertices[i + 1].Type & 1) == 0)
                             {
-                                sx = (x + offVertices[i + 1].X) >> 1;
-                                sy = (y + offVertices[i + 1].Y) >> 1;
+                                sx = (x + offVertices[i + 1].P.X) / 2f;
+                                sy = (y + offVertices[i + 1].P.Y) / 2f;
                             }
                             else
                             {
-                                sx = offVertices[i + 1].X;
-                                sy = offVertices[i + 1].Y;
+                                sx = offVertices[i + 1].P.X;
+                                sy = offVertices[i + 1].P.Y;
                                 ++i;
                             }
                         }
@@ -158,9 +157,10 @@ namespace StbSharp
                         if ((flags & 1) == 0)
                         {
                             if (was_off != 0)
+                            {
                                 vertices[numVertices++].Set(
-                                    VertexType.Curve, (cx + x) >> 1, (cy + y) >> 1, cx, cy);
-
+                                    VertexType.Curve, (cx + x) / 2f, (cy + y) / 2f, cx, cy);
+                            }
                             cx = x;
                             cy = y;
                             was_off = 1;
@@ -190,7 +190,6 @@ namespace StbSharp
 
                 while (more != 0)
                 {
-                    int i = 0;
                     matrix[0] = 1;
                     matrix[1] = 0f;
                     matrix[2] = 0f;
@@ -257,27 +256,27 @@ namespace StbSharp
                     if (compVerts.Length > 0)
                     {
                         // TODO: optimize/vectorize this?
-                        for (i = 0; i < compVerts.Length; ++i)
+                        for (int i = 0; i < compVerts.Length; ++i)
                         {
                             ref Vertex v = ref compVerts[i];
 
-                            short x = v.X;
-                            short y = v.Y;
-                            v.X = (short)(m * (matrix[0] * x + matrix[2] * y + matrix[4]));
-                            v.Y = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
+                            float x = v.P.X;
+                            float y = v.P.Y;
+                            v.P.X = (m * (matrix[0] * x + matrix[2] * y + matrix[4]));
+                            v.P.Y = (n * (matrix[1] * x + matrix[3] * y + matrix[5]));
 
-                            x = v.cx;
-                            y = v.cy;
-                            v.cx = (short)(m * (matrix[0] * x + matrix[2] * y + matrix[4]));
-                            v.cy = (short)(n * (matrix[1] * x + matrix[3] * y + matrix[5]));
+                            x = v.C0.X;
+                            y = v.C0.Y;
+                            v.C0.X = (m * (matrix[0] * x + matrix[2] * y + matrix[4]));
+                            v.C0.Y = (n * (matrix[1] * x + matrix[3] * y + matrix[5]));
                         }
 
-                        var tmp = new Vertex[numVertices + compVerts.Length];
+                        Vertex[] resultVertices = new Vertex[numVertices + compVerts.Length];
 
-                        vertices.AsSpan(0, numVertices).CopyTo(tmp);
-                        compVerts.CopyTo(tmp.AsSpan(numVertices));
+                        vertices.AsSpan(0, numVertices).CopyTo(resultVertices);
+                        compVerts.CopyTo(resultVertices.AsSpan(numVertices));
 
-                        vertices = tmp;
+                        vertices = resultVertices;
                         numVertices += compVerts.Length;
                     }
 
