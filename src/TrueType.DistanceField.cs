@@ -31,8 +31,8 @@ namespace StbSharp
 
             glyphBox.X -= padding;
             glyphBox.Y -= padding;
-            glyphBox.W += padding;
-            glyphBox.H += padding;
+            glyphBox.W += padding * 2;
+            glyphBox.H += padding * 2;
             width = glyphBox.W;
             height = glyphBox.H;
             offset = glyphBox.Position;
@@ -41,10 +41,13 @@ namespace StbSharp
             int num_verts = GetGlyphShape(info, glyph, out Vertex[]? vertexArray);
             Span<Vertex> vertices = vertexArray.AsSpan(0, num_verts);
 
-            int precomputeSize = num_verts * sizeof(float);
-            Span<float> precompute = precomputeSize > 4096
-                ? new float[precomputeSize]
-                : stackalloc float[precomputeSize];
+            // distance from singular values (in the same units as the pixel grid)
+            const float eps = 1 / 1024f;
+            const float eps2 = eps * eps;
+
+            Span<float> precompute = vertices.Length > 1024
+                ? new float[vertices.Length]
+                : stackalloc float[vertices.Length];
 
             for (int i = 0, j = vertices.Length - 1; i < vertices.Length; j = i++)
             {
@@ -55,7 +58,7 @@ namespace StbSharp
                     Vector2 v0 = vertex.P * scale;
                     Vector2 v1 = jvertex.P * scale;
                     float dist = Vector2.Distance(v0, v1);
-                    precompute[i] = (dist == 0) ? 0f : 1f / dist;
+                    precompute[i] = (dist < eps) ? 0f : 1f / dist;
                 }
                 else if (vertex.Type == VertexType.Curve)
                 {
@@ -66,7 +69,7 @@ namespace StbSharp
 
                     Vector2 b = pos0 - pos1 * 2 + pos2;
                     float len2 = b.LengthSquared();
-                    if (len2 != 0f)
+                    if (len2 >= eps2)
                         precompute[i] = 1f / len2;
                     else
                         precompute[i] = 0f;
@@ -76,7 +79,6 @@ namespace StbSharp
                     precompute[i] = 0f;
                 }
             }
-            precompute = precompute.Slice(0, vertices.Length);
 
             byte[] pixels = new byte[glyphBox.W * glyphBox.H];
             Span<float> res = stackalloc float[3];
@@ -158,9 +160,9 @@ namespace StbSharp
                                     float a = 3 * Vector2.Dot(va, vb);
                                     float b = 2 * Vector2.Dot(va, va) + Vector2.Dot(vm, vb);
                                     float c = Vector2.Dot(vm, va);
-                                    if (a == 0)
+                                    if (MathF.Abs(a) < eps2)
                                     {
-                                        if (b != 0)
+                                        if (MathF.Abs(b) >= eps2)
                                             res[num++] = -c / b;
                                     }
                                     else

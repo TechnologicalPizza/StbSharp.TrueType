@@ -39,14 +39,14 @@ namespace StbSharp
             }
             else if (format == 4)
             {
+                if (unicodeCodepoint > 0xffff)
+                    return default;
                 ushort segcount = (ushort)(ReadUInt16(data[(index_map + 6)..]) >> 1);
                 ushort searchRange = (ushort)(ReadUInt16(data[(index_map + 8)..]) >> 1);
                 ushort entrySelector = ReadUInt16(data[(index_map + 10)..]);
                 ushort rangeShift = (ushort)(ReadUInt16(data[(index_map + 12)..]) >> 1);
                 int endCount = index_map + 14;
                 int search = endCount;
-                if (unicodeCodepoint > 0xffff)
-                    return default;
                 if (unicodeCodepoint >= ReadUInt16(data[(search + rangeShift * 2)..]))
                     search += rangeShift * 2;
                 search -= 2;
@@ -71,6 +71,7 @@ namespace StbSharp
                     return (ushort)(unicodeCodepoint + ReadInt16(
                         data[(index_map + 14 + segcount * 4 + 2 + 2 * item)..]));
                 }
+
                 return ReadUInt16(data[
                     (offset + (unicodeCodepoint - start) * 2 + index_map + 14 + segcount * 6 + 2 + 2 * item)..]);
             }
@@ -108,7 +109,7 @@ namespace StbSharp
         public static int? FindTable(ReadOnlySpan<byte> data, ReadOnlySpan<char> tag)
         {
             if (tag.Length != 4)
-                throw new ArgumentException("", nameof(tag));
+                throw new ArgumentException("The tag must be 4 characters long.", nameof(tag));
             if (data.Length < 6)
                 return null;
 

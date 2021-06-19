@@ -37,7 +37,7 @@ namespace StbSharp
                 {
                     total += (uint)(span[x] - buffer[x & (8 - 1)]);
                     buffer[(x + kernelWidth) & (8 - 1)] = span[x];
-                    span[x] = (byte)(total / kernelWidth);
+                    span[x] = (byte)(total / (uint)kernelWidth);
                 }
                 return x;
             }
@@ -68,7 +68,7 @@ namespace StbSharp
                 for (; x < bitmap.Width; x++)
                 {
                     total -= buffer[x & (8 - 1)];
-                    pixels[x] = (byte)(total / kernelWidth);
+                    pixels[x] = (byte)(total / (uint)kernelWidth);
                 }
 
                 pixels = pixels[stride..];
@@ -85,9 +85,10 @@ namespace StbSharp
                 int y;
                 for (y = 0; y <= safeHeight; y++)
                 {
-                    total += (uint)(pixels[y * stride] - buffer[y & (8 - 1)]);
-                    buffer[(y + kernelWidth) & (8 - 1)] = pixels[y * stride];
-                    pixels[y * stride] = (byte)(total / kernelWidth);
+                    ref byte p = ref pixels[y * stride];
+                    total += (uint)(p - buffer[y & (8 - 1)]);
+                    buffer[(y + kernelWidth) & (8 - 1)] = p;
+                    p = (byte)(total / (uint)kernelWidth);
                 }
                 return y;
             }
@@ -117,7 +118,7 @@ namespace StbSharp
                 for (; x < bitmap.Height; x++)
                 {
                     total -= buffer[x & (8 - 1)];
-                    pixels[x * stride] = (byte)(total / kernelWidth);
+                    pixels[x * stride] = (byte)(total / (uint)kernelWidth);
                 }
 
                 pixels = pixels[1..];

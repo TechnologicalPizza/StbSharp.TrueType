@@ -7,36 +7,27 @@ namespace StbSharp
     public partial class TrueType
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ushort ReadUInt16(ReadOnlySpan<byte> p)
+        internal static ushort ReadUInt16(ReadOnlySpan<byte> p)
         {
             return BinaryPrimitives.ReadUInt16BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static short ReadInt16(ReadOnlySpan<byte> p)
+        internal static short ReadInt16(ReadOnlySpan<byte> p)
         {
             return BinaryPrimitives.ReadInt16BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint ReadUInt32(ReadOnlySpan<byte> p)
+        internal static uint ReadUInt32(ReadOnlySpan<byte> p)
         {
             return BinaryPrimitives.ReadUInt32BigEndian(p);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int ReadInt32(ReadOnlySpan<byte> p)
+        internal static int ReadInt32(ReadOnlySpan<byte> p)
         {
             return BinaryPrimitives.ReadInt32BigEndian(p);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static float CubeRoot(float x)
-        {
-            if (x < 0)
-                return -MathF.Pow(-x, 1 / 3f);
-            else
-                return MathF.Pow(x, 1 / 3f);
         }
 
         public static int SolveCubic(float a, float b, float c, out float r0, out float r1, out float r2)
@@ -52,8 +43,8 @@ namespace StbSharp
                 float z = MathF.Sqrt(d);
                 float u = (-q + z) / 2;
                 float v = (-q - z) / 2;
-                u = CubeRoot(u);
-                v = CubeRoot(v);
+                u = MathF.Cbrt(u);
+                v = MathF.Cbrt(v);
 
                 r0 = s + u + v;
                 Unsafe.SkipInit(out r1);
