@@ -97,19 +97,20 @@ namespace StbSharp
                     for (int i = 0; i < vertices.Length; i++)
                     {
                         ref readonly Vertex vertex = ref vertices[i];
+                        float a_inv = precompute[i];
 
-                        Vector2 v0 = vertex.P * scale;
-                        
-                        float dist2 = Vector2.DistanceSquared(v0, s);
-                        if (dist2 < (min_dist * min_dist))
-                            min_dist = MathF.Sqrt(dist2);
-
-                        if (vertex.Type == VertexType.Line)
+                        if (vertex.Type == VertexType.Line && a_inv != 0)
                         {
                             ref readonly Vertex pvertex = ref vertices[i - 1];
                             Vector2 k = pvertex.P * scale;
+                            Vector2 v0 = vertex.P * scale;
+
+                            float dist2 = Vector2.DistanceSquared(v0, s);
+                            if (dist2 < (min_dist * min_dist))
+                                min_dist = MathF.Sqrt(dist2);
+
                             float dist = Math.Abs(
-                                (k.X - v0.X) * (v0.Y - s.Y) - (k.Y - v0.Y) * (v0.X - s.X)) * precompute[i];
+                                (k.X - v0.X) * (v0.Y - s.Y) - (k.Y - v0.Y) * (v0.X - s.X)) * a_inv;
 
                             if (dist < min_dist)
                             {
@@ -126,6 +127,7 @@ namespace StbSharp
                             ref readonly Vertex pvertex = ref vertices[i - 1];
                             Vector2 v2 = pvertex.P * scale;
                             Vector2 v1 = vertex.C0 * scale;
+                            Vector2 v0 = vertex.P * scale;
                             Vector2 b2 = pvertex.P * scale;
                             Vector2 b1 = vertex.C0 * scale;
 
@@ -153,7 +155,6 @@ namespace StbSharp
                                 Vector2 vm = v0 - s;
                                 float t = 0;
                                 float it = 0;
-                                float a_inv = precompute[i];
 
                                 if (a_inv == 0)
                                 {
@@ -187,10 +188,14 @@ namespace StbSharp
                                     num = SolveCubic(b, c, d, out res[0], out res[1], out res[2]);
                                 }
 
+                                float dist2 = Vector2.DistanceSquared(v0, s);
+                                if (dist2 < (min_dist * min_dist))
+                                    min_dist = MathF.Sqrt(dist2);
+
                                 t = res[0];
                                 if ((num >= 1) && (t >= 0f) && (t <= 1f))
                                 {
-                                    it = 1f - t;
+                                    it = 1f - t;    
                                     Vector2 vp = it * it * v0 + 2 * t * it * b1 + t * t * b2;
                                     dist2 = Vector2.DistanceSquared(vp, s);
 
