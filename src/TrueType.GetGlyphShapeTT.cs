@@ -119,6 +119,9 @@ namespace StbSharp
                     {
                         if (i != 0)
                         {
+                            if (i == offVertices.Length - 1)
+                                break;
+
                             CloseShape(
                                 vertices, ref numVertices, was_off, start_off,
                                 sx, sy, scx, scy, cx, cy);
